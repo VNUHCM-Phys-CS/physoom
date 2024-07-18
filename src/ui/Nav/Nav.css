@@ -1,0 +1,3 @@
+.navLink {
+    @apply min-w-24 p-2.5 rounded-full text-center font-normal;
+}
