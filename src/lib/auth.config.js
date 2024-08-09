@@ -1,76 +1,32 @@
+import GoogleProvider from "next-auth/providers/google"
+import { MongoDBAdapter } from "@auth/mongodb-adapter";
+import CredentialsProvider from "next-auth/providers/credentials";
 import AzureADProvider from 'next-auth/providers/azure-ad';
 const env = process.env;
 
-async function refreshAccessToken(token) {
-  try {
-    const url = `https://login.microsoftonline.com/${env.NEXT_PUBLIC_AZURE_AD_TENANT_ID}/oauth2/v2.0/token`;
-
-    const body = new URLSearchParams({
-      client_id:
-        process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID || 'azure-ad-client-id',
-      client_secret:
-        process.env.NEXT_PUBLIC_AZURE_AD_CLIENT_SECRET ||
-        'azure-ad-client-secret',
-      scope: 'email openid profile User.Read offline_access',
-      grant_type: 'refresh_token',
-      refresh_token: token.refreshToken,
-    });
-
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      method: 'POST',
-      body,
-    });
-
-    const refreshedTokens = await response.json();
-    if (!response.ok) {
-      throw refreshedTokens;
-    }
-
-    return {
-      ...token,
-      accessToken: refreshedTokens.id_token,
-      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
-    };
-  } catch (error) {
-    return {
-      ...token,
-      error: 'RefreshAccessTokenError',
-    };
-  }
-}
-
-
 export const authConfig = { 
-    session: { strategy: "jwt" },
-    pages: {
+  session: { strategy: "jwt" },
+  pages: {
     signIn: "/login",
   },
-  providers: [],
+  providers: [
+      GoogleProvider({
+        clientId: process.env.NEXT_GOOGLE_ID,
+        clientSecret: process.env.NEXT_GOOGLE_SECRET,
+      }),
+      CredentialsProvider({
+          async authorize(credentials) {
+            try {
+              const user = await login(credentials);
+              return user;
+            } catch (err) {
+              return null;
+            }
+          },
+        })],
+        database: process.env.MONGODB_URI,
   callbacks: {
     // FOR MORE DETAIL ABOUT CALLBACK FUNCTIONS CHECK https://next-auth.js.org/configuration/callbacks
-    async jwt({ token, user, account }) {
-      if (account && user) {
-        // token.id = user.id;
-        // token.isAdmin = user.isAdmin;
-        return {
-          accessToken: account.id_token,
-          accessTokenExpires: account?.expires_at
-            ? account.expires_at * 1000
-            : 0,
-          refreshToken: account.refresh_token,
-          user,
-        };
-      }
-      // if (Date.now() < token.accessTokenExpires - 100000 || 0) {
-      //   return token;
-      // }
-      // return refreshAccessToken(token);
-      return token;
-    },
     authorized({ auth, request }) {
       const user = auth?.user;
       const isOnAdminPanel = request.nextUrl?.pathname.startsWith("/admin");
@@ -78,7 +34,7 @@ export const authConfig = {
       const isOnLoginPage = request.nextUrl?.pathname.startsWith("/login");
 
       // ONLY ADMIN CAN REACH THE ADMIN DASHBOARD
-
+      console.log(isOnAdminPanel,auth)
       if (isOnAdminPanel && !user?.isAdmin) {
         return false;
       }
@@ -97,5 +53,43 @@ export const authConfig = {
 
       return true
     },
+    async signIn({ user, account, profile }) {
+      if (account.provider === "google") {
+        // connectToDb();
+        // try {
+        //   const existingUser = await User.findOne({ email: user.email });
+        //   if (!existingUser) {
+        //     await User.insertOne({
+        //       name: user.email,
+        //       email: user.email,
+        //       isAdmin: false,
+        //     });
+        //   }
+        // } catch (err) {
+        //   console.log(err);
+        //   return false;
+        // }
+      }else 
+      if (account.provider === "github") {
+        connectToDb();
+        try {
+          const user = await User.findOne({ email: profile.email });
+
+          if (!user) {
+            const newUser = new User({
+              username: profile.login,
+              email: profile.email,
+              image: profile.avatar_url,
+            });
+
+            await newUser.save();
+          }
+        } catch (err) {
+          console.log(err);
+          return false;
+        }
+      }
+      return true;
+    }
   },
  }

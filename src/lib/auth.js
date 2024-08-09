@@ -31,91 +31,33 @@ const login = async (credentials) => {
     }
   };
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
-    ...authConfig,
-    providers: [
-      AzureADProvider({
-        clientId: `${env.NEXT_PUBLIC_AZURE_AD_CLIENT_ID}`,
-        clientSecret: `${env.NEXT_PUBLIC_AZURE_AD_CLIENT_SECRET}`,
-        tenantId: `${env.NEXT_PUBLIC_AZURE_AD_TENANT_ID}`,
-        authorization: {
-          params: { scope: 'openid email profile User.Read  offline_access' },
-        },
-        httpOptions: { timeout: 10000 },
-      }),
-        GoogleProvider({
-          clientId: process.env.NEXT_GOOGLE_ID,
-          clientSecret: process.env.NEXT_GOOGLE_SECRET,
-        }),
-        CredentialsProvider({
-            async authorize(credentials) {
-              try {
-                const user = await login(credentials);
-                return user;
-              } catch (err) {
-                return null;
-              }
-            },
-          })],
-          database: process.env.MONGODB_URI,
-        callbacks: {
-          async signIn({ user, account, profile }) {
-            if (account.provider === "google") {
-              // connectToDb();
-              // try {
-              //   const existingUser = await User.findOne({ email: user.email });
-              //   if (!existingUser) {
-              //     await User.insertOne({
-              //       name: user.email,
-              //       email: user.email,
-              //       isAdmin: false,
-              //     });
-              //   }
-              // } catch (err) {
-              //   console.log(err);
-              //   return false;
-              // }
-            }else 
-            if (account.provider === "github") {
-              connectToDb();
-              try {
-                const user = await User.findOne({ email: profile.email });
-      
-                if (!user) {
-                  const newUser = new User({
-                    username: profile.login,
-                    email: profile.email,
-                    image: profile.avatar_url,
-                  });
-      
-                  await newUser.save();
-                }
-              } catch (err) {
-                console.log(err);
-                return false;
-              }
-            }
-            return true;
-          },
-          async session({ session, token }) {
-            console.log(session.user);
-            console.log(token.user);
-            if (token) {
-              session.user = token.user;
-              session.error = token.error;
-              session.accessToken = token.accessToken;
-              connectToDb();
-              const existingUser = await User.findOne({ email: token.user.email });
-              session.user.isAdmin = (existingUser && existingUser.isAdmin);
-            }else {
-              connectToDb();
-              const existingUser = await User.findOne({ email: user.email });
-              session.user.isAdmin = (existingUser && existingUser.isAdmin);
-            }
-            return session;
-          },
-          ...authConfig.callbacks,
-
-        }
-    // providers
-})
+export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callbacks:{
+  async session({ session, token }) {
+    if (token) {
+      session.isAdmin = token.isAdmin;
+      session.user = token.user;
+      session.user.isAdmin = token.isAdmin;
+      session.error = token.error;
+      session.accessToken = token.accessToken;
+    }
+    return session;
+  },
+  async jwt({ token, user, account }) {
+    if (user) {
+      token.user = user;
+      token.isAdmin = user.isAdmin;
+    }
+    if (token.user&&token.user.email) {
+      connectToDb();
+      const existingUser = await User.findOne({ email: token.user.email });
+      const isAdmin = (existingUser && existingUser.isAdmin);
+      token.isAdmin = isAdmin;
+    }
+    // if (Date.now() < token.accessTokenExpires - 100000 || 0) {
+    //   return token;
+    // }
+    // return refreshAccessToken(token);
+    return token;
+  },
+  ...authConfig.callbacks
+}})

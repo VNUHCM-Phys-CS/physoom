@@ -1,7 +1,10 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/lib/auth.config";
 
-export default NextAuth(authConfig).auth;
+const { auth } = NextAuth(authConfig)
+export default auth(async function middleware(req) {
+  // Your custom middleware logic goes here
+})
 
 export const config = {
   matcher: ["/((?!api|static|.*\\..*|_next).*)"],
