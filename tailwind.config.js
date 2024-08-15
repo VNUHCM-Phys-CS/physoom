@@ -1,3 +1,4 @@
+const {nextui} = require('@nextui-org/theme');
 /** @type {import('tailwindcss').Config} */
 import colors from "tailwindcss/colors";
 import typography from "@tailwindcss/typography";
@@ -8,6 +9,7 @@ module.exports = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/ui/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
     // extend: {
@@ -18,7 +20,8 @@ module.exports = {
     //   },
     // },
   },
-  plugins: [typography, daisyui],
+  darkMode: "class",
+  plugins: [typography,daisyui,nextui()],
   daisyui: {
     themes: ["winter", "dark"],
   },

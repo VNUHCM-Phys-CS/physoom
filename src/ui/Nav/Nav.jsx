@@ -1,10 +1,11 @@
+"use client";
 import React from "react";
-import { auth } from "@/lib/auth";
+import { useSession } from "next-auth/react";
 import Links from "./Links/Links";
 import "./Nav.css";
 
-const Nav = async () => {
-  const session = await auth();
+const Nav = () => {
+  const { data: session } = useSession();
   return (
     <div className="md:container md:mx-auto">
       <div className="p-5">

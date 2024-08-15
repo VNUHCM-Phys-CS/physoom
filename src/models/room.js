@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import {locationList} from "util";
+import { locationList, categoryList } from "@/models/ulti";
 
 const roomSchema = new Schema(
   {
@@ -11,16 +11,24 @@ const roomSchema = new Schema(
     limit: {
       type: Number,
       required: true,
-      validate : {
-        validator : Number.isInteger,
-        message   : '{VALUE} is not an integer value'
-      }
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value",
+      },
     },
     location: {
       type: String,
       enum: locationList.short,
       required: true,
     },
+    category: [
+      {
+        type: String,
+        enum: categoryList.short,
+        required: true,
+      },
+    ],
+    note: String,
   },
   { timestamps: true }
 );

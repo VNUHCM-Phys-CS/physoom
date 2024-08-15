@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import {locationList} from "util";
+import { locationList } from "@/models/ulti";
 const courseSchema = new Schema(
   {
     title: {
@@ -13,10 +13,10 @@ const courseSchema = new Schema(
     },
     population: {
       type: Number,
-      validate : {
-        validator : Number.isInteger,
-        message   : '{VALUE} is not an integer value'
-      }
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value",
+      },
     },
     start_date: {
       type: Date,
@@ -25,25 +25,32 @@ const courseSchema = new Schema(
     credit: {
       type: Number,
       required: true,
-      validate : {
-        validator : Number.isInteger,
-        message   : '{VALUE} is not an integer value'
-      }
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value",
+      },
     },
     duration: {
       type: Number,
       required: true,
-      validate : {
-        validator : Number.isInteger,
-        message   : '{VALUE} is not an integer value'
-      }
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value",
+      },
     },
+    category: [
+      {
+        type: String,
+        enum: locationList.short,
+      },
+    ],
     location: {
       type: String,
-      enum: locationList.short
+      enum: locationList.short,
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.models?.Course || mongoose.model("Course", courseSchema);
+export default mongoose.models?.Course ||
+  mongoose.model("Course", courseSchema);

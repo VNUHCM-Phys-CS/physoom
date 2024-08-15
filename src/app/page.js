@@ -1,11 +1,7 @@
-import Image from "next/image";
-import { auth } from "@/lib/auth"
+"use client";
 
-export default async function Home() {
-  const session = await auth();
-  return (
-    <main className="flex flex-col items-center justify-between p-24">
-      <p>Welcome {session?.user?.email}!</p>
-    </main>
-  );
+import Home from "@/ui/pages/Homepage";
+
+export default async function HomePage() {
+  return <Home />;
 }

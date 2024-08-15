@@ -1,30 +1,39 @@
-import GoogleProvider from "next-auth/providers/google"
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
+import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import AzureADProvider from 'next-auth/providers/azure-ad';
+import AzureADProvider from "next-auth/providers/azure-ad";
 const env = process.env;
 
-export const authConfig = { 
+export const authConfig = {
+  secret: process.env.NEXTAUTH_SECRET,
+  jwt: {
+    async verify(token) {
+      const decodedToken = await JWT.decode({ token });
+      // Verify token validity and user information
+      return decodedToken;
+    },
+    signing: true, // Enable token signing if needed
+  },
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
   providers: [
-      GoogleProvider({
-        clientId: process.env.NEXT_GOOGLE_ID,
-        clientSecret: process.env.NEXT_GOOGLE_SECRET,
-      }),
-      CredentialsProvider({
-          async authorize(credentials) {
-            try {
-              const user = await login(credentials);
-              return user;
-            } catch (err) {
-              return null;
-            }
-          },
-        })],
-        database: process.env.MONGODB_URI,
+    GoogleProvider({
+      clientId: process.env.NEXT_GOOGLE_ID,
+      clientSecret: process.env.NEXT_GOOGLE_SECRET,
+    }),
+    CredentialsProvider({
+      async authorize(credentials) {
+        try {
+          const user = await login(credentials);
+          return user;
+        } catch (err) {
+          return null;
+        }
+      },
+    }),
+  ],
+  database: process.env.MONGODB_URI,
   callbacks: {
     // FOR MORE DETAIL ABOUT CALLBACK FUNCTIONS CHECK https://next-auth.js.org/configuration/callbacks
     authorized({ auth, request }) {
@@ -34,7 +43,7 @@ export const authConfig = {
       const isOnLoginPage = request.nextUrl?.pathname.startsWith("/login");
 
       // ONLY ADMIN CAN REACH THE ADMIN DASHBOARD
-      console.log(isOnAdminPanel,auth)
+      console.log(isOnAdminPanel, auth);
       if (isOnAdminPanel && !user?.isAdmin) {
         return false;
       }
@@ -51,7 +60,7 @@ export const authConfig = {
         return Response.redirect(new URL("/", request.nextUrl));
       }
 
-      return true
+      return true;
     },
     async signIn({ user, account, profile }) {
       if (account.provider === "google") {
@@ -69,8 +78,7 @@ export const authConfig = {
         //   console.log(err);
         //   return false;
         // }
-      }else 
-      if (account.provider === "github") {
+      } else if (account.provider === "github") {
         connectToDb();
         try {
           const user = await User.findOne({ email: profile.email });
@@ -90,6 +98,6 @@ export const authConfig = {
         }
       }
       return true;
-    }
+    },
   },
- }
+};
