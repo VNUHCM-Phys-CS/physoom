@@ -18,19 +18,22 @@ const bookingSchema = new Schema({
   time_slot: {
     weekday: {
       type: Number,
-      required: true,
       validate : {
         validator : Number.isInteger,
         message   : '{VALUE} is not an integer value'
       }
     },
+    start_time: {
+      type: Number,
+    },
+    end_time: {
+      type: Number,
+    },
     start_date: {
       type: Date,
-      required: true,
     },
     end_date: {
       type: Date,
-      required: true,
     },
   },
   isConfirm: {

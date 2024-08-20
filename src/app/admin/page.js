@@ -1,22 +1,9 @@
-import Card from "@/ui/Card";
+import Admindashboard from "@/ui/pages/Admindashboard";
 const AdminPage = async () => {
   return (
     <div>
       <h1>Dashboard</h1>
-      <div className="flex gap-4 items-stretch">
-        <div className="basis-1/3 text-center">
-          <Card className="h-full">
-            <h4>#Room</h4>
-            <h4>0</h4>
-          </Card>
-        </div>
-        <div className="basis-1/3 text-center">
-          <Card className="h-full">#Course</Card>
-        </div>
-        <div className="basis-1/3 text-center">
-          <Card className="h-full">#Booking</Card>
-        </div>
-      </div>
+      <Admindashboard/>
       {/* <div className="flex justify-between shadow-xl bg-white rounded-md py-2 px-4 mx-auto max-w-md">
           <div></div>
           {editable && (
