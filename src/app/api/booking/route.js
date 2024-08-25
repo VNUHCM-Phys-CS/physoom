@@ -8,7 +8,10 @@ import { getToken } from "next-auth/jwt";
 export const GET = async (request) => {
   try {
     connectToDb();
-    const booking = await Booking.find();
+    const booking = await Booking.find()
+      .populate("course")
+      .populate("room")
+      .exec();
     revalidateTag("booking");
     return NextResponse.json(booking);
   } catch (err) {
@@ -26,7 +29,10 @@ export const POST = async (request) => {
   try {
     connectToDb();
     let { filter } = await request.json();
-    const booking = await Booking.find(filter ?? {});
+    const booking = await Booking.find(filter ?? {})
+      .populate("course")
+      .populate("room")
+      .exec();
     revalidateTag("booking");
     return NextResponse.json(booking);
   } catch (err) {

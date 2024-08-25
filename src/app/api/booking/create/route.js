@@ -12,18 +12,47 @@ export const POST = async (request) => {
   });
   // check user
   const user = token?.user;
+  console.log("---------------hi");
   try {
     connectToDb();
+    let data = await request.json();
     if (user && user.isAdmin) {
-      let data = await request.json();
-      const bulkOps = data.map((d) => ({
-        updateOne: {
-          filter: { title: d.title },
-          update: { $set: d },
-          upsert: true,
-        },
-      }));
+      const bulkOps = data.map((d) => {
+        const u = { ...d };
+        u.course = d.course._id;
+        u.room = d.room._id;
+        return {
+          updateOne: {
+            filter: { course: u.course },
+            update: { $set: u },
+            upsert: true,
+          },
+        };
+      });
       const booking = await Booking.bulkWrite(bulkOps);
+      revalidateTag("booking");
+      return NextResponse.json(
+        { success: true },
+        {
+          status: 201,
+        }
+      );
+    } else if (user && user.email === data[0].teacher_email) {
+      // single update
+      console.log(data);
+      const bulkOps = [data[0]].map((d) => {
+        const u = { ...d };
+        u.course = d.course._id;
+        u.room = d.room._id;
+        return {
+          updateOne: {
+            filter: { course: u.course },
+            update: { $set: u },
+            upsert: true,
+          },
+        };
+      });
+      const booking = await Booking.bulkWrite([bulkOps[0]]);
       revalidateTag("booking");
       return NextResponse.json(
         { success: true },

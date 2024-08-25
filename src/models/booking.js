@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const bookingSchema = new Schema({
+const BookingSchema = new Schema({
   teacher_email: {
     type: String,
     required: true,
@@ -18,10 +18,10 @@ const bookingSchema = new Schema({
   time_slot: {
     weekday: {
       type: Number,
-      validate : {
-        validator : Number.isInteger,
-        message   : '{VALUE} is not an integer value'
-      }
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value",
+      },
     },
     start_time: {
       type: Number,
@@ -37,12 +37,11 @@ const bookingSchema = new Schema({
     },
   },
   isConfirm: {
-    type: Boolean
-  }
+    type: Boolean,
+  },
 });
 
-const booking =
-  mongoose.models?.Booking ||
-  mongoose.model("booking", bookingSchema);
+const Booking =
+  mongoose.models?.Booking || mongoose.model("Booking", BookingSchema);
 
-export default booking;
+export default Booking;
