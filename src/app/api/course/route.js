@@ -28,12 +28,7 @@ export const POST = async (request) => {
     let { filter } = await request.json();
     const course = await Course.find(filter ?? {});
     revalidateTag("course");
-    return NextResponse.json(
-      { success: true, data: course },
-      {
-        status: 201,
-      }
-    );
+    return NextResponse.json(course);
   } catch (err) {
     console.log(err);
     return NextResponse.json(

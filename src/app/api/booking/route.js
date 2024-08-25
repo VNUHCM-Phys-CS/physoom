@@ -2,19 +2,17 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import Room from "@/models/room";
+import Booking from "@/models/booking";
 import { getToken } from "next-auth/jwt";
 
 export const GET = async (request) => {
   try {
     connectToDb();
-    const rooms = await Room.find();
-    console.log("here");
-    revalidateTag("room");
-    return NextResponse.json(rooms);
+    const booking = await Booking.find();
+    revalidateTag("booking");
+    return NextResponse.json(booking);
   } catch (err) {
     console.log(err);
-    // revalidateTag("room");
     return NextResponse.json(
       { success: false },
       {
@@ -28,12 +26,11 @@ export const POST = async (request) => {
   try {
     connectToDb();
     let { filter } = await request.json();
-    const room = await Room.find(filter ?? {});
-    revalidateTag("room");
-    return NextResponse.json(room);
+    const booking = await Booking.find(filter ?? {});
+    revalidateTag("booking");
+    return NextResponse.json(booking);
   } catch (err) {
     console.log(err);
-    revalidateTag("room");
     return NextResponse.json(
       { success: false },
       {
@@ -54,10 +51,10 @@ export const DELETE = async (request) => {
     connectToDb();
     if (user && user.isAdmin) {
       let { ids } = await request.json();
-      const result = await Room.deleteMany({
+      const result = await Booking.deleteMany({
         _id: { $in: ids },
       });
-      revalidateTag("room");
+      revalidateTag("booking");
       return NextResponse.json(
         { success: true },
         {
@@ -74,7 +71,6 @@ export const DELETE = async (request) => {
     }
   } catch (err) {
     console.log(err);
-    revalidateTag("room");
     return NextResponse.json(
       { success: false },
       {

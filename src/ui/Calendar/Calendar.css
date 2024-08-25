@@ -1,0 +1,60 @@
+.cal-table {
+    @apply min-w-full grid grid-cols-[75px_repeat(7,_1fr)] ;
+    .text {
+        @apply text-ellipsis overflow-hidden ;
+    }
+    .cal-cell {
+        @apply border-r-1 border-b-1 border-l-inherit;
+        &.disabled {
+            @apply bg-gray-300 pointer-events-none;
+            &.solid {
+                @apply bg-gray-400;
+            }
+        }
+        .text {
+            @apply m-2;
+        }
+    }
+    .cal-header {
+        @apply border-r-1 border-b-2 border-inherit text-center font-bold;
+    }
+  }
+.cal-event-holder {
+    @apply absolute top-0 left-0 h-full w-full grid grid-cols-[75px_1fr];
+    .cal-event-cell {
+        @apply bg-blue-200 rounded-md p-1 absolute hover:drop-shadow-xl hover:border-slate-400 hover:border;
+        &.overlap{
+            @apply bg-red-200 ml-2;
+        }
+        &.review{
+            @apply bg-lime-200/50 border-lime-600 border-dashed border-2;
+        }
+        .cal-event-cell-content{
+            @apply text-center flex flex-col;
+            .title {
+                @apply flex-1 overflow-hidden;
+                p {
+                    @apply text-sm font-bold whitespace-normal text-ellipsis line-clamp-3 overflow-hidden;
+                }
+            }
+            .subtitle {
+                @apply flex-none min-h-4;
+                p {
+                    @apply text-xs text-ellipsis line-clamp-1 overflow-hidden;
+                }
+            }
+        }
+    }
+    .cal-event-interaction {
+        @apply absolute top-0 left-0 h-full w-full grid grid-cols-7;
+        .cal-cell {
+            @apply border-none;
+            &.disabled {
+                @apply bg-transparent;
+                &.solid {
+                    @apply bg-transparent;
+                }
+            }
+        }
+    }
+}
