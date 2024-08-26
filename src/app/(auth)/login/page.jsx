@@ -1,11 +1,10 @@
 import LoginForm from "@/ui/loginForm/loginForm";
-import styles from "./login.module.css";
 
 const LoginPage = () => {
 
   return (
-    <div className={styles.container}>
-      <div className={styles.wrapper}>
+    <div className={"flex justify-center items-center"}>
+      <div className={"max-w-[500px] p-10 flex text-center gap-5 rounded-xl"}>
         <LoginForm />
       </div>
     </div>

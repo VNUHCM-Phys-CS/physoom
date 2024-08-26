@@ -41,9 +41,8 @@ export const deleteUser = async (formData) => {
     return { error: "Something went wrong!" };
   }
 };
-export const handleLogout = async () => {
-  "use server";
-  await signOut();
+export const handleLogout = async (prevState, formData) => {
+  await signOut('google',{callbackUrl: '/'});
 };
 
 export const register = async (previousState, formData) => {

@@ -108,6 +108,7 @@ export default function Calendar({
                 width={`${widthD}%`}
                 y={`${e.time_slot.start_time * cellHeight}px`}
                 x={`${(e.time_slot.weekday - 2) * widthD}%`}
+                onSelected={reviewData?.title===e.title}
                 style={{ zIndex: 1 }}
               />
             ))}

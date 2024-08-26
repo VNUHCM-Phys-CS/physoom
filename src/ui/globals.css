@@ -55,7 +55,7 @@ body {
   justify-content: center;
 }
 
-@layer base {
+/* @layer base {
   h1 {
     @apply
       font-bold
@@ -111,4 +111,4 @@ body {
       md:text-base
       xl:text-lg;
   }
-}
+} */

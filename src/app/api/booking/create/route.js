@@ -12,7 +12,6 @@ export const POST = async (request) => {
   });
   // check user
   const user = token?.user;
-  console.log("---------------hi");
   try {
     connectToDb();
     let data = await request.json();
@@ -52,7 +51,7 @@ export const POST = async (request) => {
           },
         };
       });
-      const booking = await Booking.bulkWrite([bulkOps[0]]);
+      const booking = await Booking.bulkWrite(bulkOps);
       revalidateTag("booking");
       return NextResponse.json(
         { success: true },

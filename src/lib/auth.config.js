@@ -57,6 +57,7 @@ export const authConfig = {
       // ONLY UNAUTHENTICATED USERS CAN REACH THE LOGIN PAGE
 
       if (isOnLoginPage && user) {
+        console.log("I am here!!!!!!");
         return Response.redirect(new URL("/", request.nextUrl));
       }
 

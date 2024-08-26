@@ -22,12 +22,15 @@
 .cal-event-holder {
   @apply absolute top-0 left-0 h-full w-full grid grid-cols-[75px_1fr];
   .cal-event-cell {
-    @apply bg-blue-200 rounded-md p-1 absolute hover:drop-shadow-xl hover:border-slate-400 hover:border;
+    @apply bg-blue-200 rounded-md p-1 absolute hover:drop-shadow-xl border-1 hover:border-slate-400 hover:border-2;
     &.overlap {
       @apply bg-red-200 ml-2;
     }
     &.review {
       @apply bg-lime-200/50 border-lime-600 border-dashed border-2 pointer-events-none;
+    }
+    &.active {
+      @apply bg-lime-200/80 border-lime-600 border-2 pointer-events-none;
     }
     .cal-event-cell-content {
       @apply text-center flex flex-col;

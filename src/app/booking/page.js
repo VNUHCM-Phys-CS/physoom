@@ -4,7 +4,9 @@ import Card from "@/ui/Card";
 const Page = async () => {
   return (
     <div>
-      <h4>Booking</h4>
+      <div className="prose">
+        <h4>Booking</h4>
+      </div>
       <BookingClient />
     </div>
   );

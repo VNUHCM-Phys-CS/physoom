@@ -54,7 +54,7 @@ export const defaultGridLT = {
     return booking2calendar(booking, this.data);
   },
   calendar2booking: function (ca, booking) {
-    return calendar2booking(ca, booking, this.data, 1);
+    return calendar2booking(ca, booking, this.data, true);
   },
 };
 
@@ -142,3 +142,5 @@ function calendar2booking(ca, booking, time_arr, isEnd) {
   };
   return booking;
 }
+
+export const defaultLoc = "NVC";

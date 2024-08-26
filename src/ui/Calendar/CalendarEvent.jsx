@@ -9,6 +9,7 @@ export default function CalendarEvent({
   x,
   y,
   isReview,
+  onSelected,
   style,
 }) {
   const { isOverlap, title, subtitle } = data;
@@ -16,6 +17,8 @@ export default function CalendarEvent({
     <div
       className={`cal-event-cell ${isOverlap ? "overlap" : ""} ${
         isReview ? "review" : ""
+      }${
+        onSelected ? "active" : ""
       }`}
       style={{
         height,

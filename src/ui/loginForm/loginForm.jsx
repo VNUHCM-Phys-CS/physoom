@@ -9,13 +9,13 @@ const LoginForm = () => {
 
   return (
     <form className="form" action={formAction}>
-      <input type="text" placeholder="username" name="username" />
-      <input type="password" placeholder="password" name="password" />
+      {/* <input type="text" placeholder="username" name="username" />
+      <input type="password" placeholder="password" name="password" /> */}
       <button className="btn ">Login</button>
-      {state?.error}
+      {/* {state?.error}
       <Link href="/register">
         {"Don't have an account?"} <b>Register</b>
-      </Link>
+      </Link> */}
     </form>
   );
 };
