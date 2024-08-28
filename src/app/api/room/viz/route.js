@@ -8,7 +8,7 @@ import _ from "lodash";
 
 export const GET = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     const rooms = await Room.find().lean();
     revalidateTag("viz-room");
     const byLocation = _.mapValues(_.groupBy(rooms, "location"), (group) =>

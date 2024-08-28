@@ -12,7 +12,7 @@ const env = process.env;
  
 const login = async (credentials) => {
     try {
-      connectToDb();
+      await connectToDb();
       const user = await User.findOne({ username: credentials.username });
   
       if (!user) throw new Error("Wrong credentials!");

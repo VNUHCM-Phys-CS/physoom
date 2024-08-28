@@ -6,7 +6,7 @@ import Booking from "@/models/booking";
 
 export const GET = async (request) => {
     try {
-      connectToDb();
+      await connectToDb();
       const booking = await Booking.countDocuments();
       revalidateTag("admin-booking");
       return NextResponse.json(booking);

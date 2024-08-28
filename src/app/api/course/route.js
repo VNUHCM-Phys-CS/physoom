@@ -7,7 +7,7 @@ import { getToken } from "next-auth/jwt";
 
 export const GET = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     const course = await Course.find();
     revalidateTag("course");
     return NextResponse.json(course);
@@ -24,7 +24,7 @@ export const GET = async (request) => {
 
 export const POST = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     let { filter } = await request.json();
     const course = await Course.find(filter ?? {});
     revalidateTag("course");
@@ -48,7 +48,7 @@ export const DELETE = async (request) => {
   // check user
   const user = token?.user;
   try {
-    connectToDb();
+    await connectToDb();
     if (user && user.isAdmin) {
       let { ids } = await request.json();
       const result = await Course.deleteMany({

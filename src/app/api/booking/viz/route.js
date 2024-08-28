@@ -9,7 +9,7 @@ import _ from "lodash";
 const defaultLoc = false
 export const GET = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     const bookings = await Booking.find().lean();
     const courseNum = await Course.countDocuments({});
     revalidateTag("viz-booking");

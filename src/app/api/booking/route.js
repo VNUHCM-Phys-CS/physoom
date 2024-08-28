@@ -7,7 +7,7 @@ import { getToken } from "next-auth/jwt";
 
 export const GET = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     const booking = await Booking.find()
       .populate("course")
       .populate("room")
@@ -27,7 +27,7 @@ export const GET = async (request) => {
 
 export const POST = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     let { filter } = await request.json();
     const booking = await Booking.find(filter ?? {})
       .populate("course")
@@ -54,7 +54,7 @@ export const DELETE = async (request) => {
   // check user
   const user = token?.user;
   try {
-    connectToDb();
+    await connectToDb();
     if (user && user.isAdmin) {
       let { ids } = await request.json();
       const result = await Booking.deleteMany({

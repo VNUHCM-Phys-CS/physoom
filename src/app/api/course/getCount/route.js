@@ -6,7 +6,7 @@ import Course from "@/models/course";
 
 export const GET = async (request) => {
     try {
-      connectToDb();
+      await connectToDb();
       const course = await Course.countDocuments();
       revalidateTag("admin-course");
       return NextResponse.json(course);

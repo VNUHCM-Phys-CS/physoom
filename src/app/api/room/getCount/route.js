@@ -6,7 +6,7 @@ import Room from "@/models/room";
 
 export const GET = async (request) => {
     try {
-      connectToDb();
+      await connectToDb();
       const course = await Room.countDocuments();
       revalidateTag("admin-room");
       return NextResponse.json(course);

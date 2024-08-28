@@ -13,7 +13,7 @@ export const POST = async (request) => {
   // check user
   const user = token?.user;
   try {
-    connectToDb();
+    await connectToDb();
     let data = await request.json();
     if (user && user.isAdmin) {
       const bulkOps = data.map((d) => {

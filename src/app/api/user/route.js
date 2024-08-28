@@ -14,7 +14,7 @@ export const GET = async (request) => {
   const user = token?.user;
   try {
     if (user && user.isAdmin) {
-      connectToDb();
+      await connectToDb();
       const emails = await Course.distinct('teacher_email');
       revalidateTag("user");
       console.log(emails)

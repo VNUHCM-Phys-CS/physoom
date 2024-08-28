@@ -7,7 +7,7 @@ import _ from "lodash";
 
 export const GET = async (request) => {
   try {
-    connectToDb();
+    await connectToDb();
     const courses = await Course.find().lean();
     revalidateTag("viz-course");
     const byLocation = _.mapValues(_.groupBy(courses, "credit"), (group) =>
