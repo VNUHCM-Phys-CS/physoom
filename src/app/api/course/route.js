@@ -14,7 +14,7 @@ export const GET = async (request) => {
   } catch (err) {
     console.log(err);
     return NextResponse.json(
-      { success: false },
+      [],
       {
         status: 400,
       }
@@ -32,7 +32,7 @@ export const POST = async (request) => {
   } catch (err) {
     console.log(err);
     return NextResponse.json(
-      { success: false },
+      [],
       {
         status: 400,
       }

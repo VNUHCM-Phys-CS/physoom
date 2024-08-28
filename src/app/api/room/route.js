@@ -16,7 +16,7 @@ export const GET = async (request) => {
     console.log(err);
     // revalidateTag("room");
     return NextResponse.json(
-      { success: false },
+      [],
       {
         status: 400,
       }
@@ -35,7 +35,7 @@ export const POST = async (request) => {
     console.log(err);
     revalidateTag("room");
     return NextResponse.json(
-      { success: false },
+      [],
       {
         status: 400,
       }

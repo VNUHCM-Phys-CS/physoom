@@ -23,7 +23,6 @@ export default auth(async function middleware(req) {
       },
     });
   }
-  console.log('HIII')
 });
 
 export async function middleware(req) {

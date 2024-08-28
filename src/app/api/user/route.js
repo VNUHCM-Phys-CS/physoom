@@ -21,7 +21,7 @@ export const GET = async (request) => {
       return NextResponse.json(emails);
     } else {
       return NextResponse.json(
-        { success: false },
+        [],
         {
           status: 401,
         }
@@ -31,7 +31,7 @@ export const GET = async (request) => {
     console.log(err);
     // revalidateTag("room");
     return NextResponse.json(
-      { success: false },
+      [],
       {
         status: 400,
       }
