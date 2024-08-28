@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
+import {ScrollShadow} from "@nextui-org/react";
 import "./CourseList.css";
 
 export default function CourseList({ course, onSelectionChange, userEvents }) {
@@ -28,7 +29,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
     }
   }, [selectedKeys, course, onSelectionChange]);
   return (
-    <div className="flex flex-col gap-2">
+    <ScrollShadow className="flex flex-col gap-2 h-full">
       <Listbox
         className="list-stack"
         aria-label="course booking selection"
@@ -65,6 +66,6 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
           </ListboxSection>
         ))}
       </Listbox>
-    </div>
+    </ScrollShadow>
   );
 }

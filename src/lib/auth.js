@@ -47,17 +47,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
       token.user = user;
       token.isAdmin = user.isAdmin;
     }
-    if (token.user&&token.user.email) {
-      connectToDb();
-      const existingUser = await User.findOne({ email: token.user.email });
-      const isAdmin = (existingUser && existingUser.isAdmin);
-      token.isAdmin = isAdmin;
-    }
+    // if (token.user&&token.user.email) {
+    //   const isAdmin = user.isAdmin;
+    //   token.isAdmin = isAdmin;
+    // }
     // if (Date.now() < token.accessTokenExpires - 100000 || 0) {
     //   return token;
     // }
     // return refreshAccessToken(token);
     return token;
+  },
+  async signIn({ user, account, profile }) {
+    if (account.provider === "google") {
+      await connectToDb();
+      const existingUser = await User.findOne({ email: user.email });
+      const isAdmin = (existingUser && existingUser.isAdmin);
+      user.isAdmin = isAdmin;
+    }
+    return true;
   },
   ...authConfig.callbacks
 }})

@@ -1,16 +1,10 @@
-"use client";
-import { handleLogout } from "@/lib/action";
 import NavLink from "../NavLink/NavLink";
-import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { signIn, signOut } from "next-auth/react";
+
 
 const Links = ({ session }) => {
-  const [state, formAction] = useFormState(handleLogout, undefined);
   const router = useRouter();
-  useEffect(() => {
-    state?.success && router.push("/");
-  }, [state?.success, router]);
   return (
     <div className="flex justify-between px-10">
       <div className="flex">
@@ -24,14 +18,15 @@ const Links = ({ session }) => {
       <div className="flex">
         {session?.user ? (
           <>
-            <form action={formAction}>
-              <button className="navLink !font-bold cursor-pointer" type="submit">
+              <button className="navLink !font-bold cursor-pointer" onClick={() => signOut({ callbackUrl: '/' })}>
                 Logout
               </button>
-            </form>
           </>
         ) : (
-          <NavLink item={{ title: "Login", path: "/login" }} />
+          // <NavLink item={{ title: "Login", path: "/login" }} />
+          <button className="navLink !font-bold cursor-pointer" onClick={() => signIn("google")}>
+                Login
+            </button>
         )}
       </div>
     </div>

@@ -2,28 +2,21 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import Room from "@/models/room";
-import { defaultLoc } from "@/lib/ulti";
+import Course from "@/models/course";
 import _ from "lodash";
 
 export const GET = async (request) => {
   try {
     connectToDb();
-    const rooms = await Room.find().lean();
-    revalidateTag("viz-room");
-    const byLocation = _.mapValues(_.groupBy(rooms, "location"), (group) =>
+    const courses = await Course.find().lean();
+    revalidateTag("viz-course");
+    const byLocation = _.mapValues(_.groupBy(courses, "credit"), (group) =>
       _.size(group)
     );
-    Object.keys(byLocation).forEach((k) => {
-      if (k === "undefined") {
-        byLocation[defaultLoc] = (byLocation[defaultLoc] ?? 0)+byLocation[k];
-        delete byLocation[k];
-      }
-    });
     return NextResponse.json({
       values: Object.values(byLocation),
       labels: Object.keys(byLocation),
-      count: rooms.length,
+      count: courses.length,
     });
   } catch (err) {
     console.log(err);

@@ -5,6 +5,7 @@ import Calendar from "../Calendar";
 import { Chip, Select, SelectItem } from "@nextui-org/react";
 import LoadingWrapper from "../LoadingWrapper";
 import { StarIcon } from "../icons/StarIcon";
+import _ from "lodash"
 
 export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,onBooking}){
     const [selectedRoom, setSelectedRoom] = useState(initRoom);

@@ -2,16 +2,18 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import Room from "@/models/room";
-import { defaultLoc } from "@/lib/ulti";
+import Booking from "@/models/booking";
+import Course from "@/models/course";
 import _ from "lodash";
 
+const defaultLoc = false
 export const GET = async (request) => {
   try {
     connectToDb();
-    const rooms = await Room.find().lean();
-    revalidateTag("viz-room");
-    const byLocation = _.mapValues(_.groupBy(rooms, "location"), (group) =>
+    const bookings = await Booking.find().lean();
+    const courseNum = await Course.countDocuments({});
+    revalidateTag("viz-booking");
+    const byLocation = _.mapValues(_.groupBy(bookings, "isConfirm"), (group) =>
       _.size(group)
     );
     Object.keys(byLocation).forEach((k) => {
@@ -20,10 +22,15 @@ export const GET = async (request) => {
         delete byLocation[k];
       }
     });
+    byLocation['Success'] = byLocation[true]??0;
+    byLocation['In process'] = byLocation[false]??0;
+    byLocation['Pending'] = courseNum - bookings.length;
+    delete byLocation[true];
+    delete byLocation[false];
     return NextResponse.json({
       values: Object.values(byLocation),
       labels: Object.keys(byLocation),
-      count: rooms.length,
+      count: bookings.length,
     });
   } catch (err) {
     console.log(err);
