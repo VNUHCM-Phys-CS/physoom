@@ -1,10 +1,9 @@
 import NextAuth from "next-auth";
-import { getSession } from 'next-auth/react';
+import { getSession } from "next-auth/react";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 const secret = process.env.NEXTAUTH_SECRET;
 // const { auth } = NextAuth(authConfig);
-
 
 // export default auth(async function middleware(req) {
 //   // Your custom middleware logic goes here
@@ -26,21 +25,17 @@ const secret = process.env.NEXTAUTH_SECRET;
 // });
 
 export async function middleware(req) {
-  const session = await getSession({ req });
-  const token = session?.token;
-  // const token = await getToken({ req, secret });
-  // console.log("Test middleware on server");
-  // console.log(token);
+  const token = await getToken({ req, secret });
+  console.log("Test middleware on server", token);
   const isAdmin = token?.isAdmin;
   // 1. Specify protected and public routes
   const isNeededAdmin = req.nextUrl?.pathname.startsWith("/admin");
   // 5. Redirect to /login if the user is not authenticated
   if (isNeededAdmin && !isAdmin) {
-    return NextResponse.redirect(new URL('/', req.nextUrl))
+    return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
   if (token) {
-
     // Clone the request to modify headers
     const modifiedRequest = req.clone({
       headers: {
