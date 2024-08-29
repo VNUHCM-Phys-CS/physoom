@@ -25,7 +25,11 @@ const secret = process.env.NEXTAUTH_SECRET;
 // });
 
 export async function middleware(req) {
-  const token = await getToken({ req, secret });
+  const token = await getToken({
+    req,
+    secret,
+    cookieName: "next-auth.session-token",
+  });
   console.log("Test middleware on server", token);
   const isAdmin = token?.isAdmin;
   // 1. Specify protected and public routes
