@@ -13,6 +13,7 @@ const env = process.env;
 
 export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callbacks:{
   async session({ session, token }) {
+    session.token = token;
     if (token) {
       session.isAdmin = token.isAdmin;
       session.user = token.user;
