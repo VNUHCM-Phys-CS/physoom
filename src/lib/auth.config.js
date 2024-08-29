@@ -8,6 +8,7 @@ const env = process.env;
 export const authConfig = {
   secret: env.NEXTAUTH_SECRET,
   jwt: {
+    secret: env.NEXTAUTH_SECRET,
     async verify(token) {
       const decodedToken = await JWT.decode({ token });
       // Verify token validity and user information
@@ -36,6 +37,5 @@ export const authConfig = {
     }),
   ],
   database: process.env.MONGODB_URI,
-  callbacks: {
-  },
+  callbacks: {},
 };
