@@ -6,7 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 const env = process.env;
 
 export const authConfig = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: env.NEXTAUTH_SECRET,
   jwt: {
     async verify(token) {
       const decodedToken = await JWT.decode({ token });
@@ -21,8 +21,8 @@ export const authConfig = {
   // },
   providers: [
     GoogleProvider({
-      clientId: process.env.NEXT_GOOGLE_ID,
-      clientSecret: process.env.NEXT_GOOGLE_SECRET,
+      clientId: env.NEXT_GOOGLE_ID,
+      clientSecret: env.NEXT_GOOGLE_SECRET,
     }),
     CredentialsProvider({
       async authorize(credentials) {

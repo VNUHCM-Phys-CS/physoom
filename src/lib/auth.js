@@ -9,27 +9,7 @@ import {connectToDb} from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 import AzureADProvider from 'next-auth/providers/azure-ad';
 const env = process.env;
- 
-const login = async (credentials) => {
-    try {
-      await connectToDb();
-      const user = await User.findOne({ username: credentials.username });
-  
-      if (!user) throw new Error("Wrong credentials!");
-  
-      const isPasswordCorrect = await bcrypt.compare(
-        credentials.password,
-        user.password
-      );
-  
-      if (!isPasswordCorrect) throw new Error("Wrong credentials!");
-  
-      return user;
-    } catch (err) {
-      console.log(err);
-      throw new Error("Failed to login!");
-    }
-  };
+
 
 export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callbacks:{
   async session({ session, token }) {
