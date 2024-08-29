@@ -1,5 +1,5 @@
 "use client";
-import "./Card.css";
+import "./Card.scss";
 
 const Card = ({ children, className }) => {
   return (

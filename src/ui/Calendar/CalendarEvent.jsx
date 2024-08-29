@@ -1,4 +1,4 @@
-import "./Calendar.css";
+import "./Calendar.scss";
 import { Tooltip } from "@nextui-org/react";
 import { WarningIcon } from "@/ui/icons/WarningIcon";
 

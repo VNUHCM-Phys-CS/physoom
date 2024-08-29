@@ -1,5 +1,5 @@
 import { inter } from "@/ui/font";
-import "@/ui/globals.css";
+import "@/ui/globals.scss";
 import Nav from "@/ui/Nav/Nav";
 import { AuthProvider } from "./Provider";
 import { NextUIProvider } from "@nextui-org/react";

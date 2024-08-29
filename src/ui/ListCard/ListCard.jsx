@@ -1,5 +1,5 @@
 import Image from "next/image";
-import "./ListCard.css";
+import "./ListCard.scss";
 import Link from "next/link";
 
 const ListCard = ({ post }) => {
