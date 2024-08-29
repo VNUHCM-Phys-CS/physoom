@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import "./Calendar.css";
+import "./Calendar.scss";
 import { Tooltip } from "@nextui-org/react";
 import CalendarEvent from "./CalendarEvent";
 

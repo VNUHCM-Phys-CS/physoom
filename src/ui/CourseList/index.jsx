@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
 import {ScrollShadow} from "@nextui-org/react";
-import "./CourseList.css";
+import "./CourseList.scss";
 
 export default function CourseList({ course, onSelectionChange, userEvents }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
