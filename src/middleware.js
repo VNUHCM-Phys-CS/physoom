@@ -30,7 +30,7 @@ export async function middleware(req) {
     secret,
     cookieName: "next-auth.session-token",
   });
-  console.log("Test middleware on server", token);
+  console.log("Test middleware on server", req, token);
   const isAdmin = token?.isAdmin;
   // 1. Specify protected and public routes
   const isNeededAdmin = req.nextUrl?.pathname.startsWith("/admin");
