@@ -1,4 +1,6 @@
 import mongoose, { Schema } from "mongoose";
+import Course from "./course";
+import Room from "./room";
 
 const BookingSchema = new Schema({
   teacher_email: {
