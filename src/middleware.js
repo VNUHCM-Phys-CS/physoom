@@ -27,6 +27,8 @@ export default auth(async function middleware(req) {
 
 export async function middleware(req) {
   const token = await getToken({ req, secret });
+  console.log("Test middleware on server");
+  console.log(token);
   const isAdmin = token?.isAdmin;
   // 1. Specify protected and public routes
   const isNeededAdmin = req.nextUrl?.pathname.startsWith("/admin");
