@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { getSession } from "next-auth/react";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+// import { authConfig } from "./lib/auth.config";
 const secret = process.env.NEXTAUTH_SECRET;
 // const { auth } = NextAuth(authConfig);
 
@@ -27,10 +28,9 @@ const secret = process.env.NEXTAUTH_SECRET;
 export async function middleware(req) {
   const token = await getToken({
     req,
-    secret,
-    cookieName: "next-auth.session-token",
+    secret
   });
-  console.log("Test middleware on server", req?.cookies, token);
+  // console.log("Test middleware on server", token);
   const isAdmin = token?.isAdmin;
   // 1. Specify protected and public routes
   const isNeededAdmin = req.nextUrl?.pathname.startsWith("/admin");

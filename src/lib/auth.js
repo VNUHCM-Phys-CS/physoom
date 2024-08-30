@@ -24,6 +24,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
     return session;
   },
   async jwt({ token, user, account }) {
+    if (account && user) {
+      token.accessToken = account.accessToken;
+      token.accessTokenExpires = Date.now() + account.expires_in * 1000;
+    }
     if (user) {
       token.user = user;
       token.isAdmin = user.isAdmin;
@@ -36,7 +40,24 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
     //   return token;
     // }
     // return refreshAccessToken(token);
-    return token;
+    if (Date.now() < token.accessTokenExpires) {
+      return token;
+    }
+    // Refresh the token
+    try {
+      const refreshedToken = await refreshAccessToken(token);
+      return {
+        ...token,
+        accessToken: refreshedToken.accessToken,
+        accessTokenExpires: Date.now() + refreshedToken.expires_in * 1000,
+      };
+    } catch (error) {
+      console.error("Error refreshing access token", error);
+      return {
+        ...token,
+        error: "RefreshAccessTokenError",
+      };
+    }
   },
   async signIn({ user, account, profile }) {
     if (account.provider === "google") {
@@ -49,3 +70,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
   },
   ...authConfig.callbacks
 }})
+
+async function refreshAccessToken(token) {
+  // Implement your logic to refresh the token
+  return {
+    accessToken: "newAccessToken",
+    expires_in: 86400,
+  };
+}

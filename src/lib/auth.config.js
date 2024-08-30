@@ -9,6 +9,7 @@ export const authConfig = {
   secret: env.NEXTAUTH_SECRET,
   jwt: {
     secret: env.NEXTAUTH_SECRET,
+    maxAge: 24*60 * 60,
     async verify(token) {
       const decodedToken = await JWT.decode({ token });
       // Verify token validity and user information
