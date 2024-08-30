@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
 import {ScrollShadow} from "@nextui-org/react";
 import "./CourseList.scss";
+import { LockFill } from "../icons/LockFill";
 
 export default function CourseList({ course, onSelectionChange, userEvents }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
@@ -29,7 +30,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
     }
   }, [selectedKeys, course, onSelectionChange]);
   return (
-    <ScrollShadow className="flex flex-col gap-2 h-full">
+    <ScrollShadow className="flex flex-col gap-2 h-full w-full relative">
       <Listbox
         className="list-stack"
         aria-label="course booking selection"
@@ -42,22 +43,26 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
       >
         {courseGroup.map((cg) => (
           <ListboxSection key={cg.title} title={cg.title} showDivider>
-            {cg.data.map(({ title, location, credit, _id }) => (
+            {cg.data.map(({ title, location, teacher_email, credit, _id, isLock }) => (
               <ListboxItem
                 key={_id}
                 description={
-                  <div className="flex gap-1">
-                    <Chip size="sm" color="primary">
-                      {location}
-                    </Chip>
-                    <Chip size="sm" variant="shadow">
-                      {credit} credits
-                    </Chip>
+                  <div>
+                    <h6 className="prose-lead:h6">{teacher_email}</h6>
+                    <div className="flex gap-1">
+                      <Chip size="sm" color="primary">
+                        {location}
+                      </Chip>
+                      <Chip size="sm" variant="shadow">
+                        {credit} credits
+                      </Chip>
+                    </div>
                   </div>
                 }
-                className="flex justify-between truncate"
+                className="flex justify-between max-w-full"
+                // startContent={<LockFill className={" w-3 h-3"}/>}
               >
-                {title}
+                <div className="truncate">{title}</div>
               </ListboxItem>
             ))}
             {cg.data.length === 0 && (
