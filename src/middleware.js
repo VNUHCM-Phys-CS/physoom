@@ -29,6 +29,7 @@ const secret = process.env.NEXTAUTH_SECRET;
 export async function middleware(req) {
   const session = await getSession({ req });
   console.log("Session:", session);
+  console.log("authorization:", req.headers.authorization?.split(" ")[1]);
   const token = await getToken({
     req,
     secret,

@@ -2,8 +2,12 @@ import moment, { duration } from "moment";
 
 export const fetcher = (...args) =>
   args[0] ? fetch(...args).then((res) => res.json()) : null;
-export const fetcheroptions = ([url, options]) =>
-  url ? fetch(url, options).then((res) => res.json()) : null;
+export const fetcheroptions = ([url, options = {}]) =>
+  url
+    ? fetch(url, { credentials: "include", ...options }).then((res) =>
+        res.json()
+      )
+    : null;
 
 export const defaultGridNVC = {
   data: [
