@@ -3,37 +3,17 @@ import { getSession } from "next-auth/react";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-// import { authConfig } from "./lib/auth.config";
+import { authConfig } from "./lib/auth.config";
 const secret = process.env.NEXTAUTH_SECRET;
-// const { auth } = NextAuth(authConfig);
+const { auth } = NextAuth(authConfig);
 
-// export default auth(async function middleware(req) {
-//   // Your custom middleware logic goes here
-//   const token = await getToken({ req, secret });
-//   if (token) {
-//     // Clone the request to modify headers
-//     const modifiedRequest = req.clone({
-//       headers: {
-//         ...req.headers,
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     return NextResponse.next({
-//       request: {
-//         headers: modifiedRequest.headers,
-//       },
-//     });
-//   }
-// });
-
-export async function middleware(req) {
-  const session = await getSession({ req });
-  console.log("Session:", session);
+export default auth(async function middleware(req) {
   console.log("authorization:", req.headers.authorization?.split(" ")[1]);
   const token = await getToken({
     req,
     secret,
   });
+  console.log(token);
   // console.log("Test middleware on server", token);
   const isAdmin = token?.isAdmin;
   // 1. Specify protected and public routes
@@ -43,21 +23,22 @@ export async function middleware(req) {
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
-  if (token) {
-    // Clone the request to modify headers
-    const modifiedRequest = req.clone({
-      headers: {
-        ...req.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return NextResponse.next({
-      request: {
-        headers: modifiedRequest.headers,
-      },
-    });
-  }
-}
+  // if (token) {
+  //   // Clone the request to modify headers
+  //   const modifiedRequest = req.clone({
+  //     headers: {
+  //       ...req.headers,
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   });
+  //   return NextResponse.next({
+  //     request: {
+  //       headers: modifiedRequest.headers,
+  //     },
+  //   });
+  // }
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: ["/((?!api|static|.*\\..*|_next).*)"],
