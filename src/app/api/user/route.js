@@ -17,7 +17,6 @@ export const GET = async (request) => {
       await connectToDb();
       const emails = await Course.distinct('teacher_email');
       revalidateTag("user");
-      console.log(emails)
       return NextResponse.json(emails);
     } else {
       return NextResponse.json(

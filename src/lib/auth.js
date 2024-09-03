@@ -68,6 +68,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
     }
     return true;
   },
+  async redirect({ url, baseUrl }) {
+    // Redirect logic after sign-in
+    return url.startsWith(baseUrl) ? url : baseUrl;
+  },
   ...authConfig.callbacks
 }})
 

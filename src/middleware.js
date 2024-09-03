@@ -8,20 +8,20 @@ const secret = process.env.NEXTAUTH_SECRET;
 const { auth } = NextAuth(authConfig);
 
 export default auth(async function middleware(req) {
-  console.log("authorization:", req.headers.authorization?.split(" ")[1]);
-  const token = await getToken({
-    req,
-    secret,
-  });
-  console.log(token);
-  // console.log("Test middleware on server", token);
-  const isAdmin = token?.isAdmin;
-  // 1. Specify protected and public routes
-  const isNeededAdmin = req.nextUrl?.pathname.startsWith("/admin");
-  // 5. Redirect to /login if the user is not authenticated
-  if (isNeededAdmin && !isAdmin) {
-    return NextResponse.redirect(new URL("/", req.nextUrl));
-  }
+  // console.log("authorization:", req.headers.authorization?.split(" ")[1]);
+  // const token = await getToken({
+  //   req,
+  //   secret,
+  // });
+  // console.log(token);
+  // // console.log("Test middleware on server", token);
+  // const isAdmin = token?.isAdmin;
+  // // 1. Specify protected and public routes
+  // const isNeededAdmin = req.nextUrl?.pathname.startsWith("/admin");
+  // // 5. Redirect to /login if the user is not authenticated
+  // if (isNeededAdmin && !isAdmin) {
+  //   return NextResponse.redirect(new URL("/", req.nextUrl));
+  // }
 
   // if (token) {
   //   // Clone the request to modify headers
