@@ -5,14 +5,17 @@ import { useSession } from "next-auth/react";
 import { useEffect } from "react";
 export default function Layout({ children, course, room, booking }) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const data = useSession();
+  const {data:session,status} = data;
   useEffect(() => {
-    // Example: Redirect after some condition is met
-    const shouldRedirect = !session; // Replace with your condition
-    if (shouldRedirect) {
-      router.push('/');
+    if (status!=='loading'){
+        // Example: Redirect after some condition is met
+        const shouldRedirect = !session; // Replace with your condition
+        if (shouldRedirect) {
+          router.push('/');
+        }
     }
-  }, [router,session]);
+  }, [router,session, status]);
   if (!session)
     return (<p>You need to be signed in to view this page. Redirecting...</p>);
   return (

@@ -5,11 +5,16 @@ const courseSchema = new Schema(
     title: {
       type: String,
       required: true,
-      unique: true,
     },
     teacher_email: {
-      type: String,
+      type: [String],
       required: true,
+    },
+    course_id:{
+      type: String
+    },
+    class_id:{
+      type: String
     },
     population: {
       type: Number,
@@ -51,6 +56,6 @@ const courseSchema = new Schema(
   },
   { timestamps: true }
 );
-
+courseSchema.index({ title: 1, course_id: 1, class_id: 1 }, { unique: true })
 export default mongoose.models?.Course ||
   mongoose.model("Course", courseSchema);

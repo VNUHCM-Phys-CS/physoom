@@ -48,7 +48,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                 key={_id}
                 description={
                   <div>
-                    <h6 className="prose-lead:h6">{teacher_email}</h6>
+                    <h6 className="prose-lead:h6">{teacher_email.map(d=><div>{d}</div>)}</h6>
                     <div className="flex gap-1">
                       <Chip size="sm" color="primary">
                         {location}

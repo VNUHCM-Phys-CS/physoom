@@ -18,7 +18,7 @@ export const POST = async (request) => {
       let data = await request.json();
       const bulkOps = data.map((d) => ({
         updateOne: {
-          filter: { title: d.title },
+          filter: { title: d.title, course_id:d.course_id, class_id:d.class_id },
           update: { $set: d },
           upsert: true,
         },

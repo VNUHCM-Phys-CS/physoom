@@ -15,9 +15,13 @@ export const GET = async (request) => {
   try {
     if (user && user.isAdmin) {
       await connectToDb();
-      const emails = await Course.distinct('teacher_email');
+      const emails = await Course.aggregate([
+        { $unwind: '$teacher_email' }, // Flatten the teacher_email array
+        { $group: { _id: '$teacher_email' } }, // Group by each email to get unique ones
+        { $project: { _id: 0, email: '$_id' } } // Project the result as 'email'
+      ]);
       revalidateTag("user");
-      return NextResponse.json(emails);
+      return NextResponse.json(emails.map(item => item.email));
     } else {
       return NextResponse.json(
         [],

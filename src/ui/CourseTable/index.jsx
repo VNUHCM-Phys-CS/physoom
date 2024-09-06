@@ -7,12 +7,14 @@ import { fetcher } from "@/lib/ulti";
 
 const COURSE_FIELDS = [
   { name: "Course name", uid: "title", sortable: true },
+  { name: "Course id", uid: "course_id", sortable: true },
+  { name: "Class id", uid: "class_id", sortable: true },
   { name: "#Student", uid: "population", sortable: true },
   { name: "Credit", uid: "credit", sortable: true },
   { name: "Duration", uid: "duration", sortable: true },
   { name: "Location", uid: "location", sortable: true },
   { name: "Category", uid: "category", sortable: true },
-  { name: "Teacher Email", uid: "teacher_email", sortable: true },
+  { name: "Teacher Email", uid: "teacher_email", sortable: true, format: (d) => (Array.isArray(d) ? d : (d ?? "").split(";")) },
   { name: "Note", uid: "note", sortable: true },
   { name: "ACTIONS", uid: "actions" },
 ];

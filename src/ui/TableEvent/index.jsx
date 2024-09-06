@@ -164,7 +164,7 @@ export default function TableEvent({
           </div>
         );
       default:
-        return cellValue;
+        return Array.isArray(cellValue) ?cellValue.join('; '):cellValue;
     }
   }, []);
 

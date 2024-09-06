@@ -24,7 +24,7 @@ export default function BookingMulti() {
     { tags: ["course"], revalidate: 60 }
   );
   const courseSearchKey = useMemo(()=>{
-        return (course??[]).map(d=>[`${d.teacher_email} ${d.location??defaultLoc} ${d.title}`.toLowerCase(),d]);
+        return (course??[]).map(d=>[`${d.teacher_email.join(' ')} ${d.location??defaultLoc} ${d.title}`.toLowerCase(),d]);
     },[course]);
   const currentCourse = useMemo(()=>((searhCourse&&(searhCourse.trim()!==''))?courseSearchKey.filter(c=>_.includes(c[0], searhCourse.toLowerCase())).map(d=>d[1]):courseSearchKey.map(d=>d[1])),[searhCourse,courseSearchKey]);
   const [booking, setBooking] = useState();
@@ -85,13 +85,13 @@ export default function BookingMulti() {
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
-  const { data: userEvents, mutate: mutateBooking} = useSWR(
+  const { data: userEvents, mutate: mutateBooking, isLoading: isLoadingEvent} = useSWR(
     [
         booking?.teacher_email?"/api/booking":null,
       {
         method: "POST",
         body: JSON.stringify({
-          filter: { teacher_email: booking?.teacher_email },
+          filter: { teacher_email: {$in:booking?.teacher_email} },
         }),
       },
     ],
@@ -110,7 +110,7 @@ export default function BookingMulti() {
             <ScrollShadow className="h-full">
           <Tabs radius={'full'} color="secondary">
             <Tab key="general" title="Classroom schedule">
-              {(booking&&(!isLoadingBook))?<CalendarByRoom 
+              {(booking&&(!isLoadingBook)&&(!isLoadingEvent))?<CalendarByRoom 
               initRoom={(currentbooking&&currentbooking[0])?currentbooking[0]?.room?._id:undefined} 
               rooms={rooms} 
               extraEvents={userEvents}

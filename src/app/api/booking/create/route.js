@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getToken } from "next-auth/jwt";
 import Booking from "@/models/booking";
+import {includes} from "lodash"
 
 export const POST = async (request) => {
   const token = await getToken({
@@ -36,9 +37,8 @@ export const POST = async (request) => {
           status: 201,
         }
       );
-    } else if (user && user.email === data[0].teacher_email) {
+    } else if (user && includes(data[0].teacher_email,user.email)) {
       // single update
-      console.log(data);
       const bulkOps = [data[0]].map((d) => {
         const u = { ...d };
         u.course = d.course._id;

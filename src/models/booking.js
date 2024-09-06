@@ -4,7 +4,7 @@ import Room from "./room";
 
 const BookingSchema = new Schema({
   teacher_email: {
-    type: String,
+    type: [String],
     required: true,
   },
   room: {
