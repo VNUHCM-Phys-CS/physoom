@@ -42,7 +42,7 @@ export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,on
     const _ids = {};
     const extraBoundary = [];
     (eventsByRoom??[]).forEach(e=>_ids[e._id]=true);
-    extraEvents.forEach(e=>{
+    (extraEvents??[]).forEach(e=>{
         if(!_ids[e._id])
             extraBoundary.push(gridObject.booking2calendar(e));
     })

@@ -2,4 +2,7 @@
     li[data-selected="true"] {
         @apply bg-lime-300/80 focus:bg-lime-300;
     }
+    .stack-item span{
+        @apply max-w-full
+    }
 }

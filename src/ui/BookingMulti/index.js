@@ -36,7 +36,7 @@ export default function BookingMulti() {
         body: JSON.stringify({
           filter: {
             location: booking?.course?.location ?? defaultLoc,
-            limit: { $gte: booking?.course.population },
+            limit: { $gte: booking?.course?.population },
           },
         }),
       },
@@ -64,13 +64,17 @@ export default function BookingMulti() {
   const onSelectCourse = useCallback(
     (course) => {
       // create new booking
-      const newBooking = {
-        teacher_email: course?.teacher_email,
-        room: undefined,
-        course,
-        time_slot: {},
-      };
-      setBooking(newBooking);
+      if (course){
+        const newBooking = {
+          teacher_email: course?.teacher_email,
+          room: undefined,
+          course,
+          time_slot: {},
+        };
+        setBooking(newBooking);
+      } else {
+        setBooking(undefined);
+      }
     },
     []
   );

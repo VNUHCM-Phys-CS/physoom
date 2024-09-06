@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
+import { Button, ButtonGroup, Chip, Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
 import {ScrollShadow} from "@nextui-org/react";
 import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
+import StageButton from "../StageButton";
 
 export default function CourseList({ course, onSelectionChange, userEvents }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
@@ -40,6 +41,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
         selectedKeys={selectedKeys}
         onSelectionChange={setSelectedKeys}
         disabledKeys={["empty"]}
+        hideSelectedIcon
       >
         {courseGroup.map((cg) => (
           <ListboxSection key={cg.title} title={cg.title} showDivider>
@@ -48,6 +50,9 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                 key={_id}
                 description={
                   <div>
+                    <div className="flex w-full">
+                      <StageButton name="lock" size="sm" checked={isLock??false} color="danger" icon={<LockFill/>} falseText={"Unlock"} trueText={"Locked"}/>
+                    </div>
                     <h6 className="prose-lead:h6">{teacher_email.map(d=><div>{d}</div>)}</h6>
                     <div className="flex gap-1">
                       <Chip size="sm" color="primary">
@@ -59,10 +64,11 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                     </div>
                   </div>
                 }
-                className="flex justify-between max-w-full"
+                className="stack-item py-3"
                 // startContent={<LockFill className={" w-3 h-3"}/>}
               >
-                <div className="truncate">{title}</div>
+  
+                {title}
               </ListboxItem>
             ))}
             {cg.data.length === 0 && (
