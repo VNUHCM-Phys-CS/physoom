@@ -6,6 +6,7 @@ import {ScrollShadow} from "@nextui-org/react";
 import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
+import { Unlock } from "next/font/google";
 
 export default function CourseList({ course, onSelectionChange, userEvents }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
@@ -50,9 +51,9 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                 key={_id}
                 description={
                   <div>
-                    <div className="flex w-full">
-                      <StageButton name="lock" size="sm" checked={isLock??false} color="danger" icon={<LockFill/>} falseText={"Unlock"} trueText={"Locked"}/>
-                    </div>
+                    {/* <div className="flex w-full">
+                      <StageButton name="lock" size="sm" variant="light" onClick checked={isLock??false} color="danger" trueIcon={<LockFill/>} falseIcon={<LockFill/>} falseText={"Unlock"} trueText={"Locked"}/>
+                    </div> */}
                     <h6 className="prose-lead:h6">{teacher_email.map(d=><div>{d}</div>)}</h6>
                     <div className="flex gap-1">
                       <Chip size="sm" color="primary">
