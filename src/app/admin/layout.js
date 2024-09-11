@@ -10,7 +10,7 @@ export default function Layout({ children, course, room, booking }) {
   useEffect(() => {
     if (status!=='loading'){
         // Example: Redirect after some condition is met
-        const shouldRedirect = !session; // Replace with your condition
+        const shouldRedirect = !session || (session && (!session.isAdmin)); // Replace with your condition
         if (shouldRedirect) {
           router.push('/');
         }

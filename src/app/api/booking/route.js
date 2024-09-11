@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import Booking from "@/models/booking";
 import { getToken } from "next-auth/jwt";
+import { getServerSession } from "next-auth";
 
 export const GET = async (request) => {
   try {
@@ -46,13 +47,14 @@ export const POST = async (request) => {
   }
 };
 
-export const DELETE = async (request) => {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+export const DELETE = async (request,res) => {
+  const session = await getServerSession(request, res, authOptions);
+  // const token = await getToken({
+  //   req: request,
+  //   secret: process.env.NEXTAUTH_SECRET,
+  // });
   // check user
-  const user = token?.user;
+  const user = session?.user;
   try {
     await connectToDb();
     if (user && user.isAdmin) {
