@@ -3,6 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getToken } from "next-auth/jwt";
+import { authOptions } from "./api/auth/[...nextauth]";
 import { getServerSession } from "next-auth";
 import Booking from "@/models/booking";
 import {includes} from "lodash"
