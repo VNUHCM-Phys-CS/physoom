@@ -6,12 +6,15 @@ import {
     AutocompleteSection,
     AutocompleteItem
   } from "@nextui-org/autocomplete";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetcheroptions } from "@/lib/ulti";
+import { Select, SelectItem } from "@nextui-org/react";
 
 export default function() {
-    const [email,setEmail] = useState();
-    const { data: userList, mutate: mutateUserList} = useSWR(
+    const [searchKey,setSearchKey] = useState('teacher');
+    const _searchKey = useMemo(()=>new Set([searchKey]),[searchKey]);
+    const [filter,setFilter] = useState();
+    const { data: userList} = useSWR(
         [
             "/api/user",
           {
@@ -21,13 +24,23 @@ export default function() {
         fetcheroptions,
         { tags: ["user"], revalidate: 60 }
       );
+    const { data: classList} = useSWR(
+        [
+            "/api/class",
+          {
+            method: "GET"
+          },
+        ],
+        fetcheroptions,
+        { tags: ["class"], revalidate: 60 }
+      );
     const { data: userEvents, mutate: mutateBooking} = useSWR(
     [
-        email?"/api/booking":null,
+        filter?"/api/booking":null,
         {
         method: "POST",
         body: JSON.stringify({
-            filter: { teacher_email: email },
+            filter: { teacher_email: filter },
         }),
         },
     ],
@@ -35,19 +48,48 @@ export default function() {
     { tags: ["booking"], revalidate: 60 }
     );
     return <>
-        <Autocomplete 
+    <div className="flex">
+        <Select
+            label="Search by"
+            selectedKeys={_searchKey}
+            onSelectionChange={(v)=>{
+                setFilter(undefined);
+                setSearchKey(v.values().next().value)}}
+            className="max-w-[200px]"    
+        >
+            <SelectItem value="teacher" key="teacher">Teacher</SelectItem>
+            <SelectItem value="room" key="room">Room</SelectItem>
+            <SelectItem value="class" key="class">Class</SelectItem>
+        </Select>
+        {(searchKey==='teacher')&&<Autocomplete 
                 label="Lecturer"
+                variant="bordered"
                 placeholder="Search by email"
                 className="max-w-xs" 
-                selectedKey={email}
-                onSelectionChange={setEmail}
+                selectedKey={filter}
+                onSelectionChange={setFilter}
         >
             {(userList??[]).map((u) => (
                 <AutocompleteItem key={u} value={u}>
                     {u}
                 </AutocompleteItem>
             ))}
-        </Autocomplete>
+        </Autocomplete>}
+        {(searchKey==='class')&&<Autocomplete 
+                label="Lecturer"
+                variant="bordered"
+                placeholder="Search by Class id"
+                className="max-w-xs" 
+                selectedKey={filter}
+                onSelectionChange={setFilter}
+        >
+            {(classList??[]).map((u) => (
+                <AutocompleteItem key={u} value={u}>
+                    {u}
+                </AutocompleteItem>
+            ))}
+        </Autocomplete>}
+        </div>
         <CalendarByUser _events={userEvents}/>
     </>
 }
