@@ -7,7 +7,7 @@ import { getServerSession } from "next-auth";
 import Booking from "@/models/booking";
 import {includes} from "lodash"
 
-export const POST = async (request) => {
+export const POST = async (request,res) => {
   const token = await getServerSession(request, res, authOptions);
   // const token = await getToken({
   //   req: request,

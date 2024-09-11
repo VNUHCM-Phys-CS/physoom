@@ -156,6 +156,7 @@ export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,on
             </>:<h4>No room selected</h4>}
         </div>
       </div>
+          {(!currentRoom)&&<h3 className="prose prose-heading:h3 pt-5">Please choose room to view schedule</h3>}
           {selectedRoom&&<LoadingWrapper isLoading={isLoading}>
             <Calendar
             events={events}
