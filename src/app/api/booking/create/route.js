@@ -3,13 +3,13 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getToken } from "next-auth/jwt";
-import { authOptions } from "./api/auth/[...nextauth]";
 import { getServerSession } from "next-auth";
 import Booking from "@/models/booking";
 import {includes} from "lodash"
+import { authConfig } from "@/lib/auth.config";
 
 export const POST = async (request,res) => {
-  const token = await getServerSession(request, res, authOptions);
+  const token = await getServerSession(request, res, authConfig);
   // const token = await getToken({
   //   req: request,
   //   secret: process.env.NEXTAUTH_SECRET,
