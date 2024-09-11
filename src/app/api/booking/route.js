@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import Booking from "@/models/booking";
 import { getToken } from "next-auth/jwt";
-import { getServerSession } from "next-auth";
+import { auth } from "@/lib/auth";
 
 export const GET = async (request) => {
   try {
@@ -48,7 +48,7 @@ export const POST = async (request) => {
 };
 
 export const DELETE = async (request,res) => {
-  const session = await getServerSession(request, res, authOptions);
+  const session = await auth();
   // const token = await getToken({
   //   req: request,
   //   secret: process.env.NEXTAUTH_SECRET,

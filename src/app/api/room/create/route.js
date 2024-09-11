@@ -4,12 +4,10 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { getToken } from "next-auth/jwt";
 import Room from "@/models/room";
+import { auth } from "@/lib/auth";
 
 export const POST = async (request) => {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  const token = await auth();
   // check user
   const user = token?.user;
   try {

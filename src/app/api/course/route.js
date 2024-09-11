@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import Course from "@/models/course";
 import { getToken } from "next-auth/jwt";
+import { auth } from "@/lib/auth";
 
 export const GET = async (request) => {
   try {
@@ -41,10 +42,7 @@ export const POST = async (request) => {
 };
 
 export const DELETE = async (request) => {
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  const token = await auth();
   // check user
   const user = token?.user;
   try {

@@ -1,13 +1,12 @@
 import NextAuth from "next-auth";
-import { getSession } from "next-auth/react";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-
 import { authConfig } from "./lib/auth.config";
+
 const secret = process.env.NEXTAUTH_SECRET;
 const { auth } = NextAuth(authConfig);
-
-export default auth(async function middleware(req) {
+export default auth(
+  async function middleware(req) {
   // console.log("authorization:", req.headers.authorization?.split(" ")[1]);
   // const token = await getToken({
   //   req,

@@ -1,0 +1,10 @@
+.card-container {
+  @apply mb-4 rounded-lg border bg-slate-100/50;
+  @apply p-5;
+}
+.card-container .card-title {
+  @apply text-xl font-bold  px-3 py-1 rounded shadow-md;
+}
+.card-container .card-body {
+  @apply p-5 flex flex-col gap-4;
+}/*# sourceMappingURL=Card.css.map */

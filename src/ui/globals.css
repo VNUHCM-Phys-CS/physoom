@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+.btn {
+  @apply shadow-xl hover:shadow-md;
+}
+
+.form {
+  @apply flex flex-col text-center gap-3;
+}
+.form input {
+  @apply p-3 bg-neutral-100 border-none rounded;
+}
+.form .btn {
+  @apply font-bold;
+}
+.form label {
+  @apply text-left ml-1 text-sm;
+}
+
+.flex-c-c {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* @layer base {
+  h1 {
+    @apply
+      font-bold
+      text-5xl
+      md:text-6xl
+      xl:text-7xl;
+  }
+
+  h2 {
+    @apply
+      font-bold
+      text-4xl
+      md:text-5xl
+      xl:text-6xl;
+  }
+
+  h3 {
+    @apply
+      font-bold
+      text-3xl
+      md:text-4xl
+      xl:text-5xl;
+  }
+
+  h4 {
+    @apply
+      font-semibold
+      text-2xl
+      md:text-3xl
+      xl:text-4xl;
+  }
+
+  h5 {
+    @apply
+      font-semibold
+      text-xl
+      md:text-2xl
+      xl:text-3xl;
+  }
+
+  h6 {
+    @apply
+      font-semibold
+      text-lg
+      md:text-xl
+      xl:text-2xl;
+  }
+
+  p {
+    @apply
+      font-normal
+      text-base
+      md:text-base
+      xl:text-lg;
+  }
+} *//*# sourceMappingURL=globals.css.map */
