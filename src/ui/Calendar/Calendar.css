@@ -42,13 +42,13 @@
   @apply flex-1 overflow-hidden;
 }
 .cal-event-holder .cal-event-cell .cal-event-cell-content .title p {
-  @apply text-sm font-bold whitespace-normal text-ellipsis line-clamp-3 overflow-hidden;
+  @apply text-[0.65rem] font-bold whitespace-normal text-ellipsis line-clamp-3 overflow-hidden;
 }
 .cal-event-holder .cal-event-cell .cal-event-cell-content .subtitle {
   @apply flex-none min-h-4;
 }
 .cal-event-holder .cal-event-cell .cal-event-cell-content .subtitle p {
-  @apply text-xs text-ellipsis line-clamp-1 overflow-hidden;
+  @apply text-[0.65rem] text-ellipsis line-clamp-1 overflow-hidden;
 }
 .cal-event-holder .cal-event-interaction {
   @apply absolute top-0 left-0 h-full w-full grid grid-cols-7;

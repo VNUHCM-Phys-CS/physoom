@@ -37,13 +37,13 @@
       .title {
         @apply flex-1 overflow-hidden;
         p {
-          @apply text-sm font-bold whitespace-normal text-ellipsis line-clamp-3 overflow-hidden;
+          @apply text-[0.65rem] font-bold whitespace-normal text-ellipsis line-clamp-3 overflow-hidden;
         }
       }
       .subtitle {
         @apply flex-none min-h-4;
         p {
-          @apply text-xs text-ellipsis line-clamp-1 overflow-hidden;
+          @apply text-[0.65rem] text-ellipsis line-clamp-1 overflow-hidden;
         }
       }
     }

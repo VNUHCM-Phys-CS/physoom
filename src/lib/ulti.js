@@ -116,6 +116,7 @@ function booking2calendar(booking, time_arr) {
     title: booking.course.title,
     subtitle: booking.teacher_email,
     duration: booking.course.credit,
+    data:booking
   };
   const { time_slot } = booking;
   c.time_slot = {

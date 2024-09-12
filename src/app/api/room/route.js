@@ -10,7 +10,6 @@ export const GET = async (request) => {
   try {
     await connectToDb();
     const rooms = await Room.find();
-    console.log("here");
     revalidateTag("room");
     return NextResponse.json(rooms);
   } catch (err) {

@@ -57,5 +57,6 @@ const courseSchema = new Schema(
   { timestamps: true }
 );
 courseSchema.index({ title: 1, course_id: 1, class_id: 1 }, { unique: true })
+courseSchema.index({ class_id: 'text' })
 export default mongoose.models?.Course ||
   mongoose.model("Course", courseSchema);

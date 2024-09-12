@@ -34,15 +34,52 @@ export default function() {
         fetcheroptions,
         { tags: ["class"], revalidate: 60 }
       );
-    const { data: userEvents, mutate: mutateBooking} = useSWR(
+
+    const { data: roomList } = useSWR(
+    [
+        "/api/room",
+        {
+        method: "GET"
+        },
+    ],
+    fetcheroptions,
+    { tags: ["room"], revalidate: 60 }
+    );
+    const queryInfo = useMemo(()=>{
+        if (!filter){
+            return null
+        }else{
+            switch(searchKey){
+                case 'teacher':
+                    return {
+                        method: "POST",
+                        body: JSON.stringify({
+                            filter: { teacher_email: filter },
+                        }),
+                    }
+                case 'room':
+                    return {
+                        method: "POST",
+                        body: JSON.stringify({
+                            filter: { room: filter },
+                        }),
+                    }
+                case 'class':
+                    return {
+                        method: "POST",
+                        body: JSON.stringify({
+                            filter: { "course.class_id": filter },
+                        }),
+                    }
+                default:
+                    return null;
+            }
+        }
+    },[searchKey,filter]);
+    const { data: userEvents} = useSWR(
     [
         filter?"/api/booking":null,
-        {
-        method: "POST",
-        body: JSON.stringify({
-            filter: { teacher_email: filter },
-        }),
-        },
+        queryInfo,
     ],
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
@@ -75,8 +112,22 @@ export default function() {
                 </AutocompleteItem>
             ))}
         </Autocomplete>}
+        {(searchKey==='room')&&<Autocomplete 
+                label="Room"
+                variant="bordered"
+                placeholder="Search by Room"
+                className="max-w-xs" 
+                selectedKey={filter}
+                onSelectionChange={setFilter}
+        >
+            {(roomList??[]).map(({_id,title}) => (
+                <AutocompleteItem key={_id} value={_id}>
+                    {title}
+                </AutocompleteItem>
+            ))}
+        </Autocomplete>}
         {(searchKey==='class')&&<Autocomplete 
-                label="Lecturer"
+                label="Class"
                 variant="bordered"
                 placeholder="Search by Class id"
                 className="max-w-xs" 
@@ -90,6 +141,19 @@ export default function() {
             ))}
         </Autocomplete>}
         </div>
-        <CalendarByUser _events={userEvents}/>
+        <CalendarByUser 
+        _events={userEvents}
+        customSubtitle={customSubtitle}
+        />
     </>
+}
+function customSubtitle(data) {
+    const _data = data?.data;
+    if (_data){
+        return <div className="flex flex-col">
+            <strong>{_data.room?.title} ({_data.course?.population})</strong> 
+            {data.subtitle}
+        </div>
+    }else
+        return data?.subtitle;
 }

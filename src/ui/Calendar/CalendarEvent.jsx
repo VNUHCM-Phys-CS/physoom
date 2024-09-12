@@ -11,6 +11,8 @@ export default function CalendarEvent({
   isReview,
   onSelected,
   style,
+  onClickEvent,
+  customSubtitle
 }) {
   const { isOverlap, title, subtitle } = data;
   return (
@@ -27,6 +29,7 @@ export default function CalendarEvent({
         left: x,
         ...style,
       }}
+      onClick={()=>onClickEvent?onClickEvent(data):null}
     >
       <Tooltip
         showArrow={true}
@@ -35,7 +38,7 @@ export default function CalendarEvent({
         content={
           <div>
             <div className="text-medium">{title}</div>
-            <div>{subtitle}</div>
+            <div>{customSubtitle?customSubtitle(data):subtitle}</div>
           </div>
         }
       >
@@ -45,7 +48,7 @@ export default function CalendarEvent({
           </div>
 
           <div className="subtitle">
-            <p>{subtitle}</p>
+            <p>{customSubtitle?customSubtitle(data):subtitle}</p>
           </div>
           {isOverlap && (
             <WarningIcon className={"absolute left-0 bottom-0 m-2"} />

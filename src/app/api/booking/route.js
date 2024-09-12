@@ -3,6 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import Booking from "@/models/booking";
+import Course from "@/models/course";
 import { getToken } from "next-auth/jwt";
 import { auth } from "@/lib/auth";
 
@@ -30,12 +31,23 @@ export const POST = async (request) => {
   try {
     await connectToDb();
     let { filter } = await request.json();
-    const booking = await Booking.find(filter ?? {})
-      .populate("course")
-      .populate("room")
-      .exec();
-    revalidateTag("booking");
-    return NextResponse.json(booking);
+    let class_id = (filter ?? {})["course.class_id"];
+    if (class_id){
+      const course = await Course.find({class_id},["_id"]).lean();
+      const booking = await Booking.find({course:{$in:course.map(d=>d._id)}})
+        .populate('course')
+        .populate("room")
+        .exec();
+      revalidateTag("booking");
+      return NextResponse.json(booking);
+    }else{
+      const booking = await Booking.find(filter ?? {})
+        .populate("course")
+        .populate("room")
+        .exec();
+      revalidateTag("booking");
+      return NextResponse.json(booking);
+    }
   } catch (err) {
     console.log(err);
     return NextResponse.json(

@@ -7,7 +7,7 @@ import LoadingWrapper from "../LoadingWrapper";
 import { StarIcon } from "../icons/StarIcon";
 import _ from "lodash"
 
-export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,onBooking}){
+export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,onBooking,customSubtitle,onClickEvent}){
     const [selectedRoom, setSelectedRoom] = useState(initRoom);
     const [currentRoom, setCurrentRoom] = useState();
   const onSelectRoom = useCallback((e) => {
@@ -159,6 +159,8 @@ export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,on
           {(!currentRoom)&&<h3 className="prose prose-heading:h3 pt-5">Please choose room to view schedule</h3>}
           {selectedRoom&&<LoadingWrapper isLoading={isLoading}>
             <Calendar
+            customSubtitle={customSubtitle}
+            onClickEvent={onClickEvent}
             events={events}
             gridData={gridData}
             reviewData={reviewData}

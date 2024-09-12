@@ -31,6 +31,8 @@ export default function Calendar({
   events = defaultEvents,
   reviewData,
   onClickCell,
+  onClickEvent,
+  customSubtitle
 }) {
   const [onHoverEventData, setOnHoverEventData] = useState();
   const onMouseEnterCell = useCallback(
@@ -101,6 +103,7 @@ export default function Calendar({
             {events.map((e, i) => (
               <CalendarEvent
                 key={`e-${i}`}
+                customSubtitle={customSubtitle}
                 data={e}
                 height={`${
                   cellHeight * (e.time_slot.end_time - e.time_slot.start_time)
@@ -108,6 +111,7 @@ export default function Calendar({
                 width={`${widthD}%`}
                 y={`${e.time_slot.start_time * cellHeight}px`}
                 x={`${(e.time_slot.weekday - 2) * widthD}%`}
+                onClickEvent={onClickEvent}
                 onSelected={reviewData?.title===e.title}
                 style={{ zIndex: 1 }}
               />
