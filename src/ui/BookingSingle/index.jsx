@@ -10,7 +10,7 @@ import { Tab, Tabs } from "@nextui-org/react";
 import CalendarByUser from "../CalendarByUser";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
 export default function BookingSingle({ email }) {
-  const { data: course,mutate:mutateCourse } = useSWR(
+  const { data: course, mutate: mutateCourse } = useSWR(
     [
       email ? "/api/course" : null,
       {
@@ -40,7 +40,7 @@ export default function BookingSingle({ email }) {
     { tags: ["room"], revalidate: 60 }
   );
 
-  const { data: currentbooking,isLoading:isLoadingBook } = useSWR(
+  const { data: currentbooking, isLoading: isLoadingBook } = useSWR(
     [
       booking ? "/api/booking" : null,
       {
@@ -56,45 +56,74 @@ export default function BookingSingle({ email }) {
     { tags: ["booking"], revalidate: 60 }
   );
 
-  const onSelectCourse = useCallback(
-    (course) => {
-      // create new booking
-      const newBooking = {
-        teacher_email: course?.teacher_email,
-        room: undefined,
-        course,
-        time_slot: {},
-      };
-      setBooking(newBooking);
-    },
-    []
-  );
-  const {userEvents,mutateUserEvent} = useContext(UserCalendarContext);
+  const onSelectCourse = useCallback((course) => {
+    // create new booking
+    const newBooking = {
+      teacher_email: course?.teacher_email,
+      room: undefined,
+      course,
+      time_slot: {},
+    };
+    setBooking(newBooking);
+  }, []);
+  const { userEvents, mutateUserEvent } = useContext(UserCalendarContext);
   if (email)
     return (
       <div className="flex py-2 px-2 mx-auto gap-2">
         <Card className="w-1/4">
-          <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} />
+          <CourseList
+            course={course}
+            userEvents={userEvents}
+            onSelectionChange={onSelectCourse}
+          />
         </Card>
         <Card className="w-3/4">
-          <Tabs radius={'full'} color="secondary">
+          <Tabs radius={"full"} color="secondary">
             <Tab key="general" title="Classroom schedule">
-              {(booking&&(!isLoadingBook))?<CalendarByRoom 
-              initRoom={(currentbooking&&currentbooking[0])?currentbooking[0]?.room?._id:undefined} 
-              rooms={rooms} 
-              extraEvents={userEvents}
-              booking={booking} 
-              onBooking={()=>{mutateCourse();mutateUserEvent();}}
-              />:<div className="prose">
-                <h4>Please choose course</h4>
-              </div>}
+              {booking && !isLoadingBook ? (
+                <CalendarByRoom
+                  initRoom={
+                    currentbooking && currentbooking[0]
+                      ? currentbooking[0]?.room?._id
+                      : undefined
+                  }
+                  rooms={rooms}
+                  extraEvents={userEvents}
+                  booking={booking}
+                  onBooking={() => {
+                    mutateCourse();
+                    mutateUserEvent();
+                  }}
+                />
+              ) : (
+                <div className="prose">
+                  <h4>Please choose course</h4>
+                </div>
+              )}
             </Tab>
             <Tab key="personal" title="Personal schedule">
-                <CalendarByUser _events={userEvents}/>
+              <CalendarByUser
+                _events={userEvents}
+                customSubtitle={customSubtitle}
+              />
             </Tab>
           </Tabs>
         </Card>
       </div>
     );
   else return <div>Please login first</div>;
+}
+
+function customSubtitle(data) {
+  const _data = data?.data;
+  if (_data) {
+    return (
+      <div className="flex flex-col">
+        <strong>
+          {_data.room?.title} ({_data.course?.population})
+        </strong>
+        {data.subtitle}
+      </div>
+    );
+  } else return data?.subtitle;
 }
