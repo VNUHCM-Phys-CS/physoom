@@ -102,7 +102,26 @@ export default function BookingMulti() {
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
+  const { data: classEvents, isLoading: isLoadingclassEvent} = useSWR(
+    [
+        booking?"/api/booking":null,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          filter: { "course.class_id": booking?.course?.class_id },
+        }),
+      },
+    ],
+    fetcheroptions,
+    { tags: ["booking"], revalidate: 60 }
+  );
 
+  const extraEvents= useMemo(()=>{
+    return _.values(_.merge(
+      _.keyBy(classEvents, '_id'),
+      _.keyBy(userEvents, '_id')
+    ));
+  },[classEvents,userEvents])
     return (
       <div className="flex py-2 px-2 mx-auto gap-2">
         <Card className="w-1/4  max-h-dvh flex flex-col">
@@ -117,7 +136,7 @@ export default function BookingMulti() {
               {(booking&&(!isLoadingBook)&&(!isLoadingEvent))?<CalendarByRoom 
               initRoom={(currentbooking&&currentbooking[0])?currentbooking[0]?.room?._id:undefined} 
               rooms={rooms} 
-              extraEvents={userEvents}
+              extraEvents={extraEvents}
               booking={booking} 
               onBooking={()=>{mutateCourse();mutateUserEvent();mutateBooking();}}
               />:<div className="prose">
@@ -128,7 +147,13 @@ export default function BookingMulti() {
                 <div className="prose">
                     <h3>Lecturer: {booking?.teacher_email ?? 'No info'}</h3>
                 </div>
-                <CalendarByUser _events={userEvents}/>
+                <CalendarByUser _events={userEvents} selectedID={booking?.course?._id}/>
+            </Tab>
+            <Tab key="class_sche" title="Class schedule">
+                <div className="prose">
+                    <h3>Class: {booking?.course?.class_id ?? 'No info'}</h3>
+                </div>
+                <CalendarByUser _events={classEvents} selectedID={booking?.course?._id}/>
             </Tab>
             <Tab key="searchEvent" title="Search Schedule">
                 <SearchCalender/>

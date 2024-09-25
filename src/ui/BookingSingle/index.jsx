@@ -67,6 +67,27 @@ export default function BookingSingle({ email }) {
     setBooking(newBooking);
   }, []);
   const { userEvents, mutateUserEvent } = useContext(UserCalendarContext);
+  const { data: classEvents, isLoading: isLoadingclassEvent} = useSWR(
+    [
+        booking?"/api/booking":null,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          filter: { "course.class_id": booking?.course?.class_id },
+        }),
+      },
+    ],
+    fetcheroptions,
+    { tags: ["booking"], revalidate: 60 }
+  );
+
+  const extraEvents= useMemo(()=>{
+    return _.values(_.merge(
+      _.keyBy(classEvents, '_id'),
+      _.keyBy(userEvents, '_id')
+    ));
+  },[classEvents,userEvents])
+
   if (email)
     return (
       <div className="flex py-2 px-2 mx-auto gap-2">
@@ -88,7 +109,7 @@ export default function BookingSingle({ email }) {
                       : undefined
                   }
                   rooms={rooms}
-                  extraEvents={userEvents}
+                  extraEvents={extraEvents}
                   booking={booking}
                   onBooking={() => {
                     mutateCourse();
@@ -105,6 +126,13 @@ export default function BookingSingle({ email }) {
               <CalendarByUser
                 _events={userEvents}
                 customSubtitle={customSubtitle}
+                selectedID={booking?.course?._id}
+              />
+            </Tab>
+            <Tab key="class_sche" title="Class schedule">
+              <CalendarByUser
+                _events={classEvents}
+                selectedID={booking?.course?._id}
               />
             </Tab>
           </Tabs>

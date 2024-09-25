@@ -30,6 +30,7 @@ export default function Calendar({
   cellHeight = 40,
   events = defaultEvents,
   reviewData,
+  selectedID,
   onClickCell,
   onClickEvent,
   customSubtitle
@@ -112,7 +113,7 @@ export default function Calendar({
                 y={`${e.time_slot.start_time * cellHeight}px`}
                 x={`${(e.time_slot.weekday - 2) * widthD}%`}
                 onClickEvent={onClickEvent}
-                onSelected={reviewData?.id===e.id}
+                onSelected={(reviewData?.id===e.id) ||(selectedID===e.id)}
                 style={{ zIndex: 1 }}
               />
             ))}

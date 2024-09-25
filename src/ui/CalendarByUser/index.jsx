@@ -3,7 +3,7 @@ import Calendar from "../Calendar";
 import LoadingWrapper from "../LoadingWrapper";
 import { defaultGridByTime } from "@/lib/ulti";
 
-export default function CalendarByUser({_events=[],customSubtitle}){
+export default function CalendarByUser({_events=[],selectedID,customSubtitle}){
     const events = useMemo(()=>{
         return (_events ?? []).map((e) => defaultGridByTime.booking2calendar(e))
     },[_events])
@@ -11,6 +11,7 @@ export default function CalendarByUser({_events=[],customSubtitle}){
         <Calendar events={events}
             gridData={defaultGridByTime.data}
             customSubtitle={customSubtitle}
+            selectedID={selectedID}
         />
     </LoadingWrapper>
 }
