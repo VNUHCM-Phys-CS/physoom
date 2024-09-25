@@ -7,7 +7,7 @@ import {
     AutocompleteItem
   } from "@nextui-org/autocomplete";
 import { useEffect, useMemo, useState } from "react";
-import { fetcheroptions } from "@/lib/ulti";
+import { fetcheroptions, getClass } from "@/lib/ulti";
 import { Select, SelectItem } from "@nextui-org/react";
 
 export default function() {
@@ -68,7 +68,7 @@ export default function() {
                     return {
                         method: "POST",
                         body: JSON.stringify({
-                            filter: { "course.class_id": filter },
+                            filter: { "course.class_id": getClass(filter) },
                         }),
                     }
                 default:

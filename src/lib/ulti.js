@@ -151,3 +151,7 @@ function calendar2booking(ca, booking, time_arr, isEnd) {
 }
 
 export const defaultLoc = "NVC";
+
+export function getClass(cid) {
+  return str.replace(/_[^_]*$/, '');
+}

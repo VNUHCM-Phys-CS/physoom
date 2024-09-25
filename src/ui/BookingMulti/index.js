@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { fetcheroptions, defaultLoc } from "@/lib/ulti";
+import { fetcheroptions, defaultLoc, getClass } from "@/lib/ulti";
 import CourseList from "../CourseList";
 import Card from "../Card";
 import _ from "lodash";
@@ -108,7 +108,7 @@ export default function BookingMulti() {
       {
         method: "POST",
         body: JSON.stringify({
-          filter: { "course.class_id": booking?.course?.class_id },
+          filter: { "course.class_id": getClass(booking?.course?.class_id) },
         }),
       },
     ],
