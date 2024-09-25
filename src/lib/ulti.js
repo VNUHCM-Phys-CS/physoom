@@ -113,6 +113,7 @@ function index2time(d, arr, isEnd) {
 
 function booking2calendar(booking, time_arr) {
   const c = {
+    id: booking.course._id,
     title: booking.course.title,
     subtitle: booking.teacher_email,
     duration: booking.course.credit,

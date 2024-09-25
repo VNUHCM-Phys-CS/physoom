@@ -38,7 +38,7 @@ export default function CalendarEvent({
         content={
           <div>
             <div className="text-medium">{title}</div>
-            <div>{customSubtitle?customSubtitle(data):subtitle}</div>
+            <div>{customSubtitle?customSubtitle(data):subtitle.join(', ')}</div>
           </div>
         }
       >
@@ -48,7 +48,7 @@ export default function CalendarEvent({
           </div>
 
           <div className="subtitle">
-            <p>{customSubtitle?customSubtitle(data):subtitle}</p>
+            <p>{customSubtitle?customSubtitle(data):subtitle.map(s=><p key={s}>{s}</p>)}</p>
           </div>
           {isOverlap && (
             <WarningIcon className={"absolute left-0 bottom-0 m-2"} />

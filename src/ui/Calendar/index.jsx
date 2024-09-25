@@ -112,7 +112,7 @@ export default function Calendar({
                 y={`${e.time_slot.start_time * cellHeight}px`}
                 x={`${(e.time_slot.weekday - 2) * widthD}%`}
                 onClickEvent={onClickEvent}
-                onSelected={reviewData?.title===e.title}
+                onSelected={reviewData?.id===e.id}
                 style={{ zIndex: 1 }}
               />
             ))}
@@ -121,6 +121,7 @@ export default function Calendar({
                 data={onHoverEventData}
                 height={`${cellHeight * onHoverEventData.duration}px`}
                 width={`${widthD}%`}
+                customSubtitle={customSubtitle}
                 y={`${onHoverEventData.time_slot.start_time * cellHeight}px`}
                 x={`${(onHoverEventData.time_slot.weekday - 2) * widthD}%`}
                 isReview={true}

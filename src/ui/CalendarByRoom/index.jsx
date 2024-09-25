@@ -72,6 +72,7 @@ export default function CalendarByRoom({initRoom,extraEvents,rooms=[],booking,on
     () => {
         if(booking){
             const reviewData = {
+                id: booking.course._id,
                 title: booking.course.title,
                 subtitle: booking.teacher_email,
                 duration: booking.course.credit,
