@@ -16,8 +16,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
     session.token = token;
     if (token) {
       session.isAdmin = token.isAdmin;
+      session.teacher_id = token.teacher_id;
       session.user = token.user;
       session.user.isAdmin = token.isAdmin;
+      session.user.teacher_id = token.teacher_id;
       session.error = token.error;
       session.accessToken = token.accessToken;
     }
@@ -31,6 +33,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
     if (user) {
       token.user = user;
       token.isAdmin = user.isAdmin;
+      token.teacher_id = user.teacher_id;
     }
     // if (token.user&&token.user.email) {
     //   const isAdmin = user.isAdmin;
@@ -64,7 +67,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({...authConfig,callb
       await connectToDb();
       const existingUser = await User.findOne({ email: user.email });
       const isAdmin = (existingUser && existingUser.isAdmin);
+      const teacher_id = (existingUser && existingUser.teacher_id);
       user.isAdmin = isAdmin;
+      user.teacher_id = teacher_id;
     }
     return true;
   },

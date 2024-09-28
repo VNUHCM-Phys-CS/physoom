@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { fetcheroptions, defaultLoc, getClass } from "@/lib/ulti";
+import { fetcheroptions, defaultLoc, getClass, customSubtitle } from "@/lib/ulti";
 import CourseList from "../CourseList";
 import Card from "../Card";
 import _ from "lodash";
@@ -140,18 +140,4 @@ export default function BookingSingle({ email }) {
       </div>
     );
   else return <div>Please login first</div>;
-}
-
-function customSubtitle(data) {
-  const _data = data?.data;
-  if (_data) {
-    return (
-      <div className="flex flex-col">
-        <strong>
-          {_data.room?.title} ({_data.course?.population})
-        </strong>
-        {data.subtitle}
-      </div>
-    );
-  } else return data?.subtitle;
 }

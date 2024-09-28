@@ -7,7 +7,7 @@ import {
     AutocompleteItem
   } from "@nextui-org/autocomplete";
 import { useEffect, useMemo, useState } from "react";
-import { fetcheroptions, getClass } from "@/lib/ulti";
+import { customSubtitle, fetcheroptions, getClass } from "@/lib/ulti";
 import { Select, SelectItem } from "@nextui-org/react";
 
 export default function() {
@@ -146,14 +146,4 @@ export default function() {
         customSubtitle={customSubtitle}
         />
     </>
-}
-function customSubtitle(data) {
-    const _data = data?.data;
-    if (_data){
-        return <div className="flex flex-col">
-            <strong>{_data.room?.title} ({_data.course?.population})</strong> 
-            {data.subtitle}
-        </div>
-    }else
-        return data?.subtitle;
 }

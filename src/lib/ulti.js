@@ -155,3 +155,14 @@ export const defaultLoc = "NVC";
 export function getClass(cid) {
   return cid?cid.replace(/_[^_]*$/, ''):cid;
 }
+
+export function customSubtitle(data) {
+  const _data = data?.data;
+  if (_data){
+      return <div className="flex flex-col">
+          <strong>{_data.room?.title} ({_data.course?.population})</strong> 
+          {data.subtitle.map(s=><p key={s}>{s}</p>)}
+      </div>
+  }else
+      return data?.subtitle;
+}
