@@ -15,7 +15,11 @@ import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
 import { Unlock } from "next/font/google";
 
-export default function CourseList({ course, onSelectionChange, userEvents }) {
+export default function CourseListSelect({
+  course,
+  onSelectionChange,
+  userEvents,
+}) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
   const courseGroup = useMemo(() => {
     let done = {};
@@ -38,6 +42,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
       onSelectionChange(c);
     }
   }, [selectedKeys, course, onSelectionChange]);
+
   return (
     <ScrollShadow className="flex flex-col gap-2 h-full w-full relative">
       <Listbox
@@ -45,9 +50,9 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
         aria-label="course booking selection"
         variant="flat"
         disallowEmptySelection
-        selectionMode="single"
+        selectionMode="none"
         selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
+        // onSelectionChange={setSelectedKeys}
         disabledKeys={["empty"]}
         hideSelectedIcon
       >
@@ -57,6 +62,10 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
               ({ title, location, teacher_email, credit, _id, isLock }) => (
                 <ListboxItem
                   key={_id}
+                  onPress={(d) => setSelectedKeys(new Set().add(_id))}
+                  classNames={{
+                    base: selectedKeys.has(_id) ? ["selectedlist"] : null,
+                  }}
                   description={
                     <div>
                       <div className="flex w-full">
@@ -64,6 +73,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                           name="lock"
                           size="sm"
                           variant="light"
+                          onClick
                           checked={isLock ?? false}
                           color="danger"
                           trueIcon={<LockFill />}
