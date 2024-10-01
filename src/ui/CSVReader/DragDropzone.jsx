@@ -29,6 +29,8 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
         },
         header: true,
       });
+    }else {
+      alert("wrong format")
     }
   };
 
