@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 import Room from "@/models/room";
 import { getToken } from "next-auth/jwt";
 import { auth } from "@/lib/auth";
+import Booking from "@/models/booking";
 
 export const GET = async (request) => {
   try {
@@ -15,12 +16,9 @@ export const GET = async (request) => {
   } catch (err) {
     console.log(err);
     // revalidateTag("room");
-    return NextResponse.json(
-      [],
-      {
-        status: 400,
-      }
-    );
+    return NextResponse.json([], {
+      status: 400,
+    });
   }
 };
 
@@ -34,12 +32,9 @@ export const POST = async (request) => {
   } catch (err) {
     console.log(err);
     revalidateTag("room");
-    return NextResponse.json(
-      [],
-      {
-        status: 400,
-      }
-    );
+    return NextResponse.json([], {
+      status: 400,
+    });
   }
 };
 
@@ -54,6 +49,8 @@ export const DELETE = async (request) => {
       const result = await Room.deleteMany({
         _id: { $in: ids },
       });
+      await Booking.deleteMany({ room: { $in: ids } });
+
       revalidateTag("room");
       return NextResponse.json(
         { success: true },
