@@ -137,7 +137,7 @@ export default function BookingMulti() {
   }, [classEvents, userEvents]);
   return (
     <div className="flex py-2 px-2 mx-auto gap-2">
-      <Card className="w-1/4  max-h-dvh flex flex-col">
+      <Card className="w-1/3 md:w-1/4  max-h-dvh flex flex-col">
         <Input
           label="Search"
           isClearable
@@ -152,7 +152,7 @@ export default function BookingMulti() {
           onSelectionChange={onSelectCourse}
         />
       </Card>
-      <Card className="w-3/4 max-h-dvh">
+      <Card className="w-2/3 md:w-3/4 max-h-dvh">
         <ScrollShadow className="h-full">
           <Tabs radius={"full"} color="secondary">
             <Tab key="general" title="Classroom schedule">
