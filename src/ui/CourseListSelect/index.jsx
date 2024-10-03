@@ -4,10 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   ButtonGroup,
+  Checkbox,
   Chip,
   Listbox,
   ListboxItem,
   ListboxSection,
+  Table,
+  TableBody,
+  TableRow,
 } from "@nextui-org/react";
 import { ScrollShadow } from "@nextui-org/react";
 import "./CourseList.scss";
@@ -45,6 +49,63 @@ export default function CourseListSelect({
 
   return (
     <ScrollShadow className="flex flex-col gap-2 h-full w-full relative">
+      <Table>
+        {courseGroup.map((cg) => (
+          <TableBody key={cg.title} showDivider>
+            <TableRow>{cg.title}</TableRow>
+            {cg.data.map(
+              ({ title, location, teacher_email, credit, _id, isLock }) => (
+                <TableRow
+                  key={_id}
+                  onPress={(d) => setSelectedKeys(new Set().add(_id))}
+                  classNames={{
+                    base: selectedKeys.has(_id) ? ["selectedlist"] : null,
+                  }}
+                  description={
+                    <div>
+                      <div className="flex w-full">
+                        <StageButton
+                          name="lock"
+                          size="sm"
+                          variant="light"
+                          onClick
+                          checked={isLock ?? false}
+                          color="danger"
+                          trueIcon={<LockFill />}
+                          falseIcon={<LockFill />}
+                          falseText={"Unlock"}
+                          trueText={"Locked"}
+                        />
+                      </div>
+                      <h6 className="prose-lead:h6">
+                        {teacher_email.map((d) => (
+                          <div>{d}</div>
+                        ))}
+                      </h6>
+                      <div className="flex gap-1">
+                        <Chip size="sm" color="primary">
+                          {location}
+                        </Chip>
+                        <Chip size="sm" variant="shadow">
+                          {credit} credits
+                        </Chip>
+                      </div>
+                    </div>
+                  }
+                  className="stack-item py-3"
+                  // startContent={<LockFill className={" w-3 h-3"}/>}
+                >
+                  <Checkbox size="sm">Option</Checkbox>
+                  {title}
+                </TableRow>
+              )
+            )}
+            {cg.data.length === 0 && (
+              <TableRow key="empty">{cg.emptyText}</TableRow>
+            )}
+          </TableBody>
+        ))}
+      </Table>
       <Listbox
         className="list-stack"
         aria-label="course booking selection"
@@ -100,6 +161,7 @@ export default function CourseListSelect({
                   className="stack-item py-3"
                   // startContent={<LockFill className={" w-3 h-3"}/>}
                 >
+                  <Checkbox size="sm">Option</Checkbox>
                   {title}
                 </ListboxItem>
               )
