@@ -23,10 +23,9 @@ export default function Layout({ children, course, room, booking }) {
       <div className=" flex-row justify-between shadow-xl bg-white rounded-md py-2 px-4 mx-auto">
         <NavLink item={{ title: "Dashboard", path: "/admin" }} />
         <NavLink item={{ title: "Course", path: "/admin/course" }} />
-
         <NavLink item={{ title: "Room", path: "/admin/room" }} />
-
         <NavLink item={{ title: "Booking Request", path: "/admin/booking" }} />
+        <NavLink item={{ title: "View Share", path: "/admin/view-share" }} />
       </div>
       <div className="p-2 mt-5">{children}</div>
     </div>
