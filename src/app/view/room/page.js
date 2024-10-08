@@ -48,7 +48,8 @@ export default function ViewRoomPage () {
         [
             "/api/room",
             {
-            method: "GET"
+            method: "POST",
+            body:  JSON.stringify({filter:{ title: {$regex: "cs1"} }})
             },
         ],
         fetcheroptions,
