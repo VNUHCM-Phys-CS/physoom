@@ -14,6 +14,7 @@ import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
 import { Unlock } from "next/font/google";
+import { UnlockFill } from "../icons/UnlockFill";
 
 export default function CourseList({ course, onSelectionChange, userEvents }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
@@ -67,7 +68,7 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                           checked={isLock ?? false}
                           color="danger"
                           trueIcon={<LockFill />}
-                          falseIcon={<LockFill />}
+                          falseIcon={<UnlockFill />}
                           falseText={"Unlock"}
                           trueText={"Locked"}
                         />
