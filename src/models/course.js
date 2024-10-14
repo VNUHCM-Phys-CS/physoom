@@ -10,11 +10,11 @@ const courseSchema = new Schema(
       type: [String],
       required: true,
     },
-    course_id:{
-      type: String
+    course_id: {
+      type: String,
     },
-    class_id:{
-      type: String
+    class_id: {
+      type: String,
     },
     population: {
       type: Number,
@@ -53,10 +53,13 @@ const courseSchema = new Schema(
       type: String,
       enum: locationList.short,
     },
+    isLock: {
+      type: Boolean,
+    },
   },
   { timestamps: true }
 );
-courseSchema.index({ title: 1, course_id: 1, class_id: 1 }, { unique: true })
-courseSchema.index({ class_id: 'text' })
+courseSchema.index({ title: 1, course_id: 1, class_id: 1 }, { unique: true });
+courseSchema.index({ class_id: "text" });
 export default mongoose.models?.Course ||
   mongoose.model("Course", courseSchema);

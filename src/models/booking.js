@@ -41,9 +41,6 @@ const BookingSchema = new Schema({
   isConfirm: {
     type: Boolean,
   },
-  isLock: {
-    type: Boolean,
-  },
 });
 
 const Booking =

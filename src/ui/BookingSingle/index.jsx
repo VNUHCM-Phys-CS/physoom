@@ -1,6 +1,11 @@
 "use client";
 import useSWR from "swr";
-import { fetcheroptions, defaultLoc, getClass, customSubtitle } from "@/lib/ulti";
+import {
+  fetcheroptions,
+  defaultLoc,
+  getClass,
+  customSubtitle,
+} from "@/lib/ulti";
 import CourseList from "../CourseList";
 import Card from "../Card";
 import _ from "lodash";
@@ -67,9 +72,9 @@ export default function BookingSingle({ email }) {
     setBooking(newBooking);
   }, []);
   const { userEvents, mutateUserEvent } = useContext(UserCalendarContext);
-  const { data: classEvents, isLoading: isLoadingclassEvent} = useSWR(
+  const { data: classEvents, isLoading: isLoadingclassEvent } = useSWR(
     [
-        booking?"/api/booking":null,
+      booking ? "/api/booking" : null,
       {
         method: "POST",
         body: JSON.stringify({
@@ -81,12 +86,11 @@ export default function BookingSingle({ email }) {
     { tags: ["booking"], revalidate: 60 }
   );
 
-  const extraEvents= useMemo(()=>{
-    return _.values(_.merge(
-      _.keyBy(classEvents, '_id'),
-      _.keyBy(userEvents, '_id')
-    ));
-  },[classEvents,userEvents])
+  const extraEvents = useMemo(() => {
+    return _.values(
+      _.merge(_.keyBy(classEvents, "_id"), _.keyBy(userEvents, "_id"))
+    );
+  }, [classEvents, userEvents]);
 
   if (email)
     return (
@@ -115,6 +119,7 @@ export default function BookingSingle({ email }) {
                     mutateCourse();
                     mutateUserEvent();
                   }}
+                  isLock={booking?.course?.isLock}
                 />
               ) : (
                 <div className="prose">

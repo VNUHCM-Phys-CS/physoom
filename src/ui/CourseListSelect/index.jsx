@@ -15,11 +15,13 @@ import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
 import { Unlock } from "next/font/google";
+import { UnlockFill } from "../icons/UnlockFill";
 
 export default function CourseListSelect({
   course,
   onSelectionChange,
   userEvents,
+  onUpdate,
 }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
   const courseGroup = useMemo(() => {
@@ -77,15 +79,76 @@ export default function CourseListSelect({
     });
   };
 
+  const onClickCheckAllBtn = () => {
+    if (checkAllBtn.isSe) {
+      // de select
+      setSelectedRelated(new Set());
+      setCheckAllBtn({ isIn: false, isSe: false });
+    } else {
+      const all = new Set();
+      courseGroup.forEach((cg) => cg.data.forEach(({ _id }) => all.add(_id)));
+      setSelectedRelated(all);
+      setCheckAllBtn({ isIn: false, isSe: true });
+    }
+  };
+  const handleLockAll = () => {
+    const query = [];
+    selectedRelated.forEach((_id) => query.push({ _id, isLock: true }));
+    const res = fetch("/api/course/edit", {
+      method: "POST",
+      body: JSON.stringify(query),
+    }).then(() => {
+      onUpdate();
+    });
+  };
+  const handleUnlockAll = () => {
+    const query = [];
+    selectedRelated.forEach((_id) => query.push({ _id, isLock: false }));
+    const res = fetch("/api/course/edit", {
+      method: "POST",
+      body: JSON.stringify(query),
+    }).then(() => {
+      onUpdate();
+    });
+  };
   return (
     <div className="booking-holder">
-      <div className="px-4 flex my-5">
+      <div className="px-4 flex my-5 justify-between items-center">
         <Checkbox
           size="sm"
           isIndeterminate={checkAllBtn.isIn}
           isSelected={checkAllBtn.isSe}
+          onClick={onClickCheckAllBtn}
         ></Checkbox>
         <h4 className="font-bold">Booking info</h4>
+        <div>
+          <Button
+            size="md"
+            variant={"light"}
+            color={selectedRelated.size ? "danger" : null}
+            className={`lock-btn px-0 min-w-10 ${
+              selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
+            }`}
+            disabled={!selectedRelated.size}
+            title="Lock"
+            onClick={handleLockAll}
+          >
+            <LockFill />
+          </Button>
+          <Button
+            size="md"
+            variant="light"
+            color={selectedRelated.size ? "danger" : null}
+            className={`lock-btn px-0 min-w-10 ${
+              selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
+            }`}
+            disabled={!selectedRelated.size}
+            title="Unlock"
+            onClick={handleUnlockAll}
+          >
+            <UnlockFill />
+          </Button>
+        </div>
       </div>
       <ScrollShadow className="flex flex-col gap-2 h-full w-full relative">
         <Listbox
@@ -136,7 +199,7 @@ export default function CourseListSelect({
                         checked={isLock ?? false}
                         color="danger"
                         trueIcon={<LockFill />}
-                        falseIcon={<LockFill />}
+                        falseIcon={<UnlockFill />}
                         // falseText={"Unlock"}
                         // trueText={"Locked"}
                         className={"lock-btn"}

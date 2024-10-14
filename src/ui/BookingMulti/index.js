@@ -150,6 +150,7 @@ export default function BookingMulti() {
           course={currentCourse}
           userEvents={_events}
           onSelectionChange={onSelectCourse}
+          onUpdate={mutateCourse}
         />
       </Card>
       <Card className="w-2/3 md:w-3/4 max-h-dvh">
