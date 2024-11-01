@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     experimental: {
-      esmExternals: "loose",
-      serverComponentsExternalPackages: ["mongoose"],
+      staleTimes: {
+        dynamic: 30,
+        static: 180,
+      },
     },
+    serverExternalPackages: ["mongoose"],
     // Other Next.js config options...
   };
   

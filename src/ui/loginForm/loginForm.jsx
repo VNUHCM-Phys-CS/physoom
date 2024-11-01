@@ -1,11 +1,11 @@
+import { useActionState } from "react";
 "use client";
 
 import { login } from "@/lib/action";
-import { useFormState } from "react-dom";
 import Link from "next/link";
 
 const LoginForm = () => {
-  const [state, formAction] = useFormState(login, undefined);
+  const [state, formAction] = useActionState(login, undefined);
 
   return (
     <form className="form" action={formAction}>
