@@ -91,7 +91,7 @@ export default function CourseListSelect({
       setCheckAllBtn({ isIn: false, isSe: true });
     }
   };
-  const handleLockAll = () => {
+  const handleLockAll = (selectedRelated) => {
     const query = [];
     selectedRelated.forEach((_id) => query.push({ _id, isLock: true }));
     const res = fetch("/api/course/edit", {
@@ -101,7 +101,7 @@ export default function CourseListSelect({
       onUpdate();
     });
   };
-  const handleUnlockAll = () => {
+  const handleUnlockAll = (selectedRelated) => {
     const query = [];
     selectedRelated.forEach((_id) => query.push({ _id, isLock: false }));
     const res = fetch("/api/course/edit", {
@@ -131,7 +131,7 @@ export default function CourseListSelect({
             }`}
             disabled={!selectedRelated.size}
             title="Lock"
-            onClick={handleLockAll}
+            onClick={() => handleLockAll(selectedRelated)}
           >
             <LockFill />
           </Button>
@@ -144,7 +144,7 @@ export default function CourseListSelect({
             }`}
             disabled={!selectedRelated.size}
             title="Unlock"
-            onClick={handleUnlockAll}
+            onClick={() => handleUnlockAll(selectedRelated)}
           >
             <UnlockFill />
           </Button>
@@ -168,6 +168,7 @@ export default function CourseListSelect({
                 ({ title, location, teacher_email, credit, _id, isLock }) => (
                   <ListboxItem
                     key={_id}
+                    textValue={_id}
                     onPress={(d) => setSelectedKeys(new Set().add(_id))}
                     classNames={{
                       base: selectedKeys.has(_id) ? ["selectedlist"] : null,
@@ -195,7 +196,11 @@ export default function CourseListSelect({
                         name="lock"
                         size="sm"
                         variant="light"
-                        onClick
+                        onClick={
+                          isLock
+                            ? () => handleUnlockAll([_id])
+                            : () => handleLockAll([_id])
+                        }
                         checked={isLock ?? false}
                         color="danger"
                         trueIcon={<LockFill />}

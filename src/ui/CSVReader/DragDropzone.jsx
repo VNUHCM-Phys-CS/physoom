@@ -2,6 +2,13 @@ import React, { useState } from "react";
 import { Card, CardBody, CardFooter, Button, Spacer } from "@nextui-org/react";
 import Papa from "papaparse";
 import TableEvent from "../TableEvent";
+import { read, readFile, utils } from "xlsx";
+
+const validMimeTypes = [
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+];
 
 const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
   const [csvData, setCsvData] = useState([]);
@@ -29,8 +36,46 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
         },
         header: true,
       });
-    }else {
-      alert("wrong format")
+    }
+    if (validMimeTypes.includes(file.type)) {
+      debugger;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const binaryStr = e.target.result;
+        const workbook = read(binaryStr, { type: "array" });
+        const data = [];
+        workbook.SheetNames.find((sheet) => {
+          const worksheet = workbook.Sheets[sheet];
+          const sheetData = utils
+            .sheet_to_json(worksheet, {
+              header: 1,
+            })
+            .filter(
+              (row) =>
+                row.some(
+                  (cell) => cell !== null && cell !== undefined && cell !== ""
+                ) // Keep rows with at least one non-empty value
+            );
+          const headerRow = (sheetData[0] || []).map((d) => d.trim());
+          if (collums.every((col) => headerRow.includes(col.name))) {
+            for (let i = 1; i < sheetData.length; i++)
+              data.push(
+                sheetData[i].reduce((acc, value, index) => {
+                  if (headerRow[index]) acc[headerRow[index]] = value; // Map headers to row values
+                  return acc;
+                }, {})
+              );
+            return true;
+          }
+        });
+        setCsvData(data);
+      };
+      reader.onerror = function () {
+        console.log(reader.error);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      alert("wrong format");
     }
   };
 
@@ -45,7 +90,7 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
         onDrop={handleFileDrop}
         onDragOver={handleDragOver}
       >
-        <h4 className="p-4">Drag & Drop your CSV file here</h4>
+        <h4 className="p-4">Drag & Drop your Excel/CSV file here</h4>
         {csvData.length > 0 && (
           <TableEvent
             columns={collums}

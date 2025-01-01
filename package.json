@@ -16,6 +16,7 @@
     "autoprefixer": "^10.4.19",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
+    "formidable": "^3.5.2",
     "framer-motion": "^11.3.24",
     "lodash": "^4.17.21",
     "moment": "^2.30.1",
@@ -34,6 +35,7 @@
     "react-resizable": "^3.0.5",
     "sass": "^1.79.5",
     "swr": "^2.2.5",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.5",
     "zustand": "^4.5.5"
   },
