@@ -3,9 +3,15 @@
 import { Card, Button } from "@nextui-org/react";
 import { useRouter } from "next/navigation";
 import DragDropzone from "./DragDropzone";
-const CSVReader = ({ path, email, collums, INITIAL_VISIBLE_COLUMNS }) => {
+const CSVReader = ({
+  path,
+  onSubmit,
+  email,
+  collums,
+  INITIAL_VISIBLE_COLUMNS,
+}) => {
   const router = useRouter();
-  const onSubmit = async (data) => {
+  const _onSubmit = async (data) => {
     try {
       // formatdata
       const res = await fetch(path, {
@@ -34,7 +40,7 @@ const CSVReader = ({ path, email, collums, INITIAL_VISIBLE_COLUMNS }) => {
       <DragDropzone
         collums={collums}
         INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
-        onImport={onSubmit}
+        onImport={onSubmit ?? _onSubmit}
       />
       {/* <Card
         isBlurred

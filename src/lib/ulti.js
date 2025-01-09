@@ -117,7 +117,7 @@ function booking2calendar(booking, time_arr) {
     title: booking.course.title,
     subtitle: booking.teacher_email,
     duration: booking.course.credit,
-    data:booking
+    data: booking,
   };
   const { time_slot } = booking;
   c.time_slot = {
@@ -153,16 +153,29 @@ function calendar2booking(ca, booking, time_arr, isEnd) {
 export const defaultLoc = "NVC";
 
 export function getClass(cid) {
-  return cid?cid.replace(/_[^_]*$/, ''):cid;
+  return cid ? cid.replace(/_[^_]*$/, "") : cid;
 }
 
 export function customSubtitle(data) {
   const _data = data?.data;
-  if (_data){
-      return <div className="flex flex-col">
-          <strong>{_data.room?.title} ({_data.course?.population})</strong> 
-          {data.subtitle.map(s=><p key={s}>{s}</p>)}
+  if (_data) {
+    return (
+      <div className="flex flex-col">
+        <strong>
+          {_data.room?.title} ({_data.course?.population})
+        </strong>
+        {data.subtitle.map((s) => (
+          <p key={s}>{s}</p>
+        ))}
       </div>
-  }else
-      return data?.subtitle;
+    );
+  } else return data?.subtitle;
 }
+
+export const convertExcelDateToJSDate = (excelDate) => {
+  const excelEpoch = new Date(1900, 0, 1); // Excel dates start from 1900-01-01
+  const jsDate = new Date(
+    excelEpoch.getTime() + (excelDate - 2) * 24 * 60 * 60 * 1000
+  ); // Adjust by 2 days for Excel's quirks
+  return jsDate;
+};

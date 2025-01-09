@@ -81,7 +81,6 @@ export default function () {
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
-  debugger;
   return (
     <>
       <div className="flex">

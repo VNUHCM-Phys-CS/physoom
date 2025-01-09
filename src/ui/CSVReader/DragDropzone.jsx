@@ -38,7 +38,6 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
       });
     }
     if (validMimeTypes.includes(file.type)) {
-      debugger;
       const reader = new FileReader();
       reader.onload = (e) => {
         const binaryStr = e.target.result;

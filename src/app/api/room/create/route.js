@@ -14,17 +14,29 @@ export const POST = async (request) => {
     await connectToDb();
     if (user && user.isAdmin) {
       let data = await request.json();
-      const bulkOps = data.map((room) => ({
-        updateOne: {
-          filter: { title: room.title },
-          update: { $set: room },
-          upsert: true,
-        },
-      }));
+      const bulkOps = await Promise.all(
+        data.map(async (room) => {
+          // Check if the room exists in the database
+          const existingRoom = await Room.findOne({ title: room.title });
+
+          // Set the limit only if the room does not exist in the database
+          if (!existingRoom && !room.limit) {
+            room.limit = 200; // Set default limit for new rooms
+          }
+
+          return {
+            updateOne: {
+              filter: { title: room.title },
+              update: { $set: room },
+              upsert: true,
+            },
+          };
+        })
+      );
       const room = await Room.bulkWrite(bulkOps);
       revalidateTag("room");
       return NextResponse.json(
-        { success: true },
+        { success: true, data: room },
         {
           status: 201,
         }
