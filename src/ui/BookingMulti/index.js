@@ -5,7 +5,7 @@ import Card from "../Card";
 import _ from "lodash";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import CalendarByRoom from "../CalendarByRoom";
-import { Input, ScrollShadow, Tab, Tabs } from "@nextui-org/react";
+import { Input, ScrollShadow, Tab, Tabs } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import SearchCalender from "../SearchCalender";
 import CourseListSelect from "../CourseListSelect";

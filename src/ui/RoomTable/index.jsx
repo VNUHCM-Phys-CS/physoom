@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import TableEvent from "../TableEvent";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
+import RoomModal from "../RoomModal";
+import { useDisclosure } from "@heroui/react";
 
 const ROOM_FIELDS = [
   { name: "Room name", uid: "title", sortable: true },
@@ -19,6 +21,8 @@ export default function RoomTable() {
   const { data: room, mutate } = useSWR("/api/room", fetcher, {
     next: { tags: ["room"], revalidate: 60 },
   });
+  const [data, setData] = useState({});
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const onDelete = useCallback(async (data) => {
     try {
       const res = await fetch("/api/room", {
@@ -36,14 +40,24 @@ export default function RoomTable() {
       console.log("Something wrong");
     }
   }, []);
+  const onEdit = useCallback(async (data) => {
+    setData(data);
+    onOpen();
+  }, []);
   return (
-    <TableEvent
-      columns={ROOM_FIELDS}
-      data={room}
-      statusOptions={[]}
-      INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
-      onDelete={onDelete}
-      importPath={"/admin/room/importfile"}
-    />
+    <>
+      <TableEvent
+        columns={ROOM_FIELDS}
+        data={room}
+        statusOptions={[]}
+        INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        importPath={"/admin/room/importfile"}
+      />
+      {isOpen && (
+        <RoomModal data={data} isOpen={isOpen} onOpenChange={onOpenChange} />
+      )}
+    </>
   );
 }

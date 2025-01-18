@@ -11,7 +11,7 @@ import Card from "../Card";
 import _ from "lodash";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import CalendarByRoom from "../CalendarByRoom";
-import { Tab, Tabs } from "@nextui-org/react";
+import { Tab, Tabs } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
 export default function BookingSingle({ email }) {

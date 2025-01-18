@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Card, CardBody, CardFooter, Button, Spacer } from "@nextui-org/react";
+import { Card, CardBody, CardFooter, Button, Spacer } from "@heroui/react";
 import Papa from "papaparse";
 import TableEvent from "../TableEvent";
 import { read, readFile, utils } from "xlsx";

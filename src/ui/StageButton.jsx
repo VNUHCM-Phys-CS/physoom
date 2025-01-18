@@ -1,5 +1,5 @@
-// import { Checkbox } from "@nextui-org/react";
-import {Button} from "@nextui-org/react";
+// import { Checkbox } from "@heroui/react";
+import {Button} from "@heroui/react";
 import React from "react";
 
 export default function StageButton({checked,falseIcon,trueIcon,falseText,trueText,...props}) {

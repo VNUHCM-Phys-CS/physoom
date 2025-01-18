@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import "./Calendar.scss";
-import { Tooltip } from "@nextui-org/react";
+import { Tooltip } from "@heroui/react";
 import CalendarEvent from "./CalendarEvent";
 
 const defaultGrid = [

@@ -1,5 +1,5 @@
 "use client";
-import { Breadcrumbs, BreadcrumbItem } from "@nextui-org/react";
+import { Breadcrumbs, BreadcrumbItem } from "@heroui/react";
 import { usePathname, useSearchParams } from "next/navigation";
 export default function BreadcrumbsHeader({}) {
   const router = usePathname();

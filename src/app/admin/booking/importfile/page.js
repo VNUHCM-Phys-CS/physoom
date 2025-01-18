@@ -3,14 +3,14 @@ import React, { useState } from "react";
 import CSVReader from "@/ui/CSVReader";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { CheckboxIcon, Progress } from "@nextui-org/react";
+import { CheckboxIcon, Progress } from "@heroui/react";
 import {
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
-} from "@nextui-org/modal";
+} from "@heroui/modal";
 import { CheckCircle, CircleX } from "lucide-react";
 import { locationList } from "@/models/ulti";
 import {

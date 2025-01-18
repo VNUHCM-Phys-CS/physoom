@@ -4,7 +4,6 @@ const courseSchema = new Schema(
   {
     title: {
       type: String,
-      required: true,
     },
     teacher_email: {
       type: [String],
@@ -12,9 +11,11 @@ const courseSchema = new Schema(
     },
     course_id: {
       type: String,
+      required: true,
     },
     class_id: {
       type: String,
+      required: true,
     },
     population: {
       type: Number,

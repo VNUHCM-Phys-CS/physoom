@@ -16,7 +16,7 @@ import {
   Chip,
   User,
   Pagination,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import Link from "next/link";
 import { PlusIcon } from "@/ui/icons/PlusIcon";
 import { VerticalDotsIcon } from "@/ui/icons/VerticalDotsIcon";
@@ -38,6 +38,7 @@ export default function TableEvent({
   isAddNew,
   importPath,
   onDelete = () => {},
+  onEdit = () => {},
 }) {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
@@ -155,8 +156,8 @@ export default function TableEvent({
               </DropdownTrigger>
               <DropdownMenu>
                 <DropdownItem>View</DropdownItem>
-                <DropdownItem>Edit</DropdownItem>
-                <DropdownItem onClick={() => onDelete([data])}>
+                <DropdownItem onPress={() => onEdit(data)}>Edit</DropdownItem>
+                <DropdownItem onPress={() => onDelete([data])}>
                   Delete
                 </DropdownItem>
               </DropdownMenu>
@@ -164,7 +165,7 @@ export default function TableEvent({
           </div>
         );
       default:
-        return Array.isArray(cellValue) ?cellValue.join('; '):cellValue;
+        return Array.isArray(cellValue) ? cellValue.join("; ") : cellValue;
     }
   }, []);
 

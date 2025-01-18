@@ -7,7 +7,7 @@ import {
 } from "@/lib/ulti";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Calendar from "../Calendar";
-import { Chip, Select, SelectItem } from "@nextui-org/react";
+import { Chip, Select, SelectItem } from "@heroui/react";
 import LoadingWrapper from "../LoadingWrapper";
 import { StarIcon } from "../icons/StarIcon";
 import _ from "lodash";

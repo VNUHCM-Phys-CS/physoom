@@ -1,10 +1,10 @@
 export const locationList = {
-  short: ["lt", "nvc"],
+  short: ["LT", "NVC"],
   long: { lt: "Linh Trung", nvc: "Nguyen Van Cu" },
-  alternative: { cs2: "lt", cs1: "nvc" },
-  default: "nvc",
+  alternative: { cs2: "LT", cs1: "NVC" },
+  default: "NVC",
 };
 export const categoryList = {
-  short: ["lab", "comp", "study"],
-  long: { lab: "Lab", comp: "Computer Lab", study: "Study" },
+  short: ["lab", "comp", "study", "office"],
+  long: { lab: "Lab", comp: "Computer Lab", study: "Study", office: "Office" },
 };

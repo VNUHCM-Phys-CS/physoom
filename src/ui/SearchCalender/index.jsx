@@ -5,10 +5,10 @@ import {
   Autocomplete,
   AutocompleteSection,
   AutocompleteItem,
-} from "@nextui-org/autocomplete";
+} from "@heroui/autocomplete";
 import { useEffect, useMemo, useState } from "react";
 import { customSubtitle, fetcheroptions, getClass } from "@/lib/ulti";
-import { Select, SelectItem } from "@nextui-org/react";
+import { Select, SelectItem } from "@heroui/react";
 
 export default function () {
   const [searchKey, setSearchKey] = useState("teacher");

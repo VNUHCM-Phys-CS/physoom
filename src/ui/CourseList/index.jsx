@@ -8,8 +8,8 @@ import {
   Listbox,
   ListboxItem,
   ListboxSection,
-} from "@nextui-org/react";
-import { ScrollShadow } from "@nextui-org/react";
+} from "@heroui/react";
+import { ScrollShadow } from "@heroui/react";
 import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";

@@ -1,5 +1,5 @@
 import "./Calendar.scss";
-import { Tooltip } from "@nextui-org/react";
+import { Tooltip } from "@heroui/react";
 import { WarningIcon } from "@/ui/icons/WarningIcon";
 
 export default function CalendarEvent({

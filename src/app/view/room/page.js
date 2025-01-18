@@ -1,6 +1,6 @@
 'use client'
 
-import { Autocomplete, AutocompleteItem, Button, Chip, Input } from "@nextui-org/react";
+import { Autocomplete, AutocompleteItem, Button, Chip, Input } from "@heroui/react";
 import { useSession } from "next-auth/react"
 import { useForm } from "react-hook-form";
 import { z } from 'zod';

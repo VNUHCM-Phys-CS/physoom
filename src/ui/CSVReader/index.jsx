@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Button } from "@nextui-org/react";
+import { Card, Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import DragDropzone from "./DragDropzone";
 const CSVReader = ({
