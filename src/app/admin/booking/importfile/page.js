@@ -18,6 +18,7 @@ import {
   defaultGridLT,
   defaultGridNVC,
 } from "@/lib/ulti";
+import { groupBy, maxBy, reduce } from "lodash";
 
 const BOOKiNG_FIELDS = [
   { name: "Mã mh", uid: "Mã mh", sortable: true, isRequired: true },
@@ -52,35 +53,43 @@ const Page = () => {
     setProgressBooking({ value: 0 });
     // handle booking
     try {
-      const rooms = [
-        ...new Set(
-          data.map((item) => {
-            let title = (item["Tên phòng"] ?? "").trim();
-            let comps = title.split(":");
-            if (comps.length > 1) {
-              comps[0] = comps[0].toLowerCase();
-              comps[1] = comps[1].toUpperCase();
-              title = comps.map((d) => d.trim()).join(":");
-            } else if (title !== "") {
-              title = "cs1:" + title.toUpperCase();
-            } else {
-              item.cleanRoomTitle = undefined;
-              return undefined;
-            }
-            item.cleanRoomTitle = title;
-            return { title };
-          })
-        ),
-      ].filter((d) => d);
-      rooms.forEach((r) => {
-        let comps = r.title.split(":");
-        let loc = locationList.alternative[comps[0]];
-        if (loc) {
-          r.location = loc.toUpperCase();
+      const roomGroup = groupBy(data, (item) => {
+        let title = (item["Tên phòng"] ?? "").trim();
+        let comps = title.split(":");
+        if (comps.length > 1) {
+          comps[0] = comps[0].toLowerCase();
+          comps[1] = comps[1].toUpperCase();
+          title = comps.map((d) => d.trim()).join(":");
+        } else if (title !== "") {
+          title = "cs1:" + title.toUpperCase();
         } else {
-          r.location = locationList.default.toUpperCase();
+          item.cleanRoomTitle = undefined;
+          return undefined;
         }
+        item.cleanRoomTitle = title;
+        return title;
       });
+      const rooms = reduce(
+        roomGroup,
+        function (result, value, key) {
+          if (key !== "undefined") {
+            let comps = key.split(":");
+            let loc = locationList.alternative[comps[0]];
+            let location = loc
+              ? loc.toUpperCase()
+              : locationList.default.toUpperCase();
+            let limit = maxBy(value, function (item) {
+              let l = +item["sosvMax"];
+              let p = +item["Số sv"];
+              item.limit = isNaN(l) ? (isNaN(p) ? undefined : p) : l;
+              return item.limit;
+            })?.limit;
+            result.push({ title: key, limit, location });
+          }
+          return result;
+        },
+        []
+      );
       const roomResponse = await fetch("/api/room/create", {
         method: "POST",
         headers: {
@@ -177,7 +186,6 @@ const Page = () => {
                 },
               }),
             }).then((d) => d.json());
-            debugger;
             const course = await fetch("/api/course", {
               method: "POST",
               body: JSON.stringify({

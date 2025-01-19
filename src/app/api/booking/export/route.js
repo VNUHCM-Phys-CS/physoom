@@ -43,6 +43,7 @@ export async function GET() {
           "Tên môn học": "Tên môn học",
           Lớp: "Lớp",
           "Số sv": "Số sv",
+          sosvMax: "sosvMax",
           "Tên phòng": "Tên phòng",
           Thứ: "Thứ",
           "Tiết bắt đầu": "Tiết bắt đầu",
@@ -64,6 +65,7 @@ export async function GET() {
           "Tên môn học": booking.course?.title || "",
           Lớp: booking.course?.class_id || "",
           "Số sv": booking.course?.population || "",
+          sosvMax: booking.room?.limit || "",
           "Tên phòng": booking.room?.title || "",
           Thứ: booking.time_slot?.weekday || "",
           "Tiết bắt đầu": _booking.time_slot?.start_time || "",
@@ -83,16 +85,25 @@ export async function GET() {
       let rows = exportData.map((data) => {
         return [
           { v: data["Mã mh"], t: "s" },
-          { v: data["Tên môn học"], t: "s" },
+          {
+            v: data["Tên môn học"],
+            t: "s",
+            s: { alignment: { wrapText: true } },
+          },
           { v: data.Lớp, t: "s" },
-          { v: data["Số sv"], t: "s" },
+          { v: data["Số sv"], t: "s", s: { alignment: "right" } },
+          { v: data["sosvMax"], t: "s", s: { alignment: "right" } },
           { v: data["Tên phòng"], t: "s" },
-          { v: data.Thứ, t: "s" },
-          { v: data["Tiết bắt đầu"], t: "s" },
-          { v: data["Số tiết"], t: "s" },
+          { v: data.Thứ, t: "s", s: { alignment: "right" } },
+          { v: data["Tiết bắt đầu"], t: "s", s: { alignment: "right" } },
+          { v: data["Số tiết"], t: "s", s: { alignment: "right" } },
           { v: data["Giảng viên"], t: "s" },
           { v: data["Trợ giảng"], t: "s" },
-          { v: data["Ngày đầu tuần"], t: "s" },
+          {
+            v: data["Ngày đầu tuần"],
+            t: "s",
+            s: { alignment: "right", font: { color: { rgb: "FF0000" } } },
+          },
         ];
       });
 
@@ -102,7 +113,7 @@ export async function GET() {
       // Apply styles to the header row (bold, yellow background)
       const headerStyle = {
         font: { bold: true },
-        fill: { fgColor: { rgb: "FFFF00" } }, // Yellow background
+        fill: { fgColor: { rgb: "FFC000" } }, // Orange background
         border: {
           top: { style: "thin" },
           left: { style: "thin" },
