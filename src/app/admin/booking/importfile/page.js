@@ -138,7 +138,7 @@ const Page = () => {
         course_id: d["Mã mh"].trim(),
         class_id: d["Lớp"].trim(),
         title: d["Tên môn học"].trim(),
-        teachers_email: [
+        teacher_email: [
           name2email[d["Giảng viên"]],
           name2email[d["Trợ giảng"]],
         ].filter((d) => d),
