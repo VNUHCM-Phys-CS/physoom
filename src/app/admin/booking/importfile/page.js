@@ -105,11 +105,21 @@ const Page = () => {
         setProgressRoom({ value: 100, isError: true }); // Simulate completion but indicate an issue in logs
       }
       // handle course
-      const names = [
-        ...new Set(
-          data.flatMap((item) => [item["Giảng viên"], item["Trợ giảng"]])
-        ),
-      ];
+      data.forEach((item) => {
+        item._teacher_emails = [];
+        if (item["Giảng viên"])
+          item["Giảng viên"]
+            .split(",")
+            .forEach((d) => item._teacher_emails.push(d.trim()));
+        if (item["Trợ giảng"])
+          item["Trợ giảng"]
+            .split(",")
+            .forEach((d) => item._teacher_emails.push(d.trim()));
+        item._teacher_emails = item._teacher_emails.filter(
+          (d) => d && d !== ""
+        );
+      });
+      const names = [...new Set(data.flatMap((item) => item._teacher_emails))];
       // find teacher email by name
       const emailResponse = await fetch("/api/user/getEmailByName", {
         method: "POST",
@@ -138,10 +148,9 @@ const Page = () => {
         course_id: d["Mã mh"].trim(),
         class_id: d["Lớp"].trim(),
         title: d["Tên môn học"].trim(),
-        teacher_email: [
-          name2email[d["Giảng viên"]],
-          name2email[d["Trợ giảng"]],
-        ].filter((d) => d),
+        teacher_email: d._teacher_emails
+          .map((e) => name2email[e])
+          .filter((d) => d),
         population: d["Số sv"] ?? 0,
         start_date: convertExcelDateToJSDate(d["Ngày đầu tuần"]),
         credit: d["Số tiết"] ?? 1,
@@ -199,12 +208,12 @@ const Page = () => {
               const grid = location === "NVC" ? defaultGridNVC : defaultGridLT;
               const weekday = +_booking["Thứ"];
               const indexTimeS = "" + _booking["Tiết bắt đầu"];
-              const indexTimeE = "" + (+indexTimeS + course[0].credit);
               const start_time = grid.data.findIndex(
                 (d) => d.label === indexTimeS
               );
-              const end_time = grid.data.findIndex(
-                (d) => d.label === indexTimeE
+              const end_time = Math.min(
+                grid.data.length - 1,
+                start_time + course[0].credit
               );
               if (start_time > -1 && end_time > -1) {
                 let booking = {
