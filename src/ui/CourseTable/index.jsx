@@ -10,6 +10,7 @@ import { useDisclosure } from "@heroui/react";
 const COURSE_FIELDS = [
   { name: "Course name", uid: "title", sortable: true },
   { name: "Course id", uid: "course_id", sortable: true },
+  { name: "Course id extend", uid: "course_id_extend", sortable: true },
   { name: "Class id", uid: "class_id", sortable: true },
   { name: "#Student", uid: "population", sortable: true },
   { name: "Credit", uid: "credit", sortable: true },

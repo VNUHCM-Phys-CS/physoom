@@ -14,14 +14,30 @@ export const POST = async (request) => {
     await connectToDb();
     if (user && user.isAdmin) {
       let data = await request.json();
+      if (!Array.isArray(data)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid input format, expected an array.",
+          },
+          { status: 400 }
+        );
+      }
       const bulkOps = data.map((d) => ({
         updateOne: {
-          filter: { course_id: d.course_id, class_id: d.class_id },
+          filter: {
+            course_id: d.course_id,
+            class_id: {
+              $all: Array.isArray(d.class_id) ? d.class_id : [d.class_id],
+            },
+            course_id_extend: d.course_id_extend,
+          },
           update: { $set: d },
           upsert: true,
         },
       }));
       const course = await Course.bulkWrite(bulkOps);
+
       revalidateTag("course");
       return NextResponse.json(
         { success: true, course },

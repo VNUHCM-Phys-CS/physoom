@@ -31,7 +31,15 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "teacher_email", // Name of the field to manage
+    name: "teacher_email",
+  });
+  const {
+    fields: fields_classID,
+    append: append_classID,
+    remove: remove_classID,
+  } = useFieldArray({
+    control,
+    name: "class_id",
   });
 
   // Reset form values whenever `data` changes
@@ -44,7 +52,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
           : "",
       });
     } else {
-      reset({ teacher_email: [""] }); // Default to one empty email field
+      reset({ teacher_email: [""], class_id: [""] }); // Default to one empty email field
     }
   }, [data, reset]);
 
@@ -60,6 +68,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
         body: JSON.stringify({
           _id: data?._id,
           course_id: formData.course_id,
+          course_id_extend: formData.course_id_extend,
           class_id: formData.class_id,
         }),
       });
@@ -129,6 +138,21 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                 )}
               />
               <Controller
+                name="course_id_extend"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    clearable
+                    label="Course ID Extend"
+                    placeholder="Enter Course ID extend"
+                    errorMessage={errors.course_id_extend?.message}
+                    isInvalid={!!errors.course_id_extend}
+                    required
+                  />
+                )}
+              />
+              <Controller
                 name="title"
                 control={control}
                 render={({ field }) => (
@@ -143,21 +167,45 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   />
                 )}
               />
-              <Controller
-                name="class_id"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    clearable
-                    label="Class ID"
-                    placeholder="Enter Class ID"
-                    errorMessage={errors.class_id?.message}
-                    isInvalid={!!errors.class_id}
-                    required
-                  />
-                )}
-              />
+
+              <div>
+                <label>Class ID</label>
+                {fields_classID.map((field, index) => (
+                  <div
+                    key={field.id}
+                    style={{ display: "flex", marginBottom: 8 }}
+                  >
+                    <Controller
+                      name={`class_id.${index}`}
+                      control={control}
+                      render={({ field }) => (
+                        <Input
+                          {...field}
+                          placeholder={`class_id ${index + 1}`}
+                          errorMessage={
+                            errors.class_id?.[index]?.message || "Required"
+                          }
+                          isInvalid={!!errors.class_id?.[index]}
+                          required
+                          style={{ flex: 1 }}
+                        />
+                      )}
+                    />
+                    <Button
+                      variant="flat"
+                      isIconOnly
+                      color="danger"
+                      onPress={() => remove_classID(index)}
+                      style={{ marginLeft: 4 }}
+                    >
+                      <Trash2Icon size={15} />
+                    </Button>
+                  </div>
+                ))}
+                <Button auto flat onPress={() => append_classID("")}>
+                  <Plus /> Add class ID
+                </Button>
+              </div>
               <div>
                 <label>Teacher Emails</label>
                 {fields.map((field, index) => (
@@ -300,6 +348,21 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                       <SelectItem key={cat}>{cat}</SelectItem>
                     ))}
                   </Select>
+                )}
+              />
+              <Controller
+                name="note"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    clearable
+                    label="Note"
+                    placeholder="Enter Note"
+                    errorMessage={errors.note?.message}
+                    isInvalid={!!errors.note}
+                    required
+                  />
                 )}
               />
             </ModalBody>

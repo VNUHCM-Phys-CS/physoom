@@ -123,6 +123,7 @@ export default function BookingMulti() {
         method: "POST",
         body: JSON.stringify({
           filter: { "course.class_id": getClass(booking?.course?.class_id) },
+          isApproximate: true,
         }),
       },
     ],

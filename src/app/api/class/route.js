@@ -12,7 +12,12 @@ export const GET = async (request) => {
   try {
     if (user && user.isAdmin) {
       await connectToDb();
-      const classlist = await Course.distinct('class_id').lean();
+      const classlist = await Course.aggregate([
+        { $project: { class_id: 1 } }, // only include the class_id field
+        { $unwind: "$class_id" }, // unwind the array into separate documents
+        { $group: { _id: "$class_id" } }, // group by unique class_id values
+        { $project: { _id: 0, class_id: "$_id" } }, // format the result
+      ]);
       // const ob = {};
       // classlist.forEach(c=>{
       //   ob[c.replace(/[ABC]$/, '')] = true;
@@ -22,21 +27,15 @@ export const GET = async (request) => {
       return NextResponse.json(classlist);
       // return NextResponse.json(Object.keys(ob));
     } else {
-      return NextResponse.json(
-        [],
-        {
-          status: 401,
-        }
-      );
+      return NextResponse.json([], {
+        status: 401,
+      });
     }
   } catch (err) {
     console.log(err);
     // revalidateTag("room");
-    return NextResponse.json(
-      [],
-      {
-        status: 400,
-      }
-    );
+    return NextResponse.json([], {
+      status: 400,
+    });
   }
 };

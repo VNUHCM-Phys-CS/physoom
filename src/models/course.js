@@ -13,9 +13,18 @@ const courseSchema = new Schema(
       type: String,
       required: true,
     },
-    class_id: {
+    course_id_extend: {
       type: String,
-      required: true,
+    },
+    class_id: {
+      type: [String],
+      required: [true, "Class ID is required"],
+      validate: {
+        validator: function (v) {
+          return Array.isArray(v) && v.length > 0;
+        },
+        message: "Class ID must be an array with at least one element",
+      },
     },
     population: {
       type: Number,
@@ -60,7 +69,10 @@ const courseSchema = new Schema(
   },
   { timestamps: true }
 );
-courseSchema.index({ course_id: 1, class_id: 1 }, { unique: true });
+courseSchema.index(
+  { course_id: 1, course_id_extend: 1, class_id: 1 },
+  { unique: true }
+);
 courseSchema.index({ class_id: "text" });
 export default mongoose.models?.Course ||
   mongoose.model("Course", courseSchema);

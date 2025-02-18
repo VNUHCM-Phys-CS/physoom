@@ -24,6 +24,7 @@ const BOOKiNG_FIELDS = [
   { name: "Mã mh", uid: "Mã mh", sortable: true, isRequired: true },
   { name: "Tên môn học", uid: "Tên môn học", sortable: true },
   { name: "Lớp", uid: "Lớp", sortable: true, isRequired: true },
+  { name: "mã lớp 2", uid: "mã lớp 2", sortable: true },
   { name: "Số sv", uid: "Số sv", sortable: true },
   { name: "sosvMax", uid: "sosvMax", sortable: true },
   { name: "tcphong", uid: "tcphong", sortable: true },
@@ -90,6 +91,7 @@ const Page = () => {
         },
         []
       );
+
       const roomResponse = await fetch("/api/room/create", {
         method: "POST",
         headers: {
@@ -106,6 +108,9 @@ const Page = () => {
       }
       // handle course
       data.forEach((item) => {
+        item["mã lớp 2"] = item["mã lớp 2"]
+          ? `${item["mã lớp 2"]}`.trim()
+          : null;
         item._teacher_emails = [];
         if (item["Giảng viên"])
           item["Giảng viên"]
@@ -143,10 +148,12 @@ const Page = () => {
 
       const courses = _.uniqBy(
         data,
-        (item) => `${item["Mã mh"].trim()}_${item["Lớp"].trim()}`
+        (item) =>
+          `${item["Mã mh"].trim()}_${item["mã lớp 2"]}_${item["Lớp"].trim()}`
       ).map((d) => ({
         course_id: d["Mã mh"].trim(),
-        class_id: d["Lớp"].trim(),
+        course_id_extend: d["mã lớp 2"],
+        class_id: d["Lớp"].split(",").map((d) => d.trim()),
         title: d["Tên môn học"].trim(),
         teacher_email: d._teacher_emails
           .map((e) => name2email[e])
@@ -159,7 +166,7 @@ const Page = () => {
           ? rooms.find((r) => r.title === d.cleanRoomTitle)?.location
           : locationList.default,
       }));
-
+      debugger;
       const courseResponse = await fetch("/api/course/create", {
         method: "POST",
         headers: {
@@ -177,6 +184,7 @@ const Page = () => {
       }
       //
       for (const [index, _booking] of data.entries()) {
+        debugger;
         if (
           _booking.cleanRoomTitle &&
           +_booking["Tiết bắt đầu"] &&
@@ -200,7 +208,8 @@ const Page = () => {
               body: JSON.stringify({
                 filter: {
                   course_id: _booking["Mã mh"].trim(),
-                  class_id: _booking["Lớp"].trim(),
+                  course_id_extend: _booking["mã lớp 2"],
+                  class_id: _booking["Lớp"].split(",").map((d) => d.trim()),
                 },
               }),
             }).then((d) => d.json());

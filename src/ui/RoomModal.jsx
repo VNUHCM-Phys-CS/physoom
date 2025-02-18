@@ -41,7 +41,6 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
   const onSubmit = async (formData) => {
     setIsSubmitting(true);
     try {
-      // Validate the combination of course_id and class_id
       const validateResponse = await fetch("/api/room/validate", {
         method: "POST",
         headers: {

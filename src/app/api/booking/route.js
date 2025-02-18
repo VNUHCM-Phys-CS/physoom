@@ -18,29 +18,54 @@ export const GET = async (request) => {
     return NextResponse.json(booking);
   } catch (err) {
     console.log(err);
-    return NextResponse.json(
-      [],
-      {
-        status: 400,
-      }
-    );
+    return NextResponse.json([], {
+      status: 400,
+    });
   }
 };
 
 export const POST = async (request) => {
   try {
     await connectToDb();
-    let { filter } = await request.json();
+    let { filter, isApproximate } = await request.json();
     let class_id = (filter ?? {})["course.class_id"];
-    if (class_id){
-      const course = await Course.find({class_id},["_id"]).lean();
-      const booking = await Booking.find({course:{$in:course.map(d=>d._id)}})
-        .populate('course')
+    if (class_id) {
+      if (!Array.isArray(class_id)) {
+        class_id = [class_id];
+      }
+      let query = { class_id };
+      if (isApproximate) {
+        const regexFilters = class_id.map((id) => {
+          if (id.includes("_")) {
+            // If it contains "_", match only the class itself and its base class
+            return {
+              $or: [
+                { class_id: { $regex: `^${id}$`, $options: "i" } }, // Match exact class_id like 22CVD1_A
+                {
+                  class_id: { $regex: `^${id.split("_")[0]}$`, $options: "i" },
+                }, // Match base class like 22CVD1
+              ],
+            };
+          } else {
+            // If it's a base class, match base class and versions like 22CVD1, 22CVD1_A, 22CVD1_B...
+            return {
+              class_id: { $regex: `^${id}(_[A-Za-z0-9])?$`, $options: "i" },
+            };
+          }
+        });
+        query = { $or: regexFilters };
+      }
+      console.log(class_id);
+      const course = await Course.find(query, ["_id"]).lean();
+      const booking = await Booking.find({
+        course: { $in: course.map((d) => d._id) },
+      })
+        .populate("course")
         .populate("room")
         .exec();
       revalidateTag("booking");
       return NextResponse.json(booking);
-    }else{
+    } else {
       const booking = await Booking.find(filter ?? {})
         .populate("course")
         .populate("room")
@@ -50,16 +75,13 @@ export const POST = async (request) => {
     }
   } catch (err) {
     console.log(err);
-    return NextResponse.json(
-      [],
-      {
-        status: 400,
-      }
-    );
+    return NextResponse.json([], {
+      status: 400,
+    });
   }
 };
 
-export const DELETE = async (request,res) => {
+export const DELETE = async (request, res) => {
   const session = await auth();
   // const token = await getToken({
   //   req: request,

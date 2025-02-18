@@ -69,6 +69,7 @@ export default function () {
             method: "POST",
             body: JSON.stringify({
               filter: { "course.class_id": getClass(filter) },
+              isApproximate: true,
             }),
           };
         default:
@@ -144,7 +145,7 @@ export default function () {
             selectedKey={filter}
             onSelectionChange={setFilter}
           >
-            {(classList ?? []).map((u) => (
+            {(classList ?? []).map(({ class_id: u }) => (
               <AutocompleteItem key={u} value={u}>
                 {u}
               </AutocompleteItem>

@@ -52,7 +52,10 @@ export const PUT = async (req, { params }) => {
 
     if (error.code === 11000) {
       return NextResponse.json(
-        { message: "Combination of course_id and class_id must be unique." },
+        {
+          message:
+            "Combination of course_id, class_id and course_id_extend must be unique.",
+        },
         { status: 400 }
       );
     }

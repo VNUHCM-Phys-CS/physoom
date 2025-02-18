@@ -153,7 +153,10 @@ function calendar2booking(ca, booking, time_arr, isEnd) {
 export const defaultLoc = "NVC";
 
 export function getClass(cid) {
-  return cid ? cid.replace(/_[^_]*$/, "") : cid;
+  // return cid
+  //   ? (Array.isArray(cid) ? cid : [cid]).map((d) => d.replace(/_[^_]*$/, ""))
+  //   : cid;
+  return cid;
 }
 
 export function customSubtitle(data) {

@@ -21,10 +21,17 @@ export const POST = async (request) => {
       { status: 400 }
     );
   }
+  if (!Array.isArray(class_id) || class_id.length === 0) {
+    throw new Error("class_id must be an array with at least one element.");
+  }
   try {
     await connectToDb();
     if (user && user.isAdmin) {
-      const existingCourse = await Course.findOne({ course_id, class_id });
+      const existingCourse = await Course.findOne({
+        course_id,
+        class_id: { $all: class_id },
+        course_id_extend: data.course_id_extend,
+      }).lean();
       if (existingCourse && (!_id || existingCourse._id.toString() !== _id)) {
         return NextResponse.json(
           {
