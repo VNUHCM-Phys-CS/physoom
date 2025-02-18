@@ -27,9 +27,7 @@ export const POST = async (request) => {
         updateOne: {
           filter: {
             course_id: d.course_id,
-            class_id: {
-              $all: Array.isArray(d.class_id) ? d.class_id : [d.class_id],
-            },
+            class_id: Array.isArray(d.class_id) ? d.class_id : [d.class_id],
             course_id_extend: d.course_id_extend,
           },
           update: { $set: d },
