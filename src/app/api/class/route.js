@@ -18,11 +18,6 @@ export const GET = async (request) => {
         { $group: { _id: "$class_id" } }, // group by unique class_id values
         { $project: { _id: 0, class_id: "$_id" } }, // format the result
       ]);
-      // const ob = {};
-      // classlist.forEach(c=>{
-      //   ob[c.replace(/[ABC]$/, '')] = true;
-      // })
-      // // remove A,B
       revalidateTag("class");
       return NextResponse.json(classlist);
       // return NextResponse.json(Object.keys(ob));

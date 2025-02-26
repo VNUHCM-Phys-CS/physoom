@@ -1,23 +1,52 @@
 "use client";
 
-import { Button } from "@heroui/react";
-import { Download } from "lucide-react";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Button,
+} from "@heroui/react";
+import { toast } from "react-toastify";
+import { Download, MoreHorizontal } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
-export default function ExportBookingButton() {
+export default function ExportBookingButton({ data }) {
+  const _id = useMemo(() => data?.map((d) => d._id), [data]);
+  const handleDownload = useCallback(() => {
+    downloadBookingList(_id);
+  });
+  const handleDownloadFormal = useCallback(() => {
+    downloadBookingList(_id, "formal");
+  });
   return (
-    <Button
-      color="primary"
-      variant="ghost"
-      endContent={<Download />}
-      onPress={downloadBookingList}
-    >
-      Export
-    </Button>
+    <>
+      <Dropdown>
+        <DropdownTrigger>
+          <Button color="primary" variant="ghost" endContent={<Download />}>
+            Export
+          </Button>
+        </DropdownTrigger>
+        <DropdownMenu>
+          <DropdownItem onPress={handleDownload}>As List</DropdownItem>
+          <DropdownItem onPress={handleDownloadFormal}>As Fromal</DropdownItem>
+        </DropdownMenu>
+      </Dropdown>
+    </>
   );
 }
-async function downloadBookingList() {
+async function downloadBookingList(_id, style) {
   try {
-    const response = await fetch("/api/booking/export"); // Adjust the API route path if necessary
+    const response = await fetch("/api/booking/export", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        _id,
+        style,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error("Failed to download the booking list.");

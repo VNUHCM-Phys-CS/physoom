@@ -182,3 +182,7 @@ export const convertExcelDateToJSDate = (excelDate) => {
   ); // Adjust by 2 days for Excel's quirks
   return jsDate;
 };
+
+export function extractBaseClass(classId) {
+  return classId.match(/^[A-Za-z0-9]+/)[0];
+}

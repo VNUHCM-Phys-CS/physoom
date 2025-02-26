@@ -177,7 +177,7 @@ export default function CourseListSelect({
                       <div className="ml-6">
                         <h6 className="prose-lead:h6">
                           {teacher_email.map((d) => (
-                            <div>{d}</div>
+                            <div key={d}>{d}</div>
                           ))}
                         </h6>
                         <div className="flex gap-1">
