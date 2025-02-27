@@ -48,12 +48,14 @@ const Page = () => {
   const [progressBooking, setProgressBooking] = useState({ value: 0 });
 
   const onSubmit = async (data) => {
+    debugger
     setIsOpen(true);
     setProgressCourse({ value: 0 });
     setProgressRoom({ value: 0 });
     setProgressBooking({ value: 0 });
     // handle booking
     try {
+      data = data.filter(d=>Object.entries(d).find(d=>d[1]!==null && d[1].trim()!==""))
       const roomGroup = groupBy(data, (item) => {
         let title = (item["Tên phòng"] ?? "").trim();
         let comps = title.split(":");
@@ -151,13 +153,13 @@ const Page = () => {
         (item) =>
           `${item["Mã mh"].trim()}_${item["mã lớp 2"]}_${item["Lớp"].trim()}`
       ).map((d) => ({
-        course_id: d["Mã mh"].trim(),
+        course_id: d["Mã mh"]?.trim(),
         course_id_extend: d["mã lớp 2"],
-        class_id: d["Lớp"].split(",").map((d) => d.trim()),
-        title: d["Tên môn học"].trim(),
+        class_id: d["Lớp"]?.split(",")?.map((d) => d.trim()),
+        title: d["Tên môn học"]?.trim(),
         teacher_email: d._teacher_emails
-          .map((e) => name2email[e])
-          .filter((d) => d),
+          ?.map((e) => name2email[e])
+          ?.filter((d) => d),
         population: d["Số sv"] ?? 0,
         start_date: convertExcelDateToJSDate(d["Ngày đầu tuần"]),
         credit: d["Số tiết"] ?? 1,
@@ -166,7 +168,6 @@ const Page = () => {
           ? rooms.find((r) => r.title === d.cleanRoomTitle)?.location
           : locationList.default,
       }));
-      debugger;
       const courseResponse = await fetch("/api/course/create", {
         method: "POST",
         headers: {
@@ -226,10 +227,9 @@ const Page = () => {
               );
               if (start_time > -1 && end_time > -1) {
                 let booking = {
-                  teacher_email: [
-                    name2email[_booking["Giảng viên"]],
-                    name2email[_booking["Trợ giảng"]],
-                  ].filter((d) => d),
+                  teacher_email: _booking._teacher_emails
+                  ?.map((e) => name2email[e])
+                  ?.filter((d) => d),
                   room: room[0],
                   course: course[0],
                   time_slot: {},
