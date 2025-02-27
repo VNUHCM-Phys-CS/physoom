@@ -18,7 +18,7 @@ import {
   defaultGridLT,
   defaultGridNVC,
 } from "@/lib/ulti";
-import { groupBy, maxBy, reduce } from "lodash";
+import _, { groupBy, maxBy, reduce } from "lodash";
 
 const BOOKiNG_FIELDS = [
   { name: "Mã mh", uid: "Mã mh", sortable: true, isRequired: true },
@@ -226,6 +226,7 @@ const Page = () => {
                 start_time + course[0].credit
               );
               if (start_time > -1 && end_time > -1) {
+                debugger
                 let booking = {
                   teacher_email: _booking._teacher_emails
                   ?.map((e) => name2email[e])
