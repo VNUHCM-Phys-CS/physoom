@@ -185,7 +185,6 @@ const Page = () => {
       }
       //
       for (const [index, _booking] of data.entries()) {
-        debugger;
         if (
           _booking.cleanRoomTitle &&
           +_booking["Tiết bắt đầu"] &&
