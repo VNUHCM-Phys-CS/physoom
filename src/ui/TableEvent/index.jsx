@@ -160,7 +160,7 @@ export default function TableEvent({
                 <DropdownItem onPress={() => onDelete([_data])}>
                   Delete
                 </DropdownItem>
-                <DropdownItem className="bg-red-400" onPress={() =>selectedKeys==="all"?onDelete(data): onDelete([...selectedKeys]).map(d=>({_id:d}))}>
+                <DropdownItem className="bg-red-400" onPress={() =>selectedKeys==="all"?onDelete(data): onDelete([...selectedKeys].map(d=>({_id:d})))}>
                   Delete Selected
                 </DropdownItem>
               </DropdownMenu>
