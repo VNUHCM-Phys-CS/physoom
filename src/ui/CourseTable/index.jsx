@@ -35,6 +35,7 @@ export default function CourseTable() {
   const [data, setData] = useState({});
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const onDelete = useCallback(async (data) => {
+    console.log(data)
     try {
       const res = await fetch("/api/course", {
         method: "DELETE",
