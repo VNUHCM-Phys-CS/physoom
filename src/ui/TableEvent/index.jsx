@@ -170,7 +170,7 @@ export default function TableEvent({
       default:
         return Array.isArray(cellValue) ? cellValue.join("; ") : cellValue;
     }
-  }, []);
+  }, [selectedKeys]);
 
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
