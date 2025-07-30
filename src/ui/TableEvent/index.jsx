@@ -160,6 +160,9 @@ export default function TableEvent({
                 <DropdownItem onPress={() => onDelete([data])}>
                   Delete
                 </DropdownItem>
+                <DropdownItem className="bg-red-400" onPress={() => onDelete([...selectedKeys])}>
+                  Delete Selected
+                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>
