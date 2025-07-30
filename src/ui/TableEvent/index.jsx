@@ -22,6 +22,7 @@ import { PlusIcon } from "@/ui/icons/PlusIcon";
 import { VerticalDotsIcon } from "@/ui/icons/VerticalDotsIcon";
 import { SearchIcon } from "@/ui/icons/SearchIcon";
 import { ChevronDownIcon } from "@/ui/icons/ChevronDownIcon";
+import { WarningIcon } from "../icons/WarningIcon";
 
 const statusColorMap = {
   active: "success",
@@ -160,35 +161,6 @@ export default function TableEvent({
                 <DropdownItem onPress={() => onDelete([_data])}>
                   Delete
                 </DropdownItem>
-                <DropdownItem className="bg-red-400" onPress={() => {
-                    console.log('selectedKeys:', selectedKeys);
-                    console.log('selectedKeys type:', typeof selectedKeys);
-                    console.log('data sample:', data[0]);
-                    
-                    if (selectedKeys === "all") {
-                      onDelete(data);
-                    } else {
-                      // Convert selectedKeys to array if it's a Set
-                      const keysArray = selectedKeys instanceof Set 
-                        ? Array.from(selectedKeys) 
-                        : Array.from(selectedKeys.values?.() || selectedKeys);
-                        
-                      console.log('keysArray:', keysArray);
-                      
-                      const selectedItems = data.filter(item => {
-                        // Try multiple possible key fields
-                        const itemKey = item.key || item.id || item._id || item.uuid;
-                        const isSelected = keysArray.includes(itemKey) || 
-                                         keysArray.includes(String(itemKey));
-                        console.log(`Item ${itemKey} selected:`, isSelected);
-                        return isSelected;
-                      });
-                      
-                      console.log('selectedItems:', selectedItems);
-                      onDelete(selectedItems);
-                    }}}>
-                  Delete Selected
-                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>
@@ -302,6 +274,29 @@ export default function TableEvent({
                 Add New
               </Button>
             )}
+             <Button isDisabled={!(selectedKeys=="all"||selectedKeys.size)} color="danger" endContent={<WarningIcon />} onPress={() => {
+
+                    
+                    if (selectedKeys === "all") {
+                      onDelete(data);
+                    } else {
+                      // Convert selectedKeys to array if it's a Set
+                      const keysArray = selectedKeys instanceof Set 
+                        ? Array.from(selectedKeys) 
+                        : Array.from(selectedKeys.values?.() || selectedKeys);
+                        
+                      const selectedItems = data.filter(item => {
+                        // Try multiple possible key fields
+                        const itemKey = item.key || item.id || item._id || item.uuid;
+                        const isSelected = keysArray.includes(itemKey) || 
+                                         keysArray.includes(String(itemKey));
+                        return isSelected;
+                      });
+                      
+                      onDelete(selectedItems);
+                    }}}>
+                  Delete Selected
+                </Button>
             {importPath && (
               <Link href={importPath}>
                 <Button color="primary" endContent={<PlusIcon />}>
