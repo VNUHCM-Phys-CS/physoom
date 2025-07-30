@@ -160,7 +160,7 @@ export default function TableEvent({
                 <DropdownItem onPress={() => onDelete([data])}>
                   Delete
                 </DropdownItem>
-                <DropdownItem className="bg-red-400" onPress={() => onDelete([...selectedKeys])}>
+                <DropdownItem className="bg-red-400" onPress={() => onDelete(Array.from(selectedKeys))}>
                   Delete Selected
                 </DropdownItem>
               </DropdownMenu>
