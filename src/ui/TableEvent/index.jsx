@@ -326,6 +326,7 @@ export default function TableEvent({
       </div>
     );
   }, [
+    selectedKeys,
     filterValue,
     statusFilter,
     visibleColumns,
