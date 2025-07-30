@@ -160,7 +160,7 @@ export default function TableEvent({
                 <DropdownItem onPress={() => onDelete([_data])}>
                   Delete
                 </DropdownItem>
-                <DropdownItem className="bg-red-400" onPress={() =>selectedKeys==="all"?onDelete(data): onDelete(data.filter((item) => selectedKeys.has(item._id)))}>
+                <DropdownItem className="bg-red-400" onPress={() =>selectedKeys==="all"?onDelete(data): onDelete([...selectedKeys]).map(d=>({_id:d}))}>
                   Delete Selected
                 </DropdownItem>
               </DropdownMenu>
@@ -171,7 +171,7 @@ export default function TableEvent({
         return Array.isArray(cellValue) ? cellValue.join("; ") : cellValue;
     }
   }, [selectedKeys,data]);
-  console.log(selectedKeys)
+  // console.log(selectedKeys)
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
       setPage(page + 1);
