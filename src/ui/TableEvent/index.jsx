@@ -101,18 +101,18 @@ export default function TableEvent({
     return [...items];
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback((data, columnKey) => {
-    const cellValue = data[columnKey];
+  const renderCell = React.useCallback((_data, columnKey) => {
+    const cellValue = _data[columnKey];
 
     switch (columnKey) {
       case "name":
         return (
           <User
-            avatarProps={{ radius: "lg", src: data.avatar }}
-            description={data.email}
+            avatarProps={{ radius: "lg", src: _data.avatar }}
+            description={_data.email}
             name={cellValue}
           >
-            {data.email}
+            {_data.email}
           </User>
         );
       case "role":
@@ -120,14 +120,14 @@ export default function TableEvent({
           <div className="flex flex-col">
             <p className="text-bold text-small capitalize">{cellValue}</p>
             <p className="text-bold text-tiny capitalize text-default-400">
-              {data.team}
+              {_data.team}
             </p>
           </div>
         );
       case "category":
         return (
           <div className="flex">
-            {data.category.map((d) => (
+            {_data.category.map((d) => (
               <Chip className="capitalize" size="sm" variant="flat">
                 {d}
               </Chip>
@@ -138,7 +138,7 @@ export default function TableEvent({
         return (
           <Chip
             className="capitalize"
-            color={statusColorMap[data.status]}
+            color={statusColorMap[_data.status]}
             size="sm"
             variant="flat"
           >
@@ -156,11 +156,11 @@ export default function TableEvent({
               </DropdownTrigger>
               <DropdownMenu>
                 <DropdownItem>View</DropdownItem>
-                <DropdownItem onPress={() => onEdit(data)}>Edit</DropdownItem>
-                <DropdownItem onPress={() => onDelete([data])}>
+                <DropdownItem onPress={() => onEdit(_data)}>Edit</DropdownItem>
+                <DropdownItem onPress={() => onDelete([_data])}>
                   Delete
                 </DropdownItem>
-                <DropdownItem className="bg-red-400" onPress={() => onDelete(Array.from(selectedKeys))}>
+                <DropdownItem className="bg-red-400" onPress={() =>selectedKeys==="all"?onDelete(data): onDelete(data.filter((item) => selectedKeys.has(item.id)))}>
                   Delete Selected
                 </DropdownItem>
               </DropdownMenu>
@@ -170,7 +170,7 @@ export default function TableEvent({
       default:
         return Array.isArray(cellValue) ? cellValue.join("; ") : cellValue;
     }
-  }, [selectedKeys]);
+  }, [selectedKeys,data]);
 
   const onNextPage = React.useCallback(() => {
     if (page < pages) {
