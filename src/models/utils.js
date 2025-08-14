@@ -9,7 +9,11 @@ export const courseSchema = z.object({
     .min(1, "class_id must have at least one element"),
   population: z.number().int("Population must be an integer"),
   start_date: z.string().nonempty("Start date is required"),
-  credit: z.number().int("Credit must be an integer"),
+  credit: z
+  .number()
+  .refine((val) => /^\d+(\.\d)?$/.test(val.toString()), {
+    message: "Credit must have at most 1 decimal place",
+  }),
   duration: z.number().int("Duration must be an integer"),
   location: z.string().nonempty("Location is required"),
   isLock: z.boolean().optional(),

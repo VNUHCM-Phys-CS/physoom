@@ -12,6 +12,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID,customSu
             gridData={defaultGridByTime.data}
             customSubtitle={customSubtitle}
             selectedID={selectedID}
+            showSnapResolution={false}
         />
     </LoadingWrapper>
 }

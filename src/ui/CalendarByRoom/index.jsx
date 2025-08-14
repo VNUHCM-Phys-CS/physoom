@@ -122,7 +122,7 @@ export default function CalendarByRoom({
   }, [events, eventBoundary, gridObject, reviewData]);
   const [isLoadingFetch, setIsLoadingFetch] = useState();
   const onClickCell = useCallback(
-    async (onHoverEventData) => {
+    async (onHoverEventData,precision=1) => {
       if (onHoverEventData) {
         // add room
         if (currentRoom) {
@@ -130,7 +130,8 @@ export default function CalendarByRoom({
           const request = gridObject.calendar2booking(
             onHoverEventData.time_slot,
             booking,
-            reviewData
+            precision
+            // reviewData
           );
           try {
             setIsLoadingFetch(true);

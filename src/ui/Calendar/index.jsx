@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import "./Calendar.scss";
 import { Tooltip } from "@heroui/react";
 import CalendarEvent from "./CalendarEvent";
+import SnapResolutionSelector from "./SnapResolutionSelector";
+import { roundToIncrement } from "@/lib/ulti";
 
 const defaultGrid = [
   { label: "1" },
@@ -33,28 +35,133 @@ export default function Calendar({
   selectedID,
   onClickCell,
   onClickEvent,
-  customSubtitle
+  customSubtitle,
+  showSnapResolution =true,
+  defaultPrecision=1,
+  autoMode = true,
 }) {
+  const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
   const onMouseEnterCell = useCallback(
-    (weekday, slotIndex) => {
+    (weekday, slotIndex, mouseEvent) => {
       return () => {
+        if (!reviewData) return;
+
+        let adjustedStartTime = slotIndex;
+        let adjustedEndTime = slotIndex + reviewData.duration;
+
+        // If precision is less than 1, calculate sub-slot position based on mouse position
+        if (snapPrecision < 1 && mouseEvent) {
+          const cellRect = mouseEvent.currentTarget.getBoundingClientRect();
+          const relativeY = (mouseEvent.clientY - cellRect.top) / cellRect.height;
+          
+          // Snap the relative position to the precision increment
+          const snappedRelativeY = roundToIncrement(relativeY, snapPrecision);
+          adjustedStartTime = slotIndex + snappedRelativeY;
+          adjustedEndTime = adjustedStartTime + reviewData.duration;
+          
+          // Ensure we don't exceed grid bounds
+          if (adjustedEndTime > gridData.length) {
+            adjustedEndTime = gridData.length;
+            adjustedStartTime = adjustedEndTime - reviewData.duration;
+          }
+          
+          // Round to precision
+          adjustedStartTime = roundToIncrement(adjustedStartTime, snapPrecision);
+          adjustedEndTime = roundToIncrement(adjustedEndTime, snapPrecision);
+        }
+
         setOnHoverEventData({
           ...reviewData,
           time_slot: {
             weekday,
-            start_time: slotIndex,
-            end_time: slotIndex + reviewData.duration,
+            start_time: adjustedStartTime,
+            end_time: adjustedEndTime,
           },
         });
       };
     },
-    [reviewData]
+    [reviewData, snapPrecision, gridData.length]
   );
   const onMouseLeaveCell = useCallback(() => {
     setOnHoverEventData(undefined);
   }, []);
+  const onMouseMoveCell = useCallback(
+    (weekday, slotIndex) => {
+      return (mouseEvent) => {
+        if (!reviewData || snapPrecision >= 1) return;
+
+        const cellRect = mouseEvent.currentTarget.getBoundingClientRect();
+        const relativeY = (mouseEvent.clientY - cellRect.top) / cellRect.height;
+        
+        // Snap the relative position to the precision increment
+        const snappedRelativeY = roundToIncrement(relativeY, snapPrecision);
+        let adjustedStartTime = slotIndex + snappedRelativeY;
+        let adjustedEndTime = adjustedStartTime + reviewData.duration;
+        
+        // Ensure we don't exceed grid bounds
+        if (adjustedEndTime > gridData.length) {
+          adjustedEndTime = gridData.length;
+          adjustedStartTime = adjustedEndTime - reviewData.duration;
+        }
+        
+        // Round to precision
+        adjustedStartTime = roundToIncrement(adjustedStartTime, snapPrecision);
+        adjustedEndTime = roundToIncrement(adjustedEndTime, snapPrecision);
+
+        setOnHoverEventData({
+          ...reviewData,
+          time_slot: {
+            weekday,
+            start_time: adjustedStartTime,
+            end_time: adjustedEndTime,
+          },
+        });
+      };
+    },
+    [reviewData, snapPrecision, gridData.length]
+  );
+
+  const renderSubGridLines = useCallback(() => {
+    if (snapPrecision >= 1) return null;
+
+    const lines = [];
+    gridData.forEach((slot, slotIndex) => {
+      // Skip if this is a completely disabled slot (like Break with disabled: 1)
+      // We'll check if all weekdays are disabled with value 1 (solid disabled)
+      const allWeekdaysDisabled = slot.disabled && 
+        [2, 3, 4, 5, 6, 7, 8].every(weekday => slot.disabled[weekday] === 1);
+      
+      if (allWeekdaysDisabled) return;
+
+      // Create sub-lines within each slot
+      for (let i = snapPrecision; i < 1; i += snapPrecision) {
+        lines.push(
+          <div
+            key={`subline-${slotIndex}-${i}`}
+            className="absolute left-0 right-0 border-t border-gray-200 border-dashed opacity-50"
+            style={{
+              top: `${(slotIndex + i) * cellHeight}px`,
+              height: '1px',
+            }}
+          />
+        );
+      }
+    });
+
+    return <div className="absolute inset-0 pointer-events-none">{lines}</div>;
+  },[snapPrecision]);
+
   return (
+    <div className="w-full">
+      {showSnapResolution && (
+        <SnapResolutionSelector
+          usingAutoMode={autoMode}
+          precision={snapPrecision}
+          onPrecisionChange={setSnapPrecision}
+          reviewData={reviewData}
+        />
+      )}
     <div className="overflow-x-auto">
       <div className="cal-table cal-grid">
         <div className="cal-header"></div>
@@ -92,13 +199,24 @@ export default function Calendar({
                   }`}
                   style={{ height: `${cellHeight}px` }}
                   key={`weekday-${o}-${i}`}
-                  onMouseEnter={onMouseEnterCell(o, i)}
+                  onMouseEnter={reviewData ? onMouseEnterCell(o, i) : undefined}
+                    onMouseMove={reviewData ? onMouseMoveCell(o, i) : undefined}
+                    onMouseLeave={reviewData ? onMouseLeaveCell : undefined}
+                    onClick={
+                      onClickCell && onHoverEventData
+                        ? () => onClickCell(onHoverEventData,snapPrecision)
+                        : undefined
+                    }
                 ></div>
               ))}
             </div>
           ))}
         </div>
-        <div className="cal-table cal-event-holder">
+         {/* Sub-grid lines for visual feedback */}
+          {renderSubGridLines()}
+          
+          {/* Events layer */}
+        <div className="cal-table cal-event-holder absolute inset-0 pointer-events-none">
           <div></div>
           <div className="relative">
             {events.map((e, i) => (
@@ -157,6 +275,7 @@ export default function Calendar({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

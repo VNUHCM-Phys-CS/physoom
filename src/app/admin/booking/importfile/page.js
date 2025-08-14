@@ -48,7 +48,6 @@ const Page = () => {
   const [progressBooking, setProgressBooking] = useState({ value: 0 });
 
   const onSubmit = async (data) => {
-    debugger
     setIsOpen(true);
     setProgressCourse({ value: 0 });
     setProgressRoom({ value: 0 });

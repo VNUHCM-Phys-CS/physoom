@@ -41,8 +41,11 @@ const courseSchema = new Schema(
       type: Number,
       required: true,
       validate: {
-        validator: Number.isInteger,
-        message: "{VALUE} is not an integer value",
+        validator: function (v) {
+          // Allow up to 1 decimal place
+          return /^\d+(\.\d)?$/.test(v.toString());
+        },
+        message: "{VALUE} must have at most 1 decimal place",
       },
     },
     duration: {

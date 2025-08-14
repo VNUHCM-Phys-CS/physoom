@@ -289,8 +289,10 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                     isInvalid={!!errors.credit}
                     required
                     onChange={(e) => {
-                      // Ensure the value is parsed as an integer
-                      field.onChange(parseInt(e.target.value, 10) || 1); // Default to 0 if the value is NaN
+                      let value = parseFloat(e.target.value);
+                      if (isNaN(value)) value = 1; // default if empty/invalid
+                      value = Math.round(value * 10) / 10; // limit to 1 decimal
+                      field.onChange(value);
                     }}
                   />
                 )}
