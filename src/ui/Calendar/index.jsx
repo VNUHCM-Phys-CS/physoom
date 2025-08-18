@@ -27,8 +27,10 @@ const defaultGrid = [
 ];
 const defaultEvents = [];
 const widthD = 100 * (1 / 7);
+
 export default function Calendar({
   gridData = defaultGrid,
+  subGridData = { byDay: [], slots: {} },
   cellHeight = 40,
   events = defaultEvents,
   reviewData,
@@ -36,12 +38,42 @@ export default function Calendar({
   onClickCell,
   onClickEvent,
   customSubtitle,
-  showSnapResolution =true,
-  defaultPrecision=1,
+  showSnapResolution = true,
+  defaultPrecision = 1,
   autoMode = true,
+  showTime = true,
+  onChangeSnapPrecision = () => {}
 }) {
   const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
+
+  // Get all time slots (main and sub) in order
+  const getAllSlots = useCallback(() => {
+    const slots = [];
+    for (let time = 0; time < gridData.length; time += snapPrecision) {
+      const isMainSlot = time % 1 === 0;
+      if (isMainSlot) {
+        slots.push({
+          time,
+          type: 'main',
+          index: time,
+          data: gridData[time],
+        });
+      } else {
+        slots.push({
+          time,
+          type: 'sub',
+          data: subGridData.slots[time] || {
+            label: gridData[Math.floor(time)].label,
+            sublabel: (time % 1).toFixed(2),
+            disabled: {}
+          },
+        });
+      }
+    }
+    return slots;
+  }, [gridData, subGridData, snapPrecision]);
+
   const onMouseEnterCell = useCallback(
     (weekday, slotIndex, mouseEvent) => {
       return () => {
@@ -50,23 +82,19 @@ export default function Calendar({
         let adjustedStartTime = slotIndex;
         let adjustedEndTime = slotIndex + reviewData.duration;
 
-        // If precision is less than 1, calculate sub-slot position based on mouse position
         if (snapPrecision < 1 && mouseEvent) {
           const cellRect = mouseEvent.currentTarget.getBoundingClientRect();
           const relativeY = (mouseEvent.clientY - cellRect.top) / cellRect.height;
           
-          // Snap the relative position to the precision increment
           const snappedRelativeY = roundToIncrement(relativeY, snapPrecision);
           adjustedStartTime = slotIndex + snappedRelativeY;
           adjustedEndTime = adjustedStartTime + reviewData.duration;
           
-          // Ensure we don't exceed grid bounds
           if (adjustedEndTime > gridData.length) {
             adjustedEndTime = gridData.length;
             adjustedStartTime = adjustedEndTime - reviewData.duration;
           }
           
-          // Round to precision
           adjustedStartTime = roundToIncrement(adjustedStartTime, snapPrecision);
           adjustedEndTime = roundToIncrement(adjustedEndTime, snapPrecision);
         }
@@ -83,9 +111,11 @@ export default function Calendar({
     },
     [reviewData, snapPrecision, gridData.length]
   );
+
   const onMouseLeaveCell = useCallback(() => {
     setOnHoverEventData(undefined);
   }, []);
+
   const onMouseMoveCell = useCallback(
     (weekday, slotIndex) => {
       return (mouseEvent) => {
@@ -94,18 +124,15 @@ export default function Calendar({
         const cellRect = mouseEvent.currentTarget.getBoundingClientRect();
         const relativeY = (mouseEvent.clientY - cellRect.top) / cellRect.height;
         
-        // Snap the relative position to the precision increment
         const snappedRelativeY = roundToIncrement(relativeY, snapPrecision);
         let adjustedStartTime = slotIndex + snappedRelativeY;
         let adjustedEndTime = adjustedStartTime + reviewData.duration;
         
-        // Ensure we don't exceed grid bounds
         if (adjustedEndTime > gridData.length) {
           adjustedEndTime = gridData.length;
           adjustedStartTime = adjustedEndTime - reviewData.duration;
         }
         
-        // Round to precision
         adjustedStartTime = roundToIncrement(adjustedStartTime, snapPrecision);
         adjustedEndTime = roundToIncrement(adjustedEndTime, snapPrecision);
 
@@ -122,26 +149,101 @@ export default function Calendar({
     [reviewData, snapPrecision, gridData.length]
   );
 
+  const renderTimeLabels = () => (
+    <div>
+      {gridData.map((d, i) => (
+        <div
+          className="cal-cell flex justify-end items-center"
+          style={{ height: `${cellHeight}px` }}
+          key={`marker-${i}`}
+        >
+          <div className="text text-xs">{d.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderDayColumns = () => {
+    const allSlots = [];
+    const hoursInDay = gridData.length;
+    
+    // Create all time slots based on snap precision
+    for (let time = 0; time < hoursInDay; time += snapPrecision) {
+      const isMainSlot = time % 1 === 0;
+      const baseHour = Math.floor(time);
+      
+      if (isMainSlot) {
+        // Main grid slot
+        allSlots.push({
+          time,
+          type: 'main',
+          data: gridData[baseHour] || { disabled: {} },
+          disabled: gridData[baseHour]?.disabled || {}
+        });
+      } else {
+        // Subgrid slot
+        allSlots.push({
+          time,
+          type: 'sub',
+          data: subGridData.slots[time] || { 
+            label: gridData[baseHour]?.label || '',
+            sublabel: (time % 1).toFixed(2),
+            disabled: {} 
+          },
+          disabled: subGridData.slots[time]?.disabled || {}
+        });
+      }
+    }
+
+    return [2, 3, 4, 5, 6, 7, 8].map((weekday) => (
+      <div key={`weekday-${weekday}`}>
+        {allSlots.map((slot, i) => {
+          const isDisabled = slot.disabled?.[weekday];
+          const isSolidDisabled = isDisabled === 1;
+          const isBoundary = isDisabled === 2;
+          const isOccupied = isDisabled === 3;
+          
+          return (
+            <div
+              key={`slot-${weekday}-${i}`}
+              className={`cal-cell ${
+                isDisabled ? "disabled" : ""
+              } ${
+                isSolidDisabled ? "solid" : ""
+              }`}
+              style={{ 
+                height: `${snapPrecision * cellHeight}px`,
+                minHeight: `${snapPrecision * cellHeight}px`
+              }}
+              onMouseEnter={reviewData ? onMouseEnterCell(weekday, slot.time) : undefined}
+              onMouseMove={reviewData ? onMouseMoveCell(weekday, slot.time) : undefined}
+              onMouseLeave={reviewData ? onMouseLeaveCell : undefined}
+              onClick={
+                onClickCell && onHoverEventData
+                  ? () => onClickCell(onHoverEventData, snapPrecision)
+                  : undefined
+              }
+            />
+          );
+        })}
+      </div>
+    ));
+  };
+
   const renderSubGridLines = useCallback(() => {
     if (snapPrecision >= 1) return null;
 
     const lines = [];
-    gridData.forEach((slot, slotIndex) => {
-      // Skip if this is a completely disabled slot (like Break with disabled: 1)
-      // We'll check if all weekdays are disabled with value 1 (solid disabled)
-      const allWeekdaysDisabled = slot.disabled && 
-        [2, 3, 4, 5, 6, 7, 8].every(weekday => slot.disabled[weekday] === 1);
-      
-      if (allWeekdaysDisabled) return;
+    const allSlots = getAllSlots();
 
-      // Create sub-lines within each slot
-      for (let i = snapPrecision; i < 1; i += snapPrecision) {
+    allSlots.forEach((slot) => {
+      if (slot.type === 'sub') {
         lines.push(
           <div
-            key={`subline-${slotIndex}-${i}`}
-            className="absolute left-0 right-0 border-t border-gray-200 border-dashed opacity-50"
+            key={`subline-${slot.time}`}
+            className="absolute left-0 right-0 border-t border-gray-200 border-dashed opacity-70"
             style={{
-              top: `${(slotIndex + i) * cellHeight}px`,
+              top: `${slot.time * cellHeight}px`,
               height: '1px',
             }}
           />
@@ -150,132 +252,149 @@ export default function Calendar({
     });
 
     return <div className="absolute inset-0 pointer-events-none">{lines}</div>;
-  },[snapPrecision]);
+  }, [snapPrecision, cellHeight, getAllSlots]);
 
+  const renderGridCells = useCallback(() => {
+    // Combine main grid and subgrid data
+    const allSlots = [];
+    const hoursInDay = gridData.length;
+    
+    // Create all time slots based on snap precision
+    for (let time = 0; time < hoursInDay; time += snapPrecision) {
+      const isMainSlot = time % 1 === 0;
+      const baseHour = Math.floor(time);
+      
+      if (isMainSlot) {
+        // Main grid slot
+        allSlots.push({
+          time,
+          type: 'main',
+          data: gridData[baseHour] || { disabled: {} },
+          disabled: gridData[baseHour]?.disabled || {}
+        });
+      } else {
+        // Subgrid slot
+        allSlots.push({
+          time,
+          type: 'sub',
+          data: subGridData.slots[time] || { 
+            label: gridData[baseHour]?.label || '',
+            sublabel: (time % 1).toFixed(2),
+            disabled: {} 
+          },
+          disabled: subGridData.slots[time]?.disabled || {}
+        });
+      }
+    }
+
+    return [2, 3, 4, 5, 6, 7, 8].map((weekday) => (
+      <div key={`weekday-${weekday}`}>
+        {allSlots.map((slot, i) => {
+          const isDisabled = slot.disabled?.[weekday];
+          const isSolidDisabled = isDisabled === 1;
+          const isBoundary = isDisabled === 2;
+          const isOccupied = isDisabled === 3;
+          
+          return (
+            <div
+              key={`slot-${weekday}-${i}`}
+              className={`cal-cell ${
+                isDisabled ? "disabled" : ""
+              } ${
+                isSolidDisabled ? "solid" : ""
+              }`}
+              style={{ 
+                height: `${snapPrecision * cellHeight}px`,
+                minHeight: `${snapPrecision * cellHeight}px`
+              }}
+              onMouseEnter={reviewData ? onMouseEnterCell(weekday, slot.time) : undefined}
+              onMouseMove={reviewData ? onMouseMoveCell(weekday, slot.time) : undefined}
+              onMouseLeave={reviewData ? onMouseLeaveCell : undefined}
+              onClick={
+                onClickCell && onHoverEventData
+                  ? () => onClickCell(onHoverEventData, snapPrecision)
+                  : undefined
+              }
+            />
+          );
+        })}
+      </div>
+    ));
+  }, [gridData, subGridData, snapPrecision, cellHeight, reviewData, onMouseEnterCell, onMouseMoveCell, onMouseLeaveCell, onClickCell, onHoverEventData]);
+
+  
   return (
     <div className="w-full">
       {showSnapResolution && (
         <SnapResolutionSelector
           usingAutoMode={autoMode}
           precision={snapPrecision}
-          onPrecisionChange={setSnapPrecision}
+          onPrecisionChange={(v) => {
+            setSnapPrecision(v);
+            if (onChangeSnapPrecision) onChangeSnapPrecision(v);
+          }}
           reviewData={reviewData}
         />
       )}
-    <div className="overflow-x-auto">
-      <div className="cal-table cal-grid">
-        <div className="cal-header"></div>
-        <div className="cal-header text">Monday</div>
-        <div className="cal-header text">Tuesday</div>
-        <div className="cal-header text">Wednesday</div>
-        <div className="cal-header text">Thursday</div>
-        <div className="cal-header text">Friday</div>
-        <div className="cal-header text">Saturday</div>
-        <div className="cal-header text">Sunday</div>
-      </div>
-      <div className="relative">
+      <div className="overflow-x-auto">
         <div className="cal-table cal-grid">
-          <div>
-            {gridData.map((d, i) => (
-              <div
-                className={`cal-cell flex justify-end items-center`}
-                style={{ height: `${cellHeight}px` }}
-                key={`markder-${i}`}
-              >
-                <div className="text text-xs">{d.label}</div>
-              </div>
-            ))}
-          </div>
-          {[2, 3, 4, 5, 6, 7, 8].map((o) => (
-            <div key={`weekday-${o}`}>
-              {gridData.map((d, i) => (
-                <div
-                  className={`cal-cell ${
-                    d.disabled && d.disabled[o] ? "disabled" : ""
-                  } ${
-                    d.disabled && d.disabled[o] && +d.disabled[o] == 1
-                      ? "solid"
-                      : ""
-                  }`}
-                  style={{ height: `${cellHeight}px` }}
-                  key={`weekday-${o}-${i}`}
-                  onMouseEnter={reviewData ? onMouseEnterCell(o, i) : undefined}
-                    onMouseMove={reviewData ? onMouseMoveCell(o, i) : undefined}
-                    onMouseLeave={reviewData ? onMouseLeaveCell : undefined}
-                    onClick={
-                      onClickCell && onHoverEventData
-                        ? () => onClickCell(onHoverEventData,snapPrecision)
-                        : undefined
-                    }
-                ></div>
-              ))}
-            </div>
-          ))}
+          <div className="cal-header"></div>
+          <div className="cal-header text">Monday</div>
+          <div className="cal-header text">Tuesday</div>
+          <div className="cal-header text">Wednesday</div>
+          <div className="cal-header text">Thursday</div>
+          <div className="cal-header text">Friday</div>
+          <div className="cal-header text">Saturday</div>
+          <div className="cal-header text">Sunday</div>
         </div>
-         {/* Sub-grid lines for visual feedback */}
+        <div className="relative">
+          <div className="cal-table cal-grid">
+            {renderTimeLabels()}
+            {renderDayColumns()}
+          </div>
+          
           {renderSubGridLines()}
           
-          {/* Events layer */}
-        <div className="cal-table cal-event-holder absolute inset-0 pointer-events-none">
-          <div></div>
-          <div className="relative">
-            {events.map((e, i) => (
-              <CalendarEvent
-                key={`e-${i}`}
-                customSubtitle={customSubtitle}
-                data={e}
-                height={`${
-                  cellHeight * (e.time_slot.end_time - e.time_slot.start_time)
-                }px`}
-                width={`${widthD}%`}
-                y={`${e.time_slot.start_time * cellHeight}px`}
-                x={`${(e.time_slot.weekday - 2) * widthD}%`}
-                onClickEvent={onClickEvent}
-                onSelected={(reviewData?.id===e.id) ||(selectedID===e.id)}
-                style={{ zIndex: 1 }}
-              />
-            ))}
-            {onHoverEventData && (
-              <CalendarEvent
-                data={onHoverEventData}
-                height={`${cellHeight * onHoverEventData.duration}px`}
-                width={`${widthD}%`}
-                customSubtitle={customSubtitle}
-                y={`${onHoverEventData.time_slot.start_time * cellHeight}px`}
-                x={`${(onHoverEventData.time_slot.weekday - 2) * widthD}%`}
-                isReview={true}
-              />
-            )}
-
-            {/* Grid interaction */}
-            <div className="cal-event-interaction">
-              {[2, 3, 4, 5, 6, 7, 8].map((o) => (
-                <div key={`weekday-interaction-${o}`}>
-                  {gridData.map((d, i) => (
-                    <div
-                      className={`cal-cell ${
-                        d.disabled && d.disabled[o] ? "disabled" : ""
-                      }`}
-                      style={{ height: `${cellHeight}px` }}
-                      key={`weekday-i-${o}-${i}`}
-                      onMouseEnter={
-                        reviewData ? onMouseEnterCell(o, i) : undefined
-                      }
-                      onMouseLeave={reviewData ? onMouseLeaveCell : undefined}
-                      onClick={
-                        onClickCell
-                          ? () => onClickCell(onHoverEventData)
-                          : undefined
-                      }
-                    ></div>
-                  ))}
-                </div>
+          <div className="cal-table cal-event-holder absolute inset-0 pointer-events-none">
+            <div></div>
+            <div className="relative">
+              {events.map((e, i) => (
+                <CalendarEvent
+                  key={`e-${i}`}
+                  customSubtitle={customSubtitle}
+                  data={e}
+                  height={`${
+                    cellHeight * (e.time_slot.end_time - e.time_slot.start_time)
+                  }px`}
+                  width={`${widthD}%`}
+                  y={`${e.time_slot.start_time * cellHeight}px`}
+                  x={`${(e.time_slot.weekday - 2) * widthD}%`}
+                  onClickEvent={onClickEvent}
+                  onSelected={(reviewData?.id === e.id) || (selectedID === e.id)}
+                  style={{ zIndex: 1 }}
+                  showTime={showTime} // Add this prop
+                  startTime={e.time_slot.start_time}
+                  endTime={e.time_slot.end_time}
+                />
               ))}
+              {onHoverEventData && (
+                <CalendarEvent
+                  data={onHoverEventData}
+                  height={`${cellHeight * onHoverEventData.duration}px`}
+                  width={`${widthD}%`}
+                  customSubtitle={customSubtitle}
+                  y={`${onHoverEventData.time_slot.start_time * cellHeight}px`}
+                  x={`${(onHoverEventData.time_slot.weekday - 2) * widthD}%`}
+                  isReview={true}
+                  showTime={showTime} // Add this prop
+                  startTime={onHoverEventData.time_slot.start_time}
+                  endTime={onHoverEventData.time_slot.end_time}
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

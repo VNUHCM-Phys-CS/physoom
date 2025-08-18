@@ -237,7 +237,7 @@ export const defaultGridByTime = {
     { label: "16:00", timeData: [960, 1020] }, // 60-minute slots
     { label: "17:00", timeData: [1020, 1080] }, // 60-minute slots
   ],
-  precision: 0.5, // Default precision
+  precision: 0.1, // Default precision
   booking2calendar: function (booking, precision) {
     return booking2calendar(booking, this.data, precision || this.precision);
   },

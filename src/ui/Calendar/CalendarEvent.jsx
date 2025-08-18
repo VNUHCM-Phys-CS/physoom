@@ -12,9 +12,20 @@ export default function CalendarEvent({
   onSelected,
   style,
   onClickEvent,
-  customSubtitle
+  customSubtitle,
+  showTime = false,
 }) {
   const { isOverlap, title, subtitle } = data;
+  const formatTime = (time) => {
+    debugger
+    const total_minutes = Math.round(time);
+    const hours = Math.floor(total_minutes/ 60);
+    const minutes = Math.round(total_minutes%60);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  };
+
   return (
     <div
       className={`cal-event-cell ${isOverlap ? "overlap" : ""} ${
@@ -50,6 +61,11 @@ export default function CalendarEvent({
           <div className="subtitle">
             <p>{customSubtitle?customSubtitle(data):subtitle.map(s=><p key={s}>{s}</p>)}</p>
           </div>
+          {showTime && (
+            <div className="time-display text-xs font-semibold mb-1">
+              {formatTime(data?.data?.time_slot?.start_time)} - {formatTime(data?.data?.time_slot?.end_time)}
+            </div>
+          )}
           {isOverlap && (
             <WarningIcon className={"absolute left-0 bottom-0 m-2"} />
           )}

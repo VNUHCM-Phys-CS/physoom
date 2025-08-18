@@ -35,7 +35,7 @@ const courseSchema = new Schema(
     },
     start_date: {
       type: Date,
-      required: true,
+      // required: true,
     },
     credit: {
       type: Number,
@@ -69,6 +69,7 @@ const courseSchema = new Schema(
     isLock: {
       type: Boolean,
     },
+    note: String,
   },
   { timestamps: true }
 );
