@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   ButtonGroup,
@@ -49,7 +49,7 @@ export default function CourseListSelect({
   const [selectedRelated, setSelectedRelated] = useState(new Set());
   const [checkAllBtn, setCheckAllBtn] = useState({ isIn: false, isSe: false });
 
-  useState(() => {
+  useEffect(() => {
     setSelectedRelated(new Set());
     setCheckAllBtn({ isIn: false, isSe: false });
   }, [course]);
@@ -58,39 +58,40 @@ export default function CourseListSelect({
     setSelectedRelated((prev) => {
       const newSelected = new Set(prev);
       if (newSelected.has(key)) {
-        if (!v) newSelected.delete(key); // Deselect if already selected
+        if (!v) newSelected.delete(key);
         else return prev;
       } else {
-        if (v) newSelected.add(key); // Select if not selected
+        if (v) newSelected.add(key);
         else return prev;
       }
-      if (newSelected.size === course.length)
-        setCheckAllBtn({ isIn: false, isSe: true });
-      else if (newSelected.size === 0)
-        setCheckAllBtn({ isIn: false, isSe: false });
-      else
-        setCheckAllBtn((prev) => {
-          if (!prev.isIn) return { isIn: true, isSe: false };
-          prev.isSe = false;
-          return prev;
-        });
+      
+      setCheckAllBtn(prevBtn => {
+        if (newSelected.size === course.length) {
+          return { isIn: false, isSe: true };
+        } else if (newSelected.size === 0) {
+          return { isIn: false, isSe: false };
+        } else {
+          return { isIn: true, isSe: false };
+        }
+      });
 
       return newSelected;
     });
   };
 
-  const onClickCheckAllBtn = () => {
-    if (checkAllBtn.isSe) {
-      // de select
-      setSelectedRelated(new Set());
-      setCheckAllBtn({ isIn: false, isSe: false });
-    } else {
-      const all = new Set();
-      courseGroup.forEach((cg) => cg.data.forEach(({ _id }) => all.add(_id)));
-      setSelectedRelated(all);
-      setCheckAllBtn({ isIn: false, isSe: true });
-    }
-  };
+  const onClickCheckAllBtn = useCallback(() => {
+    setCheckAllBtn(prevBtn => {
+      if (prevBtn.isSe) {
+        setSelectedRelated(new Set());
+        return { isIn: false, isSe: false };
+      } else {
+        const all = new Set();
+        courseGroup.forEach((cg) => cg.data.forEach(({ _id }) => all.add(_id)));
+        setSelectedRelated(all);
+        return { isIn: false, isSe: true };
+      }
+    });
+  }, [courseGroup]);
   const handleLockAll = (selectedRelated) => {
     const query = [];
     selectedRelated.forEach((_id) => query.push({ _id, isLock: true }));
@@ -118,7 +119,7 @@ export default function CourseListSelect({
           size="sm"
           isIndeterminate={checkAllBtn.isIn}
           isSelected={checkAllBtn.isSe}
-          onClick={onClickCheckAllBtn}
+          onChange={onClickCheckAllBtn}
         ></Checkbox>
         <h4 className="font-bold">Booking info</h4>
         <div>
