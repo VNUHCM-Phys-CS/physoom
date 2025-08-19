@@ -25,7 +25,7 @@ export default function CalendarEvent({
     const hours = Math.floor(total_minutes/ 60);
     const minutes = Math.round(total_minutes%60);
     // const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours % 12 || 12;
+    const displayHours = hours;//hours % 12 || 12;
     // return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
     return `${displayHours}:${minutes.toString().padStart(2, '0')}`;
   };
