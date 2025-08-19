@@ -1,6 +1,7 @@
 import "./Calendar.scss";
 import { Tooltip } from "@heroui/react";
 import { WarningIcon } from "@/ui/icons/WarningIcon";
+import { useRef } from "react";
 
 export default function CalendarEvent({
   data,
@@ -15,8 +16,10 @@ export default function CalendarEvent({
   customSubtitle,
   showTime = false,
   onDragStart,
+  onDoubleClick
 }) {
   const { isOverlap, title, subtitle } = data;
+  const clickTimer = useRef(null);
   const formatTime = (time) => {
     const total_minutes = Math.round(time);
     const hours = Math.floor(total_minutes/ 60);
@@ -26,7 +29,23 @@ export default function CalendarEvent({
     // return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
     return `${displayHours}:${minutes.toString().padStart(2, '0')}`;
   };
+  const handleClick = (e,data) => {
+    // Clear any previous timer
+    e.stopPropagation();
+    clearTimeout(clickTimer.current);
+    if (onClickEvent){
+      clickTimer.current = setTimeout(() => {
+        onClickEvent(data);
+      }, 250);
+    }
+  };
 
+  const handleDoubleClick = (data) => {
+    clearTimeout(clickTimer.current);
+    if (onDoubleClick){
+      onDoubleClick(data);
+    }
+  };
   return (
     <div
       className={`cal-event-cell ${isOverlap ? "overlap" : ""} ${
@@ -42,9 +61,12 @@ export default function CalendarEvent({
         ...style,
       }}
       draggable="true"
-      onClick={(e)=>{e.stopPropagation();onClickEvent?onClickEvent(data):null}}
-      onDragStart={(e) => {
+      onClick={(e)=>{handleClick(e,data)}}
+      onDragStart={() => {
         if (onDragStart) onDragStart(data);
+      }}
+      onDoubleClick={() => {
+        handleDoubleClick(data);
       }}
     >
       <Tooltip

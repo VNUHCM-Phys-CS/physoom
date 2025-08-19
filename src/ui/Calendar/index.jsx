@@ -373,6 +373,7 @@ export default function Calendar({
                   x={`${(e.time_slot.weekday - 2) * widthD}%`}
                   onClickEvent={onClickEvent}
                   onDragStart={onDragStart}
+                  onDoubleClick={onDragStart}
                   onSelected={(reviewData?.id === e.id) || (selectedID === e.id)}
                   style={{ zIndex: 1 }}
                   showTime={showTime} // Add this prop
