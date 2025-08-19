@@ -11,7 +11,9 @@ import SearchCalender from "../SearchCalender";
 import CourseListSelect from "../CourseListSelect";
 
 export default function BookingMulti() {
+  const [selectedTab, setSelectedTab] = useState("general");
   const [searhCourse, setSearhCourse] = useState("");
+  const [selectedCourseId, setSelectedCourseId] = useState();
   const { data: course, mutate: mutateCourse } = useSWR(
     [
       "/api/course",
@@ -87,6 +89,7 @@ export default function BookingMulti() {
     } else {
       setBooking(undefined);
     }
+    setSelectedCourseId(course?._id)
   }, []);
   const { data: _events, mutate: mutateUserEvent } = useSWR(
     [
@@ -136,6 +139,18 @@ export default function BookingMulti() {
       _.merge(_.keyBy(classEvents, "_id"), _.keyBy(userEvents, "_id"))
     );
   }, [classEvents, userEvents]);
+
+  const onClickEvent = useCallback((e)=>{
+    if(e?.id) {
+      setSelectedCourseId(e?.id)
+    }
+  },[]);
+  const handleDragStart = useCallback((e) => {
+    if (e?.id){
+      setSelectedTab("general"); // Switch to Room tab when dragging starts
+      if(selectedCourseId!==e?.id) onClickEvent(e)
+    }
+  }, [selectedCourseId]);
   return (
     <div className="flex py-2 px-2 mx-auto gap-2">
       <Card className="w-1/3 md:w-1/4  max-h-dvh flex flex-col">
@@ -152,11 +167,12 @@ export default function BookingMulti() {
           userEvents={_events}
           onSelectionChange={onSelectCourse}
           onUpdate={mutateCourse}
+          currentId={selectedCourseId}
         />
       </Card>
       <Card className="w-2/3 md:w-3/4 max-h-dvh">
         <ScrollShadow className="h-full">
-          <Tabs radius={"full"} color="secondary">
+          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
             <Tab key="general" title="Classroom schedule">
               {booking && !isLoadingBook && !isLoadingEvent ? (
                 <CalendarByRoom
@@ -173,6 +189,7 @@ export default function BookingMulti() {
                     mutateUserEvent();
                     mutateBooking();
                   }}
+                  onClickEvent={onClickEvent}
                 />
               ) : (
                 <div className="prose">
@@ -187,6 +204,8 @@ export default function BookingMulti() {
               <CalendarByUser
                 _events={userEvents}
                 selectedID={booking?.course?._id}
+                onClickEvent={onClickEvent}
+                onDragStart={handleDragStart}
               />
             </Tab>
             <Tab key="class_sche" title="Class schedule">
@@ -196,10 +215,12 @@ export default function BookingMulti() {
               <CalendarByUser
                 _events={classEvents}
                 selectedID={booking?.course?._id}
+                onClickEvent={onClickEvent}
+                onDragStart={handleDragStart}
               />
             </Tab>
             <Tab key="searchEvent" title="Search Schedule">
-              <SearchCalender />
+              <SearchCalender onClickEvent={onClickEvent} onDragStart={handleDragStart}/>
             </Tab>
           </Tabs>
         </ScrollShadow>

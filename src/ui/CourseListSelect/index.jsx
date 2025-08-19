@@ -22,8 +22,13 @@ export default function CourseListSelect({
   onSelectionChange,
   userEvents,
   onUpdate,
+  currentId
 }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
+  useEffect(()=>{
+    if(currentId)
+      setSelectedKeys(new Set().add(currentId));
+  },[currentId]);
   const courseGroup = useMemo(() => {
     let done = {};
     (userEvents ?? []).forEach((d) => (done[d?.course?.title] = true));

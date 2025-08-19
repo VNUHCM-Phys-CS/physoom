@@ -11,7 +11,7 @@ import { customSubtitle, fetcheroptions, getClass } from "@/lib/ulti";
 import { Select, SelectItem } from "@heroui/react";
 import ExportBookingButton from "../ExportBookingButton";
 
-export default function () {
+export default function ({onClickEvent,onDragStart}) {
   const [searchKey, setSearchKey] = useState("teacher");
   const _searchKey = useMemo(() => new Set([searchKey]), [searchKey]);
   const [filter, setFilter] = useState();
@@ -157,7 +157,7 @@ export default function () {
         </div>
         <ExportBookingButton data={userEvents} />
       </div>
-      <CalendarByUser _events={userEvents} customSubtitle={customSubtitle} />
+      <CalendarByUser _events={userEvents} customSubtitle={customSubtitle} onClickEvent={onClickEvent} onDragStart={onDragStart}/>
     </>
   );
 }

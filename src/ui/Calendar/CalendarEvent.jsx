@@ -14,16 +14,17 @@ export default function CalendarEvent({
   onClickEvent,
   customSubtitle,
   showTime = false,
+  onDragStart,
 }) {
   const { isOverlap, title, subtitle } = data;
   const formatTime = (time) => {
-    debugger
     const total_minutes = Math.round(time);
     const hours = Math.floor(total_minutes/ 60);
     const minutes = Math.round(total_minutes%60);
-    const ampm = hours >= 12 ? 'PM' : 'AM';
+    // const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
-    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    // return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -40,7 +41,11 @@ export default function CalendarEvent({
         left: x,
         ...style,
       }}
-      onClick={()=>onClickEvent?onClickEvent(data):null}
+      draggable="true"
+      onClick={(e)=>{e.stopPropagation();onClickEvent?onClickEvent(data):null}}
+      onDragStart={(e) => {
+        if (onDragStart) onDragStart(data);
+      }}
     >
       <Tooltip
         showArrow={true}

@@ -27,6 +27,7 @@ const defaultGrid = [
 ];
 const defaultEvents = [];
 const widthD = 100 * (1 / 7);
+const emptyFunc=()=>{};
 
 export default function Calendar({
   gridData = defaultGrid,
@@ -42,7 +43,8 @@ export default function Calendar({
   defaultPrecision = 1,
   autoMode = true,
   showTime = true,
-  onChangeSnapPrecision = () => {}
+  onChangeSnapPrecision = emptyFunc,
+  onDragStart=emptyFunc
 }) {
   const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
@@ -370,6 +372,7 @@ export default function Calendar({
                   y={`${e.time_slot.start_time * cellHeight}px`}
                   x={`${(e.time_slot.weekday - 2) * widthD}%`}
                   onClickEvent={onClickEvent}
+                  onDragStart={onDragStart}
                   onSelected={(reviewData?.id === e.id) || (selectedID === e.id)}
                   style={{ zIndex: 1 }}
                   showTime={showTime} // Add this prop
