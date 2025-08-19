@@ -151,6 +151,12 @@ export default function BookingMulti() {
       if(selectedCourseId!==e?.id) onClickEvent(e)
     }
   }, [selectedCourseId]);
+  const intructionText=useCallback(()=>{
+    return <p className="text-gray-700 font-medium">
+                💡 You can <span className="font-bold">click</span> to select a course,  
+                or <span className="font-bold">double click</span> to edit the course.
+              </p>
+  },[]);
   return (
     <div className="flex py-2 px-2 mx-auto gap-2">
       <Card className="w-1/3 md:w-1/4  max-h-dvh flex flex-col">
@@ -207,6 +213,7 @@ export default function BookingMulti() {
                 onClickEvent={onClickEvent}
                 onDragStart={handleDragStart}
               />
+              {intructionText()}
             </Tab>
             <Tab key="class_sche" title="Class schedule">
               <div className="prose">
@@ -218,9 +225,11 @@ export default function BookingMulti() {
                 onClickEvent={onClickEvent}
                 onDragStart={handleDragStart}
               />
+              {intructionText()}
             </Tab>
             <Tab key="searchEvent" title="Search Schedule">
               <SearchCalender onClickEvent={onClickEvent} onDragStart={handleDragStart}/>
+              {intructionText()}
             </Tab>
           </Tabs>
         </ScrollShadow>
