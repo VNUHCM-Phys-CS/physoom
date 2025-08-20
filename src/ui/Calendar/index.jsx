@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./Calendar.scss";
 import { Tooltip } from "@heroui/react";
 import CalendarEvent from "./CalendarEvent";
@@ -48,7 +48,37 @@ export default function Calendar({
 }) {
   const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
+  const [isMobile, setIsMobile] = useState(false);
+  const [showWeekend, setShowWeekend] = useState(true);
 
+  // Detect screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      setShowWeekend(window.innerWidth >= 640); // Hide weekends on very small screens
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Responsive width calculation
+  const widthD = useCallback(() => {
+    if (isMobile) {
+      return showWeekend ? 100 * (1 / 7) : 100 * (1 / 5);
+    }
+    return 100 * (1 / 7);
+  }, [isMobile, showWeekend]);
+
+  // Get visible weekdays based on screen size
+  const getVisibleWeekdays = useCallback(() => {
+    const allWeekdays = [2, 3, 4, 5, 6, 7, 8];
+    return showWeekend ? allWeekdays : allWeekdays.slice(0, 5); // Mon-Fri only on mobile
+  }, [showWeekend]);
+
+  // Responsive cell height
+  const responsiveCellHeight = isMobile ? Math.max(30, cellHeight - 10) : cellHeight;
   // Get all time slots (main and sub) in order
   const getAllSlots = useCallback(() => {
     const slots = [];
@@ -156,26 +186,42 @@ export default function Calendar({
       {gridData.map((d, i) => (
         <div
           className="cal-cell flex justify-end items-center"
-          style={{ height: `${cellHeight}px` }}
+          style={{ height: `${responsiveCellHeight}px` }}
           key={`marker-${i}`}
         >
-          <div className="text text-xs">{d.label}</div>
+          <div className="text text-xs">{isMobile ? d.label.charAt(0) : d.label}</div>
         </div>
       ))}
     </div>
   );
 
+  const renderDayHeaders = () => {
+    const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const visibleDays = getVisibleWeekdays();
+    
+    return (
+      <>
+        <div className="cal-header"></div>
+        {visibleDays.map((weekday, index) => (
+          <div key={`header-${weekday}`} className="cal-header text">
+            {isMobile ? dayNames[index] : dayNames[index]}
+          </div>
+        ))}
+      </>
+    );
+  };
+
   const renderDayColumns = () => {
     const allSlots = [];
     const hoursInDay = gridData.length;
-    
-    // Create all time slots based on snap precision
+    const visibleWeekdays = getVisibleWeekdays();
+
+    // Create all time slots
     for (let time = 0; time < hoursInDay; time += snapPrecision) {
       const isMainSlot = time % 1 === 0;
       const baseHour = Math.floor(time);
       
       if (isMainSlot) {
-        // Main grid slot
         allSlots.push({
           time,
           type: 'main',
@@ -183,7 +229,6 @@ export default function Calendar({
           disabled: gridData[baseHour]?.disabled || {}
         });
       } else {
-        // Subgrid slot
         allSlots.push({
           time,
           type: 'sub',
@@ -197,29 +242,21 @@ export default function Calendar({
       }
     }
 
-    return [2, 3, 4, 5, 6, 7, 8].map((weekday) => (
+    return getVisibleWeekdays().map((weekday) => (
       <div key={`weekday-${weekday}`}>
         {allSlots.map((slot, i) => {
           const isDisabled = slot.disabled?.[weekday];
           const isSolidDisabled = isDisabled === 1;
-          const isBoundary = isDisabled === 2;
-          const isOccupied = isDisabled === 3;
           
           return (
             <div
               key={`slot-${weekday}-${i}`}
-              className={`cal-cell ${
-                isDisabled ? "disabled" : ""
-              } ${
-                isSolidDisabled ? "solid" : ""
-              }`}
+              className={`cal-cell ${isDisabled ? "disabled" : ""} ${isSolidDisabled ? "solid" : ""}`}
               style={{ 
-                height: `${snapPrecision * cellHeight}px`,
-                minHeight: `${snapPrecision * cellHeight}px`
+                height: `${snapPrecision * responsiveCellHeight}px`,
+                minHeight: `${snapPrecision * responsiveCellHeight}px`
               }}
               onMouseEnter={reviewData ? onMouseEnterCell(weekday, slot.time) : undefined}
-              // onMouseMove={reviewData ? onMouseMoveCell(weekday, slot.time) : undefined}
-              // onMouseLeave={reviewData ? onMouseLeaveCell : undefined}
               onClick={
                 onClickCell && onHoverEventData
                   ? () => onClickCell(onHoverEventData, snapPrecision)
@@ -245,7 +282,7 @@ export default function Calendar({
             key={`subline-${slot.time}`}
             className="absolute left-0 right-0 border-t border-gray-200 border-dashed opacity-70"
             style={{
-              top: `${slot.time * cellHeight}px`,
+              top: `${slot.time * responsiveCellHeight}px`,
               height: '1px',
             }}
           />
@@ -254,11 +291,19 @@ export default function Calendar({
     });
 
     return <div className="absolute inset-0 pointer-events-none">{lines}</div>;
-  }, [snapPrecision, cellHeight, getAllSlots]);
+  }, [snapPrecision, responsiveCellHeight, getAllSlots]);
 
 
+  // Mobile toggle for weekends
+  const WeekendToggle = () => (
+    <button
+      onClick={() => setShowWeekend(!showWeekend)}
+      className="md:hidden bg-gray-200 px-2 py-1 rounded text-xs mb-2"
+    >
+      {showWeekend ? 'Hide Weekends' : 'Show Weekends'}
+    </button>
+  );
 
-  
   return (
     <div className="w-full">
       {showSnapResolution && (
@@ -267,21 +312,17 @@ export default function Calendar({
           precision={snapPrecision}
           onPrecisionChange={(v) => {
             setSnapPrecision(v);
-            if (onChangeSnapPrecision) onChangeSnapPrecision(v);
+            onChangeSnapPrecision(v);
           }}
           reviewData={reviewData}
         />
       )}
+      
+      {/* <WeekendToggle /> */}
+      
       <div className="overflow-x-auto">
         <div className="cal-table cal-grid">
-          <div className="cal-header"></div>
-          <div className="cal-header text">Monday</div>
-          <div className="cal-header text">Tuesday</div>
-          <div className="cal-header text">Wednesday</div>
-          <div className="cal-header text">Thursday</div>
-          <div className="cal-header text">Friday</div>
-          <div className="cal-header text">Saturday</div>
-          <div className="cal-header text">Sunday</div>
+          {renderDayHeaders()}
         </div>
         <div className="relative">
           <div className="cal-table cal-grid">
@@ -291,40 +332,45 @@ export default function Calendar({
           
           {renderSubGridLines()}
           
-          <div className="cal-table cal-event-holder absolute inset-0 pointer-events-none">
+          <div className="cal-table cal-event-holder absolute inset-0">
             <div></div>
             <div className="relative">
-              {events.map((e, i) => (
-                <CalendarEvent
-                  key={`e-${i}`}
-                  customSubtitle={customSubtitle}
-                  data={e}
-                  height={`${
-                    cellHeight * (e.time_slot.end_time - e.time_slot.start_time)
-                  }px`}
-                  width={`${widthD}%`}
-                  y={`${e.time_slot.start_time * cellHeight}px`}
-                  x={`${(e.time_slot.weekday - 2) * widthD}%`}
-                  onClickEvent={onClickEvent}
-                  onDragStart={onDragStart}
-                  onDoubleClick={onDragStart}
-                  onSelected={(reviewData?.id === e.id) || (selectedID === e.id)}
-                  style={{ zIndex: 1 }}
-                  showTime={showTime} // Add this prop
-                  startTime={e.time_slot.start_time}
-                  endTime={e.time_slot.end_time}
-                />
-              ))}
+              {events.map((e, i) => {
+                const weekdayIndex = getVisibleWeekdays().indexOf(e.time_slot.weekday);
+                if (weekdayIndex === -1) return null; // Skip hidden days
+                
+                return (
+                  <CalendarEvent
+                    key={`e-${i}`}
+                    customSubtitle={customSubtitle}
+                    data={e}
+                    height={`${responsiveCellHeight * (e.time_slot.end_time - e.time_slot.start_time)}px`}
+                    width={`${widthD()}%`}
+                    y={`${e.time_slot.start_time * responsiveCellHeight}px`}
+                    x={`${weekdayIndex * widthD()}%`}
+                    onClickEvent={onClickEvent}
+                    onDragStart={onDragStart}
+                    onDoubleClick={onDragStart}
+                    onSelected={(reviewData?.id === e.id) || (selectedID === e.id)}
+                    style={{ zIndex: 1 }}
+                    showTime={showTime && !isMobile}
+                    startTime={e.time_slot.start_time}
+                    endTime={e.time_slot.end_time}
+                    isMobile={isMobile}
+                  />
+                );
+              })}
+              
               {onHoverEventData && (
                 <CalendarEvent
                   data={onHoverEventData}
-                  height={`${cellHeight * onHoverEventData.duration}px`}
-                  width={`${widthD}%`}
+                  height={`${responsiveCellHeight * onHoverEventData.duration}px`}
+                  width={`${widthD()}%`}
                   customSubtitle={customSubtitle}
-                  y={`${onHoverEventData.time_slot.start_time * cellHeight}px`}
-                  x={`${(onHoverEventData.time_slot.weekday - 2) * widthD}%`}
+                  y={`${onHoverEventData.time_slot.start_time * responsiveCellHeight}px`}
+                  x={`${(getVisibleWeekdays().indexOf(onHoverEventData.time_slot.weekday)) * widthD()}%`}
                   isReview={true}
-                  showTime={false} // Add this prop
+                  showTime={false}
                   startTime={onHoverEventData.time_slot.start_time}
                   endTime={onHoverEventData.time_slot.end_time}
                 />
