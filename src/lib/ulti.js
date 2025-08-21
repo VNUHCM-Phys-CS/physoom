@@ -93,7 +93,6 @@ function index2time(d, arr, isEnd = false, precision = 0.5) {
 
 // Enhanced booking2calendar with precision support
 function booking2calendar(booking, time_arr, precision = 0.5) {
-  debugger
   const c = {
     id: booking.course._id,
     title: booking.course.title,
@@ -351,4 +350,8 @@ export const convertExcelDateToJSDate = (excelDate) => {
 
 export function extractBaseClass(classId) {
   return classId.match(/^[A-Za-z0-9]+/)[0];
+}
+
+export function getFullTitle(data) {
+  return [data.course_id,data.class_id.join("|"),data.course_id_extend].join("__");
 }

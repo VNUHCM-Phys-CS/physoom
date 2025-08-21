@@ -72,6 +72,7 @@ export default function CalendarByRoom({
   
   const [gridData, setGridData] = useState();
   const [subGridData, setSubGridData] = useState({});
+  const [allSlots, setAllSlots] = useState([]);
   const [reviewData, setReviewData] = useState();
   const roomsOptions = useMemo(() => {
     return (rooms ?? [])
@@ -101,6 +102,7 @@ export default function CalendarByRoom({
         title: booking.course.title,
         subtitle: booking.teacher_email,
         duration: booking.course.credit,
+        // fulltitle:getFullTitle(booking),
         time_slot: {},
       };
       // create grid
@@ -114,15 +116,17 @@ export default function CalendarByRoom({
     }
   }, [booking, isLock]);
   useEffect(() => {
-    const {gridData,subGrid} = initEventGrid(
+    const eventTotal = [...events, ...eventBoundary];
+    const {gridData,subGrid,allSlots} = initEventGrid(
       gridObject,
       snapResolution,
-      [...events, ...eventBoundary],
-      reviewData?.title
+      eventTotal,
+      reviewData?.id
     );
+    setAllSlots(allSlots);
     if (reviewData) 
     {
-      const result = getBoudary(gridData, subGrid, reviewData.duration, snapResolution);
+      const result = getBoudary(gridData, subGrid,allSlots, reviewData.duration, snapResolution);
       setGridData(result.gridData);
       setSubGridData(result.subGrid);
     }else {
@@ -242,7 +246,7 @@ export default function CalendarByRoom({
   );
 }
 
-function initEventGrid(gridObject, snapResolution, events = [], eventName) {
+function initEventGrid(gridObject, snapResolution, events = [], eventId) {
   // Clone the base grid structure while preserving the default disabled states
   const gridData = _.cloneDeep(gridObject.data).map(slot => {
     // Preserve the original disabled state if it exists
@@ -303,19 +307,23 @@ function initEventGrid(gridObject, snapResolution, events = [], eventName) {
       subGrid.slots[time] = slotData;
     }
   }
-
+  console.log("========================================")
   // Process events - only mark additional occupied slots
   events.forEach((event) => {
-    if (shouldProcessEvent(event, eventName)) {
+    console.log(event)
+    console.log(shouldProcessEvent(event, eventId))
+    if (shouldProcessEvent(event, eventId)) {
       const { weekday, start_time, end_time } = event.time_slot;
       
       const startSlot = Math.max(Math.floor(start_time / snapResolution), 0);
       const endSlot = Math.min(Math.ceil(end_time / snapResolution), allSlots.length);
-      
+      console.log(`weekday: ${weekday}, start_time: ${start_time}, end_time${end_time} startSlot: ${startSlot} endSlot: ${endSlot}`)
       for (let i = startSlot; i < endSlot; i++) {
         const slot = allSlots[i];
         // Only mark as occupied if not already disabled by default
         if (!slot.disabled[weekday] || slot.disabled[weekday] !== 1) {
+          if (weekday==2)
+            debugger
           slot.disabled[weekday] = 3; // 3 indicates occupied
           
           if (slot.type === 'main') {
@@ -331,17 +339,16 @@ function initEventGrid(gridObject, snapResolution, events = [], eventName) {
       }
     }
   });
-
+  debugger
   // Initialize byDay arrays
   initializeByDayArrays(gridData, subGrid, allSlots);
 
-  return { gridData, subGrid };
+  return { gridData, subGrid, allSlots };
 }
 
 // Update getBoudary to work with snap resolution
-function getBoudary(gridData, subGrid, duration, snapResolution) {
+function getBoudary(gridData, subGrid, allSlots, duration, snapResolution) {
   const durationInSlots = Math.ceil(duration / snapResolution);
-  const allSlots = getAllTimeSlots(gridData, subGrid, snapResolution);
 
   gridData.byDay.forEach((daySlots, dayIndex) => {
     const weekday = daySlots.weekday;
@@ -350,70 +357,63 @@ function getBoudary(gridData, subGrid, duration, snapResolution) {
     for (let slotIndex = 0; slotIndex < totalSlots; slotIndex++) {
       // Skip if this is a default disabled slot
       const slot = allSlots[slotIndex];
-      if (slot.disabled[weekday] === 1) continue;
+      if (slot.disabled[weekday]) continue;
 
       let isValid = true;
-      const endSlot = Math.min(slotIndex + durationInSlots, totalSlots);
-
-      for (let j = slotIndex; j < endSlot; j++) {
-        const checkSlot = allSlots[j];
-        // Skip default disabled slots in validation
-        if (checkSlot.disabled[weekday] && checkSlot.disabled[weekday] !== 1) {
-          isValid = false;
-          break;
-        }
-      }
-
-      for (let j = slotIndex; j < endSlot; j++) {
-        const markSlot = allSlots[j];
-        // Don't mark default disabled slots as boundaries
-        if (markSlot.disabled[weekday] === 1) continue;
-
-        if (!isValid) {
-          if (!markSlot.disabled) markSlot.disabled = {};
-          markSlot.disabled[weekday] = 2;
-          
-          if (markSlot.type === 'main') {
-            if (!gridData[markSlot.index].disabled) gridData[markSlot.index].disabled = {};
-            gridData[markSlot.index].disabled[weekday] = 2;
-          } else {
-            if (!subGrid.slots[markSlot.time].disabled) subGrid.slots[markSlot.time].disabled = {};
-            subGrid.slots[markSlot.time].disabled[weekday] = 2;
+      const endSlot = slotIndex + durationInSlots;
+      if (endSlot<=totalSlots){
+        for (let j = slotIndex; j < endSlot; j++) {
+          const checkSlot = allSlots[j];
+          // Skip default disabled slots in validation
+          if (checkSlot.disabled[weekday]) {
+            isValid = false;
+            markDisable(gridData, subGrid, allSlots,weekday,slotIndex,j);
+            break;
           }
         }
+      }else{
+        markDisable(gridData, subGrid, allSlots,weekday,slotIndex,totalSlots);
       }
+      
+      // for (let j = slotIndex; j < endSlot; j++) {
+      //   const markSlot = allSlots[j];
+      //   // Don't mark default disabled slots as boundaries
+      //   if (markSlot.disabled[weekday] === 1) continue;
+
+      //   if (!isValid) {
+      //     if (!markSlot.disabled) markSlot.disabled = {};
+      //     markSlot.disabled[weekday] = 2;
+          
+      //     if (markSlot.type === 'main') {
+      //       if (!gridData[markSlot.index].disabled) gridData[markSlot.index].disabled = {};
+      //       gridData[markSlot.index].disabled[weekday] = 2;
+      //     } else {
+      //       if (!subGrid.slots[markSlot.time].disabled) subGrid.slots[markSlot.time].disabled = {};
+      //       subGrid.slots[markSlot.time].disabled[weekday] = 2;
+      //     }
+      //   }
+      // }
     }
   });
-
+  debugger
   return { gridData, subGrid };
 }
 
 // Helper function to get all time slots
-function getAllTimeSlots(gridData, subGrid, snapResolution) {
-  const allSlots = [];
-  const totalMainSlots = gridData.length;
-  
-  for (let time = 0; time < totalMainSlots; time += snapResolution) {
-    const isMainSlot = time % 1 === 0;
-    
-    if (isMainSlot) {
-      allSlots.push({
-        time,
-        type: 'main',
-        index: time,
-        disabled: gridData[time].disabled ? {...gridData[time].disabled} : {}
-      });
-    } else {
-      const subSlot = subGrid.slots[time] || {};
-      allSlots.push({
-        time,
-        type: 'sub',
-        disabled: subSlot.disabled ? {...subSlot.disabled} : {}
-      });
-    }
+function markDisable(gridData, subGrid, allSlots,weekday,start,end) {
+
+  for (let jj = start; jj < end; jj++) {
+      const markSlot = allSlots[jj];
+      if (!markSlot.disabled) markSlot.disabled = {};
+        markSlot.disabled[weekday] = 2;
+      if (markSlot.type === 'main') {
+        if (!gridData[markSlot.index].disabled) gridData[markSlot.index].disabled = {};
+        gridData[markSlot.index].disabled[weekday] = 2;
+      } else {
+        if (!subGrid.slots[markSlot.time].disabled) subGrid.slots[markSlot.time].disabled = {};
+        subGrid.slots[markSlot.time].disabled[weekday] = 2;
+      }
   }
-  
-  return allSlots;
 }
 
 // Helper to initialize byDay arrays
@@ -433,9 +433,9 @@ function initializeByDayArrays(gridData, subGrid, allSlots) {
   });
 }
 
-function shouldProcessEvent(event, eventName) {
+function shouldProcessEvent(event, eventId) {
   return (
-    (!eventName || event.title !== eventName) &&
+    (!eventId || event.id !== eventId) &&
     event.time_slot &&
     event.time_slot.weekday &&
     event.time_slot.start_time !== undefined &&
