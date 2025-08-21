@@ -44,7 +44,8 @@ export default function Calendar({
   autoMode = true,
   showTime = true,
   onChangeSnapPrecision = emptyFunc,
-  onDragStart=emptyFunc
+  onDragStart=emptyFunc,
+  isHideInfo=false,
 }) {
   const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
@@ -357,6 +358,7 @@ export default function Calendar({
                     startTime={e.time_slot.start_time}
                     endTime={e.time_slot.end_time}
                     isMobile={isMobile}
+                    isHideInfo={isHideInfo}
                   />
                 );
               })}

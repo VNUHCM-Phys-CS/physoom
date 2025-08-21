@@ -1,5 +1,5 @@
 import "./Calendar.scss";
-import { Tooltip } from "@heroui/react";
+import { Chip, Tooltip } from "@heroui/react";
 import { WarningIcon } from "@/ui/icons/WarningIcon";
 import { useRef } from "react";
 
@@ -16,7 +16,8 @@ export default function CalendarEvent({
   customSubtitle,
   showTime = false,
   onDragStart,
-  onDoubleClick
+  onDoubleClick,
+  isHideInfo,
 }) {
   const { isOverlap, title, subtitle } = data;
   const clickTimer = useRef(null);
@@ -75,19 +76,19 @@ export default function CalendarEvent({
         className="flex flex-col"
         content={
           <div>
-            <div className="text-medium">{title}</div>
-            <div>{customSubtitle?customSubtitle(data):subtitle.join(', ')}</div>
+            {!isHideInfo&&<div className="text-medium">{title}</div>}
+            <div>{customSubtitle?customSubtitle(data):subtitle.map(d=><p className="px-2">{d}</p>)}</div>
           </div>
         }
       >
         <div className="cal-event-cell-content">
-          <div className="title">
+          {!isHideInfo&&<><div className="title">
             <p>{title}</p>
           </div>
 
           <div className="subtitle">
             <p>{customSubtitle?customSubtitle(data):subtitle.map(s=><p key={s}>{s}</p>)}</p>
-          </div>
+          </div></>}
           {showTime && (
             <div className="time-display text-xs font-semibold mb-1">
               {formatTime(data?.data?.time_slot?.start_time)} - {formatTime(data?.data?.time_slot?.end_time)}

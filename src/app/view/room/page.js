@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMemo, useState } from "react";
 import CalendarByUser from "@/ui/CalendarByUser";
-import { customSubtitle, fetcheroptions } from "@/lib/ulti";
+import { fetcheroptions } from "@/lib/ulti";
 import useSWR from "swr";
 import Card from "@/ui/Card";
 import { categoryList, locationList } from "@/models/ulti";
@@ -103,6 +103,7 @@ export default function ViewRoomPage () {
                 {currentRoom?<CalendarByUser 
                     isLoading={isLoading}
                     _events={userEvents}
+                    isHideInfo={true}
                     customSubtitle={customSubtitle}
                 />:<>Please select room to view schedule</>}
             </Card>
@@ -118,4 +119,8 @@ export default function ViewRoomPage () {
         : <h4>Please login with your school email first.</h4>
         }
     </div>
+}
+
+function customSubtitle(){
+    return <>You can't view this Info. Please contact Admin</>
 }

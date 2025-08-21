@@ -93,10 +93,11 @@ function index2time(d, arr, isEnd = false, precision = 0.5) {
 
 // Enhanced booking2calendar with precision support
 function booking2calendar(booking, time_arr, precision = 0.5) {
+  debugger
   const c = {
     id: booking.course._id,
     title: booking.course.title,
-    subtitle: booking.teacher_email,
+    subtitle: [...booking.course.class_id,"\n",...booking.teacher_email],
     duration: booking.course.credit,
     data: booking,
   };
