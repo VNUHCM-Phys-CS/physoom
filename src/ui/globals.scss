@@ -55,6 +55,43 @@ body {
   justify-content: center;
 }
 
+@media (max-width: 480px) {
+  html {
+    font-size: 12px;
+  }
+  
+  .cal-event-cell {
+    .title p {
+      font-size: 0.75rem !important;
+      line-height: 1.1;
+    }
+    
+    .subtitle p {
+      font-size: 0.6rem !important;
+      line-height: 1;
+    }
+    
+    .time-display {
+      font-size: 0.6rem !important;
+    }
+  }
+}
+
+/* Medium mobile screens */
+@media (min-width: 481px) and (max-width: 639px) {
+  .cal-event-cell {
+    .title p {
+      font-size: 0.8rem;
+      line-height: 1.2;
+    }
+    
+    .subtitle p {
+      font-size: 0.7rem;
+      line-height: 1.1;
+    }
+  }
+}
+
 /* @layer base {
   h1 {
     @apply

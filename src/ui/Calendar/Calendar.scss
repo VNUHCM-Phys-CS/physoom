@@ -19,11 +19,14 @@
     @apply border-r-1 border-b-2 border-inherit text-center font-bold;
   }
 }
+.cal-event-cell {
+    @apply bg-blue-200
+}
 .cal-event-holder {
   @apply absolute top-0 left-0 h-full w-full grid grid-cols-[75px_1fr];
   pointer-events: none;
   .cal-event-cell {
-    @apply bg-blue-200 rounded-md p-1 absolute hover:drop-shadow-xl border-1 hover:border-slate-400 hover:border-2;
+    @apply rounded-md p-1 absolute hover:drop-shadow-xl border-1 hover:border-slate-400 hover:border-2;
     pointer-events: auto;
     &.overlap {
       @apply bg-red-200 ml-2;

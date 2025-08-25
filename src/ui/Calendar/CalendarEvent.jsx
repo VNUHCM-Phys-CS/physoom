@@ -2,6 +2,7 @@ import "./Calendar.scss";
 import { Chip, Tooltip } from "@heroui/react";
 import { WarningIcon } from "@/ui/icons/WarningIcon";
 import { useRef } from "react";
+import { cn } from "@/lib/utils";
 
 export default function CalendarEvent({
   data,
@@ -18,6 +19,7 @@ export default function CalendarEvent({
   onDragStart,
   onDoubleClick,
   isHideInfo,
+  eventContentStyle,
 }) {
   const { isOverlap, title, subtitle } = data;
   const clickTimer = useRef(null);
@@ -60,6 +62,7 @@ export default function CalendarEvent({
         top: y,
         left: x,
         ...style,
+        ...eventContentStyle
       }}
       draggable="true"
       onClick={(e)=>{handleClick(e,data)}}
@@ -78,10 +81,13 @@ export default function CalendarEvent({
           <div>
             {!isHideInfo&&<div className="text-medium">{title}</div>}
             <div>{customSubtitle?customSubtitle(data):subtitle.map(d=><p className="px-2">{d}</p>)}</div>
+            <div className="time-display text-xs font-semibold mb-1">
+              {formatTime(data?.data?.time_slot?.start_time)} - {formatTime(data?.data?.time_slot?.end_time)}
+            </div>
           </div>
         }
       >
-        <div className="cal-event-cell-content">
+        <div className={"cal-event-cell-content overflow-hidden"}>
           {!isHideInfo&&<><div className="title">
             <p>{title}</p>
           </div>

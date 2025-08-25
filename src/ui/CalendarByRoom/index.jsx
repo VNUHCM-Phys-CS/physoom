@@ -322,8 +322,6 @@ function initEventGrid(gridObject, snapResolution, events = [], eventId) {
         const slot = allSlots[i];
         // Only mark as occupied if not already disabled by default
         if (!slot.disabled[weekday] || slot.disabled[weekday] !== 1) {
-          if (weekday==2)
-            debugger
           slot.disabled[weekday] = 3; // 3 indicates occupied
           
           if (slot.type === 'main') {

@@ -32,7 +32,7 @@ const emptyFunc=()=>{};
 export default function Calendar({
   gridData = defaultGrid,
   subGridData = { byDay: [], slots: {} },
-  cellHeight = 40,
+  cellHeight = 50,
   events = defaultEvents,
   reviewData,
   selectedID,
@@ -46,6 +46,7 @@ export default function Calendar({
   onChangeSnapPrecision = emptyFunc,
   onDragStart=emptyFunc,
   isHideInfo=false,
+  customColorEvent
 }) {
   const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
@@ -359,6 +360,7 @@ export default function Calendar({
                     endTime={e.time_slot.end_time}
                     isMobile={isMobile}
                     isHideInfo={isHideInfo}
+                    eventContentStyle={customColorEvent?customColorEvent(e):undefined}
                   />
                 );
               })}

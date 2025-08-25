@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { fetcheroptions, defaultLoc, getClass } from "@/lib/ulti";
+import { fetcheroptions, defaultLoc, getClass, customSubtitle } from "@/lib/ulti";
 import Card from "../Card";
 import _ from "lodash";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -212,6 +212,7 @@ export default function BookingMulti() {
                 selectedID={booking?.course?._id}
                 onClickEvent={onClickEvent}
                 onDragStart={handleDragStart}
+                customSubtitle={customSubtitle}
               />
               {intructionText()}
             </Tab>
@@ -224,6 +225,7 @@ export default function BookingMulti() {
                 selectedID={booking?.course?._id}
                 onClickEvent={onClickEvent}
                 onDragStart={handleDragStart}
+                customSubtitle={customSubtitle}
               />
               {intructionText()}
             </Tab>
