@@ -19,7 +19,7 @@ export default function CalendarEvent({
   onDragStart,
   onDoubleClick,
   isHideInfo,
-  eventContentStyle,
+  eventContentClass,
 }) {
   const { isOverlap, title, subtitle } = data;
   const clickTimer = useRef(null);
@@ -55,14 +55,13 @@ export default function CalendarEvent({
         isReview ? "review" : ""
       }${
         onSelected ? "active" : ""
-      }`}
+      } ${eventContentClass}`}
       style={{
         height,
         width,
         top: y,
         left: x,
         ...style,
-        ...eventContentStyle
       }}
       draggable="true"
       onClick={(e)=>{handleClick(e,data)}}

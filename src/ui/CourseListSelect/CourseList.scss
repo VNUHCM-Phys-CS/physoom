@@ -1,9 +1,9 @@
 .booking-holder {
-  @apply border-2 rounded-md grow overflow-hidden flex flex-col;
+  @apply border-2 border-foreground-200 rounded-md grow overflow-hidden flex flex-col;
   .list-stack {
     li[data-selected="true"],
     li.selectedlist {
-      @apply bg-lime-300/80 focus:bg-lime-300;
+      @apply bg-lime-300/80 dark:bg-lime-900 focus:bg-lime-300;
     }
     .stack-item span {
       @apply max-w-full;

@@ -4,11 +4,11 @@
     @apply text-ellipsis overflow-hidden;
   }
   .cal-cell {
-    @apply border-r-1 border-b-1 border-l-inherit;
+    @apply border-r-1 border-b-1 border-l-inherit border-foreground-400/50;
     &.disabled {
-      @apply bg-gray-300 pointer-events-none;
+      @apply bg-gray-300 dark:bg-gray-800 pointer-events-none;
       &.solid {
-        @apply bg-gray-400;
+        @apply bg-gray-400 dark:bg-gray-900;
       }
     }
     .text {
@@ -20,7 +20,7 @@
   }
 }
 .cal-event-cell {
-    @apply bg-blue-200
+    @apply bg-blue-200/50 dark:bg-blue-800/50
 }
 .cal-event-holder {
   @apply absolute top-0 left-0 h-full w-full grid grid-cols-[75px_1fr];
@@ -32,10 +32,10 @@
       @apply bg-red-200 ml-2;
     }
     &.review {
-      @apply bg-lime-200/50 border-lime-600 border-dashed border-2 pointer-events-none;
+      @apply bg-lime-200/50 dark:bg-lime-900/50 border-lime-600 border-dashed border-2 pointer-events-none;
     }
     &.active {
-      @apply bg-lime-200/80 border-lime-600 border-2 pointer-events-none;
+      @apply bg-lime-200/80 dark:bg-lime-900/50 border-lime-600 border-2 pointer-events-none;
     }
     .cal-event-cell-content {
       @apply text-center flex flex-col;

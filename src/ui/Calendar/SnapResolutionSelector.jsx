@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Toggle } from "../toggle";
-import { Switch } from "@heroui/react";
+import { Button, Switch } from "@heroui/react";
 
 export default function SnapResolutionSelector({
   usingAutoMode,
@@ -34,9 +34,9 @@ export default function SnapResolutionSelector({
   }, [autoMode, reviewData?.duration]);
 
   return (
-    <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg mb-4">
+    <div className="flex flex-col gap-2 p-4 bg-foreground-200 rounded-lg mb-4">
       <div className="flex justify-between items-center">
-        <label className="text-sm font-semibold text-gray-700">
+        <label className="text-sm font-semibold prose-h6">
           Snap Resolution:
         </label>
       </div>
@@ -50,11 +50,11 @@ export default function SnapResolutionSelector({
           Auto Snap Mode
         </Switch>}
         {precisionOptions.map((option) => (
-          <button
+          <Button
             key={option.value}
             onClick={() => onPrecisionChange(option.value)}
             disabled={autoMode}
-            className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+            className={`px-2 py-1 rounded text-sm font-medium transition-colors ${
               precision === option.value
                 ? "bg-blue-600 text-white"
                 : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"
@@ -62,7 +62,7 @@ export default function SnapResolutionSelector({
             title={option.description}
           >
             {option.label}
-          </button>
+          </Button>
         ))}
       </div>
 

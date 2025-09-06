@@ -1,6 +1,8 @@
 import NavLink from "../NavLink/NavLink";
 import { useRouter } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
+import { Button } from "@heroui/react";
+import ThemeToggle from "../ThemeToggle";
 
 const Links = ({ session }) => {
   const router = useRouter();
@@ -18,6 +20,7 @@ const Links = ({ session }) => {
           <NavLink item={{ title: "Admin Dashboard", path: "/admin" }} />
         )}
         <NavLink item={{ title: "About", path: "/about" }} />
+        <ThemeToggle/>
       </div>
       <div className="flex">
         {session?.user ? (

@@ -3,9 +3,7 @@ import Calendar from "../Calendar";
 import LoadingWrapper from "../LoadingWrapper";
 import { defaultGridByTime } from "@/lib/ulti";
 
-const colorObj = {
-    background: "oklch(0.785 0.115 274.713)"
-}
+
 export default function CalendarByUser({_events=[],isLoading,selectedID,customSubtitle,onClickEvent,onDragStart,isHideInfo=false}){
     const events = useMemo(()=>{
         return (_events ?? []).map((e) => defaultGridByTime.booking2calendar(e))
@@ -13,7 +11,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID,customSu
     const customColorEvent = useCallback((e)=>{
         const location = e?.data?.room?.location;
         if (location == 'LT' )
-            return colorObj
+            return "!bg-purple-300/50 dark:!bg-purple-700/50"
     },[]);
     return <LoadingWrapper isLoading={isLoading}>
         <Calendar events={events}

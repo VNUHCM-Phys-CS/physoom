@@ -360,7 +360,7 @@ export default function Calendar({
                     endTime={e.time_slot.end_time}
                     isMobile={isMobile}
                     isHideInfo={isHideInfo}
-                    eventContentStyle={customColorEvent?customColorEvent(e):undefined}
+                    eventContentClass={customColorEvent?customColorEvent(e):undefined}
                   />
                 );
               })}
