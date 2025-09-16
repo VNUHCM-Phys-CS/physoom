@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Toggle } from "../toggle";
 import { Button, Switch } from "@heroui/react";
+import { getSnapFromDuration } from "@/lib/ulti";
 
 export default function SnapResolutionSelector({
   usingAutoMode,
@@ -18,20 +19,15 @@ export default function SnapResolutionSelector({
     { value: 0.25, label: "Quarter Slot", description: "Quarter slot precision" },
   ];
 
-  const getSnapFromDuration = (duration) => {
-    if (!duration) return precision;
-    const fractional = Math.round((duration % 1) * 100) / 100;
-    if (fractional === 0.5) return 0.5;
-    if (fractional === 0.25 || fractional === 0.75) return 0.25;
-    return 1;
-  };
 
   // Auto-update when autoMode is on and duration changes
   useEffect(() => {
     if (autoMode && reviewData?.duration) {
-      onPrecisionChange(getSnapFromDuration(reviewData.duration));
+      const newPrecision = getSnapFromDuration(reviewData.duration,precision);
+      if (newPrecision!=precision)
+        onPrecisionChange(newPrecision);
     }
-  }, [autoMode, reviewData?.duration]);
+  }, [autoMode, reviewData?.duration, precision]);
 
   return (
     <div className="flex flex-col gap-2 p-4 bg-foreground-200 rounded-lg mb-4">

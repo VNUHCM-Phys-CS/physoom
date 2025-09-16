@@ -17,6 +17,9 @@ import {
   convertExcelDateToJSDate,
   defaultGridLT,
   defaultGridNVC,
+  getSnapFromDuration,
+  roundIndex,
+  roundToIncrement,
 } from "@/lib/ulti";
 import _, { groupBy, maxBy, reduce } from "lodash";
 
@@ -184,6 +187,7 @@ const Page = () => {
       }
       //
       for (const [index, _booking] of data.entries()) {
+        debugger
         if (
           _booking.cleanRoomTitle &&
           +_booking["Tiết bắt đầu"] &&
@@ -215,16 +219,14 @@ const Page = () => {
             if (room?.[0]?._id && course?.[0]?._id) {
               const grid = location === "NVC" ? defaultGridNVC : defaultGridLT;
               const weekday = +_booking["Thứ"];
-              const indexTimeS = "" + _booking["Tiết bắt đầu"];
-              const start_time = grid.data.findIndex(
-                (d) => d.label === indexTimeS
-              );
+              const duration = (+ course[0].credit);
+              const presision = getSnapFromDuration(duration,1);
+              const start_time = roundIndex(+ _booking["Tiết bắt đầu"], presision,grid.data);
               const end_time = Math.min(
                 grid.data.length - 1,
                 start_time + course[0].credit
               );
               if (start_time > -1 && end_time > -1) {
-                debugger
                 let booking = {
                   teacher_email: _booking._teacher_emails
                   ?.map((e) => name2email[e])
@@ -238,7 +240,7 @@ const Page = () => {
                   start_time,
                   end_time,
                 };
-                booking = grid.calendar2booking(time_slot, booking);
+                booking = grid.calendar2booking(time_slot, booking,presision);
                 await fetch("/api/booking/create", {
                   method: "POST",
                   headers: {

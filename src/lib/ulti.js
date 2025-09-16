@@ -9,6 +9,34 @@ export const fetcheroptions = ([url, options = {}]) =>
       )
     : null;
 
+export function roundIndex(value, increment = 0.5, grid = defaultGridLT.data) {
+  const rounded = Math.round(value / increment) * increment;
+
+  // helper: map label -> index (skip "Break")
+  const labelToIndex = {};
+  let idx = 0;
+  for (const slot of grid) {
+    if (slot.label !== "Break") {
+      labelToIndex[slot.label] = idx++;
+    }else
+      idx++;
+  }
+
+  // Handle integer slot
+  if (Number.isInteger(rounded)) {
+    const mapped = labelToIndex[String(rounded)];
+    return mapped ?? null;
+  }
+
+  // Handle half slots like 1.5, 6.5
+  const floor = Math.floor(rounded);
+  const mapped = labelToIndex[String(floor)];
+  if (mapped !== undefined) {
+    return mapped + 0.5;
+  }
+
+  return null;
+}
 // Helper function to round to nearest increment
 export function roundToIncrement(value, increment = 0.5) {
   return Math.round(value / increment) * increment;
@@ -165,6 +193,9 @@ export const defaultGridNVC = {
   calendar2booking: function (ca, booking, precision) {
     return calendar2booking(ca, booking, this.data, true, precision || this.precision);
   },
+  getIndex: function(d,precision) {
+    return getIndex(d,this.data,precision || this.precision)
+  },
   // Helper method to get valid time increments for a specific slot
   getValidTimesForSlot: function(slotIndex, precision) {
     const slot = this.data[slotIndex];
@@ -207,6 +238,9 @@ export const defaultGridLT = {
   calendar2booking: function (ca, booking, precision) {
     return calendar2booking(ca, booking, this.data, true, precision || this.precision);
   },
+  getIndex: function(d,precision) {
+    return getIndex(d,this.data,precision || this.precision)
+  },
   getValidTimesForSlot: function(slotIndex, precision) {
     const slot = this.data[slotIndex];
     if (!slot) return [];
@@ -240,6 +274,9 @@ export const defaultGridByTime = {
   precision: 0.1, // Default precision
   booking2calendar: function (booking, precision) {
     return booking2calendar(booking, this.data, precision || this.precision);
+  },
+  getIndex: function(d,precision) {
+    return getIndex(d,this.data,precision || this.precision)
   },
   calendar2booking: function (ca, booking, precision) {
     return calendar2booking(ca, booking, this.data, true, precision || this.precision);
@@ -355,3 +392,11 @@ export function extractBaseClass(classId) {
 export function getFullTitle(data) {
   return [data.course_id,data.class_id.join("|"),data.course_id_extend].join("__");
 }
+
+export function  getSnapFromDuration (duration, precision) {
+    if (!duration) return precision;
+    const fractional = Math.round((duration % 1) * 100) / 100;
+    if (fractional === 0.5) return 0.5;
+    if (fractional === 0.25 || fractional === 0.75) return 0.25;
+    return 1;
+};
