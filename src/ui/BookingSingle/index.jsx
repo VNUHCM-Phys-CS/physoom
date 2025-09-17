@@ -11,10 +11,12 @@ import Card from "../Card";
 import _ from "lodash";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import CalendarByRoom from "../CalendarByRoom";
-import { Tab, Tabs } from "@heroui/react";
+import {  Tab, Tabs, Button, Drawer, DrawerContent, DrawerHeader, DrawerBody, useDisclosure } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
+import { MenuIcon } from "lucide-react";
 export default function BookingSingle({ email }) {
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const { data: course, mutate: mutateCourse } = useSWR(
     [
       email ? "/api/course" : null,
@@ -93,17 +95,51 @@ export default function BookingSingle({ email }) {
     );
   }, [classEvents, userEvents]);
 
+  const courseListComponent = (
+    <CourseList
+      course={course}
+      userEvents={userEvents}
+      onSelectionChange={onSelectCourse}
+    />
+  );
+
   if (email)
     return (
-      <div className="flex py-2 px-2 mx-auto gap-2">
-        <Card className="w-1/4">
-          <CourseList
-            course={course}
-            userEvents={userEvents}
-            onSelectionChange={onSelectCourse}
-          />
+      <div className="flex flex-col sm:flex-row py-2 px-2 mx-auto gap-2">
+        {/* Mobile drawer trigger button - only visible on small screens */}
+        <div className="sm:hidden mb-2">
+          <Button 
+            onPress={onOpen}
+            variant="bordered"
+            startContent={<MenuIcon />}
+            className="w-full"
+          >
+            Select Course
+          </Button>
+        </div>
+
+        {/* Desktop Card - hidden on small screens */}
+        <Card className="hidden sm:block sm:w-1/4">
+          {courseListComponent}
         </Card>
-        <Card className="w-3/4">
+
+        {/* Mobile Drawer - only visible on small screens */}
+        <Drawer 
+          isOpen={isOpen} 
+          onClose={onClose}
+          placement="left"
+          className="sm:hidden"
+        >
+          <DrawerContent>
+            <DrawerHeader>
+              <h3>Select Course</h3>
+            </DrawerHeader>
+            <DrawerBody>
+              {courseListComponent}
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>
+        <Card className="w-full sm:w-3/4">
           <Tabs radius={"full"} color="secondary">
             <Tab key="general" title="Classroom schedule">
               {booking && !isLoadingBook ? (

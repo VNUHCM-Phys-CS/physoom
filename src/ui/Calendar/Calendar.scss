@@ -1,10 +1,18 @@
+/* Mobile-first responsive calendar styles */
 .cal-table {
-  @apply min-w-full grid grid-cols-[75px_repeat(7,_1fr)];
+  @apply min-w-full grid;
+  /* Mobile: single column layout */
+  grid-template-columns: 1fr;
+  
   .text {
     @apply text-ellipsis overflow-hidden;
   }
   .cal-cell {
     @apply border-r-1 border-b-1 border-l-inherit border-foreground-400/50;
+    /* Base height for mobile */
+    height: 50px;
+    min-height: 50px;
+    
     &.disabled {
       @apply bg-gray-300 dark:bg-gray-800 pointer-events-none;
       &.solid {
@@ -17,14 +25,39 @@
   }
   .cal-header {
     @apply border-r-1 border-b-2 border-inherit text-center font-bold;
+    height: 50px;
+    min-height: 50px;
   }
 }
-.cal-event-cell {
-    @apply bg-blue-200/50 dark:bg-blue-800/50
+
+/* Desktop layout (sm breakpoint - 640px and up) */
+@media (min-width: 640px) {
+  .cal-table {
+    grid-template-columns: 75px repeat(7, 1fr);
+    
+    .cal-cell {
+      /* Desktop height */
+      height: 50px;
+      min-height: 50px;
+    }
+    
+    .cal-header {
+      height: 50px;
+      min-height: 50px;
+    }
+  }
 }
+
+.cal-event-cell {
+  @apply bg-blue-200/50 dark:bg-blue-800/50;
+}
+
 .cal-event-holder {
-  @apply absolute top-0 left-0 h-full w-full grid grid-cols-[75px_1fr];
+  @apply absolute top-0 left-0 h-full w-full grid;
   pointer-events: none;
+  /* Mobile: simplified layout */
+  grid-template-columns: 1fr;
+  
   .cal-event-cell {
     @apply rounded-md p-1 absolute hover:drop-shadow-xl border-1 hover:border-slate-400 hover:border-2;
     pointer-events: auto;
@@ -43,18 +76,29 @@
         @apply flex-1 overflow-hidden;
         p {
           @apply text-[0.65rem] font-bold whitespace-normal text-ellipsis line-clamp-3 overflow-hidden;
+          /* Smaller text on mobile */
+          @media (max-width: 639px) {
+            @apply text-[0.55rem] line-clamp-2;
+          }
         }
       }
       .subtitle {
         @apply flex-none min-h-4;
         p {
           @apply text-[0.65rem] text-ellipsis line-clamp-1 overflow-hidden;
+          /* Smaller text on mobile */
+          @media (max-width: 639px) {
+            @apply text-[0.55rem] hidden; /* Hide subtitle on mobile */
+          }
         }
       }
     }
   }
   .cal-event-interaction {
-    @apply absolute top-0 left-0 h-full w-full grid grid-cols-7;
+    @apply absolute top-0 left-0 h-full w-full grid;
+    /* Mobile: simplified grid */
+    grid-template-columns: repeat(5, 1fr); /* 5 columns for weekdays only */
+    
     .cal-cell {
       @apply border-none;
       &.disabled {
@@ -64,5 +108,36 @@
         }
       }
     }
+  }
+}
+
+/* Desktop event holder layout */
+@media (min-width: 640px) {
+  .cal-event-holder {
+    grid-template-columns: 75px 1fr;
+    
+    .cal-event-interaction {
+      grid-template-columns: repeat(7, 1fr); /* Full 7 columns on desktop */
+    }
+    
+    .cal-event-cell {
+      .cal-event-cell-content {
+        .subtitle p {
+          @apply block; /* Show subtitle on desktop */
+        }
+      }
+    }
+  }
+}
+
+/* Mobile-specific styles */
+@media (max-width: 639px) {
+  .cal-table {
+    /* Adjust for mobile weekday-only view */
+    grid-template-columns: 60px repeat(5, 1fr); /* Narrower time column, 5 weekdays */
+  }
+  
+  .cal-event-holder {
+    grid-template-columns: 60px 1fr;
   }
 }
