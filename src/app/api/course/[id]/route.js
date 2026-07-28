@@ -2,7 +2,7 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import Course from "@/models/course";
-import Booking from "@/models/booking";
+import CalendarEvent from "@/models/calendarEvent";
 import { auth } from "@/lib/auth";
 
 export const PUT = async (req, { params }) => {
@@ -30,11 +30,11 @@ export const PUT = async (req, { params }) => {
         );
       }
 
-      // Update booking emails if email in course data is changed
-      if (courseData.email) {
-        await Booking.updateMany(
+      // Sync teacher_email on all CalendarEvents for this course
+      if (courseData.teacher_email) {
+        await CalendarEvent.updateMany(
           { course: updatedCourse._id },
-          { $set: { teacher_email: courseData.email } }
+          { $set: { teacher_email: courseData.teacher_email } }
         );
       }
 

@@ -1,33 +1,76 @@
 "use client";
-import NavLink from "@/ui/Nav/NavLink/NavLink";
-import { useRouter } from 'next/navigation';
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+} from "@heroui/react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
-export default function Layout({ children, course, room, booking }) {
+
+const NAV_ITEMS = [
+  { title: "Dashboard", path: "/admin" },
+  { title: "Course", path: "/admin/course" },
+  { title: "Room", path: "/admin/room" },
+  { title: "Course Booking", path: "/admin/booking" },
+  { title: "Room Booking", path: "/admin/room-booking" },
+  { title: "Terms & Holidays", path: "/admin/terms" },
+  { title: "Users", path: "/admin/user" },
+  { title: "View Share", path: "/admin/view-share" },
+];
+
+export default function Layout({ children }) {
   const router = useRouter();
-  const data = useSession();
-  const {data:session,status} = data;
+  const pathname = usePathname();
+  const { data: session, status } = useSession();
+
   useEffect(() => {
-    if (status!=='loading'){
-        // Example: Redirect after some condition is met
-        const shouldRedirect = !session || (session && (!session.isAdmin)); // Replace with your condition
-        if (shouldRedirect) {
-          router.push('/');
-        }
+    if (status !== "loading") {
+      if (!session || !session.isAdmin) {
+        router.push("/");
+      }
     }
-  }, [router,session, status]);
+  }, [router, session, status]);
+
   if (!session)
-    return (<p>You need to be signed in to view this page. Redirecting...</p>);
+    return <p>You need to be signed in to view this page. Redirecting...</p>;
+
   return (
-    <div className="md:container md:mx-auto flex-col max-h-dvh">
-      <div className=" flex-row justify-between shadow-xl bg-foreground-100  rounded-md py-2 px-4 mx-auto">
-        <NavLink item={{ title: "Dashboard", path: "/admin" }} />
-        <NavLink item={{ title: "Course", path: "/admin/course" }} />
-        <NavLink item={{ title: "Room", path: "/admin/room" }} />
-        <NavLink item={{ title: "Booking Request", path: "/admin/booking" }} />
-        <NavLink item={{ title: "View Share", path: "/admin/view-share" }} />
-      </div>
-      <div className="p-2 mt-5">{children}</div>
+    <div className="md:container md:mx-auto">
+      <Navbar
+        position="static"
+        maxWidth="full"
+        classNames={{
+          base: "bg-foreground-100 rounded-xl shadow-md px-2",
+          wrapper: "px-2 gap-1 overflow-x-auto",
+        }}
+      >
+        <NavbarBrand className="shrink-0 mr-3">
+          <span className="font-bold text-secondary text-sm tracking-wide">Admin</span>
+        </NavbarBrand>
+        <NavbarContent className="gap-1 flex-nowrap" justify="start">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.path || pathname.startsWith(item.path + "/");
+            return (
+              <NavbarItem key={item.path} isActive={isActive}>
+                <Link
+                  href={item.path}
+                  className={`text-sm px-3 py-1.5 rounded-full transition-colors whitespace-nowrap ${
+                    isActive
+                      ? "bg-secondary text-white font-semibold"
+                      : "text-default-600 hover:text-default-900 hover:bg-default-200"
+                  }`}
+                >
+                  {item.title}
+                </Link>
+              </NavbarItem>
+            );
+          })}
+        </NavbarContent>
+      </Navbar>
+      <div className="p-2 mt-4">{children}</div>
     </div>
   );
 }

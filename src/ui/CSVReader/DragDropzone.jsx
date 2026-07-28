@@ -15,11 +15,15 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
 
   const handleFileDrop = (event) => {
     event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file && file.type === "text/csv") {
+    const file = event.dataTransfer?.files[0] || event.target?.files?.[0];
+    if (!file) return;
+
+    const isCsv = file.type.includes("csv") || file.name.toLowerCase().endsWith(".csv");
+    const isExcel = validMimeTypes.includes(file.type) || file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+
+    if (isCsv) {
       Papa.parse(file, {
         complete: (result) => {
-          // emap and check empty
           const data = [];
           result.data.forEach((d) => {
             const item = {};
@@ -35,9 +39,12 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
           setCsvData(data);
         },
         header: true,
+        skipEmptyLines: true,
       });
+      return;
     }
-    if (validMimeTypes.includes(file.type)) {
+
+    if (isExcel) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const binaryStr = e.target.result;
@@ -55,7 +62,7 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
                   (cell) => cell !== null && cell !== undefined && cell !== ""
                 ) // Keep rows with at least one non-empty value
             );
-          const headerRow = (sheetData[0] || []).map((d) => d.trim());
+          const headerRow = (sheetData[0] || []).map((d) => d?.trim ? d.trim() : String(d));
           if (collums.every((col) => headerRow.includes(col.name))) {
             for (let i = 1; i < sheetData.length; i++)
               data.push(
@@ -74,7 +81,7 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
       };
       reader.readAsArrayBuffer(file);
     } else {
-      alert("wrong format");
+      alert("Unsupported file format. Please upload a .csv or .xlsx file");
     }
   };
 
@@ -84,24 +91,39 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
 
   return (
     <Card className="min-w-[600px] m-auto">
-      <CardBody
-        className="flex items-center justify-center min-h-[200px] border-2 border-dashed border-gray-300 bg-sky-100"
-        onDrop={handleFileDrop}
-        onDragOver={handleDragOver}
-      >
-        <h4 className="p-4">Drag & Drop your Excel/CSV file here</h4>
-        {csvData.length > 0 && (
-          <TableEvent
-            columns={collums}
-            data={csvData}
-            INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
+      <CardBody className="p-0 border-2 border-dashed border-gray-300 bg-sky-50 dark:bg-zinc-900 rounded-xl overflow-hidden min-h-[300px]">
+        <div
+          className="w-full h-full min-h-[300px] flex items-center justify-center flex-col cursor-pointer hover:bg-sky-100/50 transition-colors"
+          onDrop={handleFileDrop}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragOver}
+          onDragLeave={handleDragOver}
+          onClick={() => document.getElementById("hiddenFileInput").click()}
+        >
+          <h4 className="p-4 text-center font-semibold text-lg">Drag & Drop your Excel / CSV file here</h4>
+          <p className="text-sm text-gray-500 pb-4">or click to browse</p>
+          <input
+            type="file"
+            id="hiddenFileInput"
+            className="hidden"
+            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+            onChange={handleFileDrop}
           />
+        </div>
+        {csvData.length > 0 && (
+          <div className="p-4 border-t w-full bg-white dark:bg-zinc-950">
+            <TableEvent
+              columns={collums}
+              data={csvData}
+              INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
+            />
+          </div>
         )}
       </CardBody>
       {csvData.length > 0 && (
-        <CardFooter className="justify-center">
+        <CardFooter className="justify-center border-t bg-gray-50/50 dark:bg-zinc-900/50">
           <Button color="primary" onClick={() => onImport(csvData)}>
-            Import
+            Import Data
           </Button>
         </CardFooter>
       )}

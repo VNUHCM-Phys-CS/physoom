@@ -40,6 +40,7 @@ export default function TableEvent({
   importPath,
   onDelete = () => {},
   onEdit = () => {},
+  onAddNew = () => {},
 }) {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
@@ -201,7 +202,9 @@ export default function TableEvent({
     setPage(1);
   }, []);
 
-  const handleAddNew = React.useCallback(() => {}, []);
+  const handleAddNew = React.useCallback(() => {
+    onAddNew();
+  }, [onAddNew]);
 
   const topContent = React.useMemo(() => {
     return (

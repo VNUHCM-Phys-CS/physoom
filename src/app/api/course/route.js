@@ -5,7 +5,7 @@ import { revalidateTag } from "next/cache";
 import Course from "@/models/course";
 import { getToken } from "next-auth/jwt";
 import { auth } from "@/lib/auth";
-import Booking from "@/models/booking";
+import CalendarEvent from "@/models/calendarEvent";
 
 export const GET = async (request) => {
   try {
@@ -47,8 +47,8 @@ export const DELETE = async (request) => {
       const result = await Course.deleteMany({
         _id: { $in: ids },
       });
-      // Step 2: Delete related comments
-      await Booking.deleteMany({ course: { $in: ids } });
+      // Delete related CalendarEvents (all occurrences for these courses)
+      await CalendarEvent.deleteMany({ course: { $in: ids } });
 
       revalidateTag("course");
       return NextResponse.json(

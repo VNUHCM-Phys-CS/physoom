@@ -119,23 +119,28 @@ function index2time(d, arr, isEnd = false, precision = 0.5) {
   return snapTimeToSlotIncrement(calculatedTime, currentSlot, precision);
 }
 
-// Enhanced booking2calendar with precision support
-function booking2calendar(booking, time_arr, precision = 0.5) {
+// Enhanced booking2calendar with precision support and safety for non-course events
+export function booking2calendar(booking, time_arr, precision = 0.5) {
   const c = {
-    id: booking.course._id,
-    title: booking.course.title,
-    subtitle: [...booking.course.class_id,"\n",...booking.teacher_email],
-    duration: booking.course.credit,
+    id: booking._id || booking.series_id,
+    title: booking.course?.title || booking.title || (booking.type === 'holiday' ? "Ngày nghỉ" : "Sự kiện"),
+    subtitle: booking.course 
+      ? [...(booking.course.class_id || []), "\n", ...(booking.teacher_email || [])]
+      : (booking.teacher_email || []),
+    duration: booking.course?.credit || 1, // Default to 1 slot if no course credit
+    type: booking.type || 'class',
     data: booking,
   };
   
   const { time_slot } = booking;
+  if (!time_slot) return c; // Fallback for all-day metadata events if any
+
   c.time_slot = {
-    weekday: time_slot.weekday,
-    start_time: time_slot.start_time
+    weekday: time_slot.weekday ?? booking.weekday,
+    start_time: time_slot.start_time !== undefined
       ? getIndex(time_slot.start_time, time_arr, precision)
       : undefined,
-    end_time: time_slot.end_time
+    end_time: time_slot.end_time !== undefined
       ? getIndex(time_slot.end_time, time_arr, precision)
       : undefined,
   };
@@ -146,8 +151,19 @@ function booking2calendar(booking, time_arr, precision = 0.5) {
 // Enhanced calendar2booking with precision support
 function calendar2booking(ca, booking, time_arr, isEnd = false, precision = 0.5) {
   let { weekday, start_time, end_time } = ca;
+  const duration = booking.course?.credit || 1;
   end_time = end_time ?? start_time + duration;
-  let start_date = booking.course.start_date;
+  
+  // Use existing time_slot dates if available, otherwise fallback to course start_date
+  let start_date = booking.time_slot?.start_date || booking.course?.start_date;
+  let end_date = booking.time_slot?.end_date;
+  
+  if (start_date && !end_date && booking.course?.duration) {
+    let mStart = moment(start_date, moment.ISO_8601, true).isValid() 
+                 ? moment(start_date) 
+                 : moment(new Date(start_date));
+    end_date = mStart.isValid() ? mStart.clone().add(booking.course.duration - 1, "weeks").toDate() : undefined;
+  }
   
   booking.time_slot = {
     ...booking.time_slot,
@@ -155,11 +171,7 @@ function calendar2booking(ca, booking, time_arr, isEnd = false, precision = 0.5)
     start_time: index2time(start_time, time_arr, false, precision),
     end_time: index2time(end_time, time_arr, isEnd, precision),
     start_date: start_date,
-    end_date: start_date
-      ? moment(+booking.course.start_date)
-          .add(booking.course.duration, "weeks")
-          .toDate()
-      : undefined,
+    end_date: end_date
   };
   
   return booking;

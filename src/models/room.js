@@ -28,7 +28,9 @@ const roomSchema = new Schema(
         required: true,
       },
     ],
+    isBookable: { type: Boolean, default: false },
     note: String,
+    managers: { type: [String], default: [] },
   },
   { timestamps: true }
 );

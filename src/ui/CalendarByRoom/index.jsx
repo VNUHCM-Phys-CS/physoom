@@ -20,6 +20,8 @@ export default function CalendarByRoom({
   onBooking,
   customSubtitle,
   onClickEvent,
+  onDoubleClick,
+  onDelete,
   isLock,
 }) {
   const [selectedRoom, setSelectedRoom] = useState(initRoom);
@@ -56,10 +58,55 @@ export default function CalendarByRoom({
     { tags: ["booking"], revalidate: 60 }
   );
   const [gridObject, setGridObject] = useState(defaultGridNVC);
-  const events = useMemo(
-    () => (eventsByRoom ?? []).map((e) => gridObject.booking2calendar(e)),
-    [eventsByRoom, gridObject, extraEvents]
-  );
+  const events = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Index future extra events by weekday for fast overlap lookup
+    const futureExtraByWeekday = {};
+    (extraEvents ?? []).forEach(e => {
+      if (!e.weekday || e.time_slot?.start_time === undefined || !e.start) return;
+      if (new Date(e.start) < today) return;
+      if (!futureExtraByWeekday[e.weekday]) futureExtraByWeekday[e.weekday] = [];
+      futureExtraByWeekday[e.weekday].push(e);
+    });
+
+    return (eventsByRoom ?? []).map((roomEvent) => {
+      const calEvent = gridObject.booking2calendar(roomEvent);
+      const wd = roomEvent.time_slot?.weekday;
+      const roomStart = roomEvent.time_slot?.start_time;
+      const roomEnd = roomEvent.time_slot?.end_time;
+      const roomCourseId = roomEvent.course?._id?.toString();
+
+      const roomTeachers = new Set(roomEvent.teacher_email || []);
+      const seenCourses = new Set();
+      const overlapWith = wd !== undefined && roomStart !== undefined && roomEnd !== undefined
+        ? (futureExtraByWeekday[wd] ?? []).reduce((acc, extra) => {
+            const extraCourseId = extra.course?._id?.toString() || extra.course?.toString();
+            if (extraCourseId === roomCourseId || seenCourses.has(extraCourseId)) return acc;
+            // Only flag if the conflicting event shares at least one teacher
+            const sharedTeachers = (extra.teacher_email || []).filter(t => roomTeachers.has(t));
+            if (sharedTeachers.length === 0) return acc;
+            const eStart = extra.time_slot.start_time;
+            const eEnd = extra.time_slot.end_time;
+            if (eStart < roomEnd && eEnd > roomStart) {
+              seenCourses.add(extraCourseId);
+              acc.push({
+                title: extra.course?.title || extra.title || 'Unknown',
+                class_id: extra.course?.class_id,
+                teacher_email: sharedTeachers,
+                room: extra.room?.title,
+              });
+            }
+            return acc;
+          }, [])
+        : [];
+
+      return overlapWith.length > 0
+        ? { ...calEvent, isOverlap: true, overlapWith }
+        : calEvent;
+    });
+  }, [eventsByRoom, gridObject, extraEvents]);
   const eventBoundary = useMemo(() => {
     const _ids = {};
     const extraBoundary = [];
@@ -171,6 +218,15 @@ export default function CalendarByRoom({
     [gridObject, booking, currentRoom]
   );
   const isLoading = isLoadingFetch || isLoadingEvent;
+  const customColorEvent = useCallback((e) => {
+    const type = e.type || 'class';
+    const loc = e.location || (e.data?.room?.location) || 'NVC';
+    if (type === 'class') {
+        return loc === 'LT' ? 'type-class loc-lt' : 'type-class loc-nvc';
+    }
+    return `type-${type}`;
+  }, []);
+
   return (
     <>
       <div className="flex gap-2">
@@ -233,12 +289,15 @@ export default function CalendarByRoom({
           <Calendar
             customSubtitle={customSubtitle}
             onClickEvent={onClickEvent}
+            onDoubleClick={onDoubleClick}
             events={events}
             gridData={gridData}
             subGridData={subGridData}
             reviewData={reviewData}
             onClickCell={onClickCell}
             onChangeSnapPrecision={setSnapResolution}
+            customColorEvent={customColorEvent}
+            onDelete={onDelete}
           />
         </LoadingWrapper>
       )}
@@ -307,17 +366,13 @@ function initEventGrid(gridObject, snapResolution, events = [], eventId) {
       subGrid.slots[time] = slotData;
     }
   }
-  console.log("========================================")
   // Process events - only mark additional occupied slots
   events.forEach((event) => {
-    console.log(event)
-    console.log(shouldProcessEvent(event, eventId))
     if (shouldProcessEvent(event, eventId)) {
       const { weekday, start_time, end_time } = event.time_slot;
       
       const startSlot = Math.max(Math.floor(start_time / snapResolution), 0);
       const endSlot = Math.min(Math.ceil(end_time / snapResolution), allSlots.length);
-      console.log(`weekday: ${weekday}, start_time: ${start_time}, end_time${end_time} startSlot: ${startSlot} endSlot: ${endSlot}`)
       for (let i = startSlot; i < endSlot; i++) {
         const slot = allSlots[i];
         // Only mark as occupied if not already disabled by default
@@ -337,7 +392,6 @@ function initEventGrid(gridObject, snapResolution, events = [], eventId) {
       }
     }
   });
-  debugger
   // Initialize byDay arrays
   initializeByDayArrays(gridData, subGrid, allSlots);
 
@@ -393,7 +447,6 @@ function getBoudary(gridData, subGrid, allSlots, duration, snapResolution) {
       // }
     }
   });
-  debugger
   return { gridData, subGrid };
 }
 
@@ -432,8 +485,9 @@ function initializeByDayArrays(gridData, subGrid, allSlots) {
 }
 
 function shouldProcessEvent(event, eventId) {
+  const eventCourseId = event.data?.course?._id?.toString();
   return (
-    (!eventId || event.id !== eventId) &&
+    (!eventId || eventCourseId !== eventId?.toString()) &&
     event.time_slot &&
     event.time_slot.weekday &&
     event.time_slot.start_time !== undefined &&

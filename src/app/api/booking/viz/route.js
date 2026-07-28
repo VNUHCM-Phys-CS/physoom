@@ -2,43 +2,54 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import Booking from "@/models/booking";
+import CalendarEvent from "@/models/calendarEvent";
 import Course from "@/models/course";
-import _ from "lodash";
 
-const defaultLoc = false
 export const GET = async (request) => {
   try {
     await connectToDb();
-    const bookings = await Booking.find().lean();
+
     const courseNum = await Course.countDocuments({});
+
+    // For each course, determine its overall status:
+    // "approved" if it has at least one approved event,
+    // "pending" if it has pending but no approved.
+    const perCourse = await CalendarEvent.aggregate([
+      { $match: { type: "class", isCancelled: { $ne: true } } },
+      {
+        $group: {
+          _id: "$course",
+          approved: { $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] } },
+          pending:  { $sum: { $cond: [{ $eq: ["$status", "pending"] },  1, 0] } },
+        },
+      },
+      {
+        $project: {
+          status: {
+            $cond: [
+              { $gt: ["$approved", 0] }, "approved",
+              { $cond: [{ $gt: ["$pending", 0] }, "pending", "other"] },
+            ],
+          },
+        },
+      },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    const byStatus = {};
+    perCourse.forEach((s) => { byStatus[s._id] = s.count; });
+
+    const bookedCount = Object.values(byStatus).reduce((a, b) => a + b, 0);
+    const unbookedCount = Math.max(0, courseNum - bookedCount);
+
     revalidateTag("viz-booking");
-    const byLocation = _.mapValues(_.groupBy(bookings, "isConfirm"), (group) =>
-      _.size(group)
-    );
-    Object.keys(byLocation).forEach((k) => {
-      if (k === "undefined") {
-        byLocation[defaultLoc] = (byLocation[defaultLoc] ?? 0)+byLocation[k];
-        delete byLocation[k];
-      }
-    });
-    byLocation['Success'] = byLocation[true]??0;
-    byLocation['In process'] = byLocation[false]??0;
-    byLocation['Pending'] = courseNum - bookings.length;
-    delete byLocation[true];
-    delete byLocation[false];
     return NextResponse.json({
-      values: Object.values(byLocation),
-      labels: Object.keys(byLocation),
-      count: bookings.length,
+      values: [byStatus["approved"] || 0, byStatus["pending"] || 0, unbookedCount],
+      labels: ["Success", "In process", "Pending"],
+      count: courseNum,
     });
   } catch (err) {
     console.log(err);
-    return NextResponse.json(
-      { success: false },
-      {
-        status: 400,
-      }
-    );
+    return NextResponse.json({ success: false }, { status: 400 });
   }
 };

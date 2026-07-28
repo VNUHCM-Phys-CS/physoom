@@ -3,6 +3,7 @@ import { Chip, Tooltip } from "@heroui/react";
 import { WarningIcon } from "@/ui/icons/WarningIcon";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Trash2Icon } from "lucide-react";
 
 export default function CalendarEvent({
   data,
@@ -20,8 +21,9 @@ export default function CalendarEvent({
   onDoubleClick,
   isHideInfo,
   eventContentClass,
+  onDelete,
 }) {
-  const { isOverlap, title, subtitle } = data;
+  const { isOverlap, overlapWith, title, subtitle } = data;
   const clickTimer = useRef(null);
   const formatTime = (time) => {
     const total_minutes = Math.round(time);
@@ -83,6 +85,18 @@ export default function CalendarEvent({
             <div className="time-display text-xs font-semibold mb-1">
               {formatTime(data?.data?.time_slot?.start_time)} - {formatTime(data?.data?.time_slot?.end_time)}
             </div>
+            {isOverlap && overlapWith?.length > 0 && (
+              <div className="mt-2 border-t border-red-300 pt-1">
+                <p className="text-xs font-bold text-red-500">Schedule conflict:</p>
+                {overlapWith.map((c, i) => (
+                  <div key={i} className="text-xs text-red-400 mt-0.5">
+                    <span className="font-semibold">{c.title}</span>
+                    {c.class_id?.length > 0 && <span> · {c.class_id.join(', ')}</span>}
+                    {c.room && <span> · {c.room}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         }
       >
@@ -104,6 +118,18 @@ export default function CalendarEvent({
           )}
         </div>
       </Tooltip>
+      {onDelete && (
+        <button
+          className="delete-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(data);
+          }}
+          title="Delete this schedule"
+        >
+          <Trash2Icon size={12} />
+        </button>
+      )}
     </div>
   );
 }

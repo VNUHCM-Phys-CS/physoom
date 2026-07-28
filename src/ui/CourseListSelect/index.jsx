@@ -25,10 +25,10 @@ export default function CourseListSelect({
   currentId
 }) {
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
-  useEffect(()=>{
-    if(currentId)
-      setSelectedKeys(new Set().add(currentId));
-  },[currentId]);
+  useEffect(() => {
+    if (currentId)
+      setSelectedKeys(new Set().add(currentId.toString()));
+  }, [currentId]);
   const courseGroup = useMemo(() => {
     let done = {};
     (userEvents ?? []).forEach((d) => (done[d?.course?.title] = true));
@@ -69,7 +69,7 @@ export default function CourseListSelect({
         if (v) newSelected.add(key);
         else return prev;
       }
-      
+
       setCheckAllBtn(prevBtn => {
         if (newSelected.size === course.length) {
           return { isIn: false, isSe: true };
@@ -132,9 +132,8 @@ export default function CourseListSelect({
             size="md"
             variant={"light"}
             color={selectedRelated.size ? "danger" : null}
-            className={`lock-btn px-0 min-w-10 ${
-              selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
-            }`}
+            className={`lock-btn px-0 min-w-10 ${selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
+              }`}
             disabled={!selectedRelated.size}
             title="Lock"
             onClick={() => handleLockAll(selectedRelated)}
@@ -145,9 +144,8 @@ export default function CourseListSelect({
             size="md"
             variant="light"
             color={selectedRelated.size ? "danger" : null}
-            className={`lock-btn px-0 min-w-10 ${
-              selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
-            }`}
+            className={`lock-btn px-0 min-w-10 ${selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
+              }`}
             disabled={!selectedRelated.size}
             title="Unlock"
             onClick={() => handleUnlockAll(selectedRelated)}
@@ -173,11 +171,11 @@ export default function CourseListSelect({
               {cg.data.map(
                 ({ title, location, teacher_email, credit, _id, isLock }) => (
                   <ListboxItem
-                    key={_id}
-                    textValue={_id}
-                    onPress={(d) => setSelectedKeys(new Set().add(_id))}
+                    key={_id?.toString()}
+                    textValue={_id?.toString()}
+                    onPress={(d) => setSelectedKeys(new Set().add(_id.toString()))}
                     classNames={{
-                      base: selectedKeys.has(_id) ? ["selectedlist"] : null,
+                      base: selectedKeys.has(_id?.toString()) ? ["selectedlist"] : null,
                     }}
                     description={
                       <div className="ml-6">

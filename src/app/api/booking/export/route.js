@@ -3,7 +3,6 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx-js-style"; // Import xlsx-js-style
 import { auth } from "@/lib/auth";
-import Booking from "@/models/booking";
 import { defaultGridLT, defaultGridNVC, extractBaseClass } from "@/lib/ulti";
 import ExcelJS from "exceljs";
 import User from "@/models/user";
@@ -30,14 +29,37 @@ export async function POST(request) {
     if (user && user.isAdmin) {
       await connectToDb();
       let { _id, style } = await request.json();
-      console.log(_id);
-      let query = {};
-      if (_id && isArray(_id)) query = { _id: { $in: _id } };
-      // Fetch all bookings and populate room and course details
-      const bookings = await Booking.find(query)
-        .populate("room")
-        .populate("course")
-        .lean();
+
+      // Build match — if _id filter given, treat as series_ids
+      const matchStage = { type: 'class', isCancelled: { $ne: true } };
+      if (_id && isArray(_id)) matchStage.series_id = { $in: _id };
+
+      // Aggregate: one representative doc per series_id
+      const series = await CalendarEvent.aggregate([
+        { $match: matchStage },
+        { $sort: { start: 1 } },
+        { $group: { _id: "$series_id", doc: { $first: "$$ROOT" } } },
+        { $replaceRoot: { newRoot: "$doc" } }
+      ]);
+      await CalendarEvent.populate(series, [
+        { path: 'course', model: 'Course' },
+        { path: 'room',   model: 'Room' }
+      ]);
+
+      // Map to Booking-compatible shape (export helpers use .time_slot, .course, .room, .teacher_email)
+      const bookings = series.map(ce => ({
+        _id: ce.series_id,
+        time_slot: {
+          weekday: ce.weekday,
+          start_time: ce.time_slot?.start_time,
+          end_time: ce.time_slot?.end_time,
+          start_date: ce.start,
+        },
+        course: ce.course,
+        room: ce.room,
+        teacher_email: ce.teacher_email || [],
+        status: ce.status,
+      }));
 
       // Fetch all users to create a mapping of email to name
       const users = await User.find().lean();

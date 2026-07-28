@@ -3,7 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import Course from "@/models/course";
-import Booking from "@/models/booking";
+import CalendarEvent from "@/models/calendarEvent";
 import { auth } from "@/lib/auth";
 
 export const POST = async (request) => {
@@ -35,10 +35,10 @@ export const POST = async (request) => {
       }
     }
 
-    // 3. Nếu có course thay đổi teacher -> xoá booking hàng loạt
+    // 3. If teacher changed — delete and re-generate calendar events
     if (changedIds.length > 0) {
-      await Booking.deleteMany({ course: { $in: changedIds } });
-      console.log(`Deleted bookings of courses: ${changedIds.join(", ")}`);
+      await CalendarEvent.deleteMany({ course: { $in: changedIds }, type: 'class' });
+      console.log(`Deleted CalendarEvents of courses: ${changedIds.join(", ")}`);
     }
 
     // 4. Update đồng loạt

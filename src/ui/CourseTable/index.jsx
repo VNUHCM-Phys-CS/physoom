@@ -65,6 +65,11 @@ export default function CourseTable() {
         INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
         onDelete={onDelete}
         onEdit={onEdit}
+        isAddNew={true}
+        onAddNew={() => {
+          setData(null);
+          onOpen();
+        }}
         importPath={"/admin/course/importfile"}
       />
       {isOpen && (

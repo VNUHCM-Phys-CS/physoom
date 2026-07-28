@@ -11,7 +11,7 @@ import { customSubtitle, fetcheroptions, getClass } from "@/lib/ulti";
 import { Select, SelectItem } from "@heroui/react";
 import ExportBookingButton from "../ExportBookingButton";
 
-export default function ({onClickEvent,onDragStart}) {
+export default function ({onClickEvent, onDoubleClick, onDragStart}) {
   const [searchKey, setSearchKey] = useState("teacher");
   const _searchKey = useMemo(() => new Set([searchKey]), [searchKey]);
   const [filter, setFilter] = useState();
@@ -79,7 +79,7 @@ export default function ({onClickEvent,onDragStart}) {
     }
   }, [searchKey, filter]);
   const { data: userEvents } = useSWR(
-    [filter ? "/api/booking" : null, queryInfo],
+    [filter ? "/api/calendar-events/fetch" : null, queryInfo],
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
@@ -157,7 +157,7 @@ export default function ({onClickEvent,onDragStart}) {
         </div>
         <ExportBookingButton data={userEvents} />
       </div>
-      <CalendarByUser _events={userEvents} customSubtitle={customSubtitle} onClickEvent={onClickEvent} onDragStart={onDragStart}/>
+      <CalendarByUser _events={userEvents} customSubtitle={customSubtitle} onClickEvent={onClickEvent} onDoubleClick={onDoubleClick} onDragStart={onDragStart}/>
     </>
   );
 }

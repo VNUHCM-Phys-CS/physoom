@@ -19,6 +19,9 @@ const Links = ({ session }) => {
         {session?.user?.isAdmin && (
           <NavLink item={{ title: "Admin Dashboard", path: "/admin" }} />
         )}
+        {session?.user && !session?.user?.isAdmin && (
+          <NavLink item={{ title: "Room Manager", path: "/room-manager" }} />
+        )}
         <NavLink item={{ title: "About", path: "/about" }} />
         <ThemeToggle/>
       </div>

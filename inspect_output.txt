@@ -1,0 +1,50 @@
+﻿Connected to DB
+
+=== COUNTS ===
+Bookings: 26
+CalendarEvents: 303
+
+=== CalendarEvent Type Breakdown ===
+  term: 2
+  holiday: 1
+  class: 300
+
+=== CalendarEvent Status Breakdown ===
+  approved: 303
+
+=== ROOM OVERLAPS (approved class events) ===
+  Total room overlaps: 0
+
+=== TEACHER OVERLAPS ===
+  Total teacher overlaps: 0
+
+=== ORPHANED BOOKINGS ===
+  Orphan: 69c107cdd86c0c5bc46775bd course=69c10796d86c0c5bc4677599 series=69c10fdf292409328a0eb047
+  Orphan: 69c1101ad86c0c5bc467768b course=69c10796d86c0c5bc467759e series=69c11012292409328a0eb161
+  Orphan: 69c11025d86c0c5bc467768c course=69c10796d86c0c5bc467759f series=69c1101d292409328a0eb19d
+  Orphan: 69c11070d86c0c5bc4677695 course=69c10796d86c0c5bc46775a5 series=69c11068292409328a0eb346
+  Orphan: 69c110aad86c0c5bc467769f course=69c10796d86c0c5bc46775a9 series=69c110a1292409328a0eb48a
+  Total orphaned: 6
+
+=== DUPLICATE BOOKINGS (same course) ===
+  Courses with multiple bookings: 0
+
+=== SAMPLE BOOKINGS (first 3) ===
+  #1: course=69c10796d86c0c5bc4677595, room=68d0a6e87a3cc11af60d07c7, status=approved
+    time: wd=5 start=420 end=570
+    dates: Mon Feb 02 2026 23:53:30 GMT+0700 (Indochina Time) -> null
+  #2: course=69c10796d86c0c5bc4677596, room=688a370e5b82931bf8745467, status=approved
+    time: wd=2 start=420 end=570
+    dates: Mon Mar 23 2026 16:30:54 GMT+0700 (Indochina Time) -> null
+  #3: course=69c10796d86c0c5bc4677597, room=688a370e5b82931bf8745467, status=approved
+    time: wd=2 start=580 end=870
+    dates: Mon Mar 23 2026 16:30:54 GMT+0700 (Indochina Time) -> null
+
+=== SAMPLE CALENDAR EVENTS (first 5 class) ===
+  #1: "Kß╗╣ thuß║¡t lß║¡p tr├¼nh" room=68d0a6e87a3cc11af60d07c7 start=2026-02-05T00:00:00.000Z end=2026-02-05T02:30:00.000Z status=approved
+  #2: "Kß╗╣ thuß║¡t lß║¡p tr├¼nh" room=68d0a6e87a3cc11af60d07c7 start=2026-03-05T00:00:00.000Z end=2026-03-05T02:30:00.000Z status=approved
+  #3: "Kß╗╣ thuß║¡t lß║¡p tr├¼nh" room=68d0a6e87a3cc11af60d07c7 start=2026-03-12T00:00:00.000Z end=2026-03-12T02:30:00.000Z status=approved
+  #4: "Kß╗╣ thuß║¡t lß║¡p tr├¼nh" room=68d0a6e87a3cc11af60d07c7 start=2026-03-19T00:00:00.000Z end=2026-03-19T02:30:00.000Z status=approved
+  #5: "Kß╗╣ thuß║¡t lß║¡p tr├¼nh" room=68d0a6e87a3cc11af60d07c7 start=2026-03-26T00:00:00.000Z end=2026-03-26T02:30:00.000Z status=approved
+
+Done.

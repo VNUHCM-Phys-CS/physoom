@@ -9,7 +9,7 @@ import { fetcheroptions } from "@/lib/ulti";
 export default function UserCalendarProvider({children, email}) {
     const { data: _events, mutate:mutateUserEvent, isLoading:isLoadingEvent } = useSWR(
         [
-          email?"/api/booking":null,
+          email?"/api/calendar-events/fetch":null,
           {
             method: "POST",
             body: JSON.stringify({

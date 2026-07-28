@@ -92,7 +92,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data?._id ? formData : [formData]),
       });
 
       const saveData = await saveResponse.json();

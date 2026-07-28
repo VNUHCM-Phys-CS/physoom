@@ -45,8 +45,10 @@ export default function Calendar({
   showTime = true,
   onChangeSnapPrecision = emptyFunc,
   onDragStart=emptyFunc,
+  onDoubleClick=emptyFunc,
   isHideInfo=false,
-  customColorEvent
+  customColorEvent,
+  onDelete,
 }) {
   const [snapPrecision, setSnapPrecision] = useState(defaultPrecision);
   const [onHoverEventData, setOnHoverEventData] = useState();
@@ -348,8 +350,14 @@ export default function Calendar({
                     x={`${weekdayIndex * widthD()}%`}
                     onClickEvent={onClickEvent}
                     onDragStart={onDragStart}
-                    onDoubleClick={onDragStart}
-                    onSelected={(reviewData?.id === e.id) || (selectedID === e.id)}
+                    onDoubleClick={onDoubleClick}
+                    onSelected={
+                      (reviewData?.id?.toString() === e.id?.toString()) ||
+                      (selectedID?.toString() === e.id?.toString()) ||
+                      (reviewData?.id?.toString() === e.data?.course?._id?.toString()) ||
+                      (selectedID?.toString() === e.data?.course?._id?.toString())
+                    }
+                    onDelete={onDelete}
                     style={{ zIndex: 1 }}
                     showTime={showTime}
                     startTime={e.time_slot.start_time}

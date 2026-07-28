@@ -1,5 +1,5 @@
+import { Suspense } from "react";
 import BookingClient from "@/ui/BookingClient";
-import Card from "@/ui/Card";
 
 const Page = async () => {
   return (
@@ -7,7 +7,9 @@ const Page = async () => {
       <div className="prose">
         <h4>Booking</h4>
       </div>
-      <BookingClient />
+      <Suspense fallback={<p>Loading...</p>}>
+        <BookingClient />
+      </Suspense>
     </div>
   );
 };

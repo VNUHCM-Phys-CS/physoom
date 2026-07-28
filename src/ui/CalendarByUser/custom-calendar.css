@@ -1,0 +1,37 @@
+/* Fixes for react-big-calendar generic styles to look better in Tailwind apps */
+.rbc-calendar {
+    font-family: inherit;
+}
+.rbc-time-view, .rbc-month-view {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+.dark .rbc-time-view, .dark .rbc-month-view {
+    border-color: #3f3f46;
+}
+.dark .rbc-header {
+    border-bottom: 1px solid #3f3f46;
+    color: #f4f4f5;
+}
+.dark .rbc-time-header-content {
+    border-left: 1px solid #3f3f46;
+}
+.dark .rbc-time-content {
+    border-top: 1px solid #3f3f46;
+}
+.dark .rbc-timeslot-group {
+    border-bottom: 1px solid #3f3f46;
+}
+.dark .rbc-day-bg + .rbc-day-bg {
+    border-left: 1px solid #3f3f46;
+}
+.dark .rbc-time-slot {
+    border-top: 1px solid #3f3f46;
+}
+.dark .rbc-off-range-bg {
+    background: #18181b;
+}
+.dark .rbc-today {
+    background: #27272a;
+}
