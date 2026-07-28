@@ -12,7 +12,7 @@ import { fetcheroptions } from "@/lib/ulti";
 import useSWR from "swr";
 import Card from "@/ui/Card";
 import { categoryList, locationList } from "@/models/ulti";
-import { HashIcon, ArrowRightIcon } from "lucide-react";
+import { HashIcon, ArrowRightIcon, DoorOpenIcon, MapPinIcon, UsersIcon, CalendarSearchIcon } from "lucide-react";
 
 const schema = z.object({
     teacher_id: z.string().min(1, 'ID is required')
@@ -114,9 +114,22 @@ export default function ViewRoomPage() {
     const isLoading = eventLoading || roomLoading;
 
     return (
-        <div className="container m-auto">
+        <div className="container mx-auto px-4 py-6">
+            {/* Page header */}
+            <div className="flex flex-col items-center text-center gap-1 mb-6">
+                <div className="flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-white">
+                        <DoorOpenIcon size={18} />
+                    </span>
+                    <h1 className="text-2xl font-bold text-default-900">Room Schedule</h1>
+                </div>
+                <p className="text-sm text-default-500 max-w-md">
+                    Browse real-time room availability across the department.
+                </p>
+            </div>
+
             {/* Code entry — visible to everyone */}
-            <Card className="mb-4">
+            <Card className="mb-4 max-w-2xl mx-auto">
                 <QuickCodeEntry />
                 {session?.user && (
                     <div className="border-t border-default-100 pt-4 mt-2 text-center text-xs text-default-400">
@@ -129,13 +142,13 @@ export default function ViewRoomPage() {
             {session?.user ? (
                 isCheck ? (
                     <Card>
-                        <div className="flex gap-2 mb-3">
-                            <div className="w-1/2">
+                        <div className="flex flex-col md:flex-row gap-4 mb-4">
+                            <div className="w-full md:w-72 shrink-0">
                                 <Autocomplete
                                     label="Room"
                                     variant="bordered"
                                     placeholder="Search by Room"
-                                    className="max-w-xs"
+                                    startContent={<DoorOpenIcon size={16} className="text-default-400" />}
                                     selectedKey={filter}
                                     onSelectionChange={setFilter}
                                 >
@@ -144,17 +157,31 @@ export default function ViewRoomPage() {
                                     ))}
                                 </Autocomplete>
                             </div>
-                            <div className="w-1/2 prose">
-                                {currentRoom ? <>
-                                    <h4>
-                                        {currentRoom.title}{" "}
-                                        <Chip color="primary">{locationList.long[currentRoom.location?.toLowerCase()]}</Chip>
-                                        {currentRoom.category.map(c => (
-                                            <Chip key={c}>{categoryList.long[c.trim().toLowerCase()] ?? c}</Chip>
-                                        ))}
-                                    </h4>
-                                    <p>Max student: {currentRoom.limit}</p>
-                                </> : <h4>No room selected</h4>}
+                            <div className="flex-1">
+                                {currentRoom ? (
+                                    <div className="flex flex-col gap-2 rounded-xl border border-default-200 bg-default-50/60 p-4 h-full">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-lg font-bold text-default-900">{currentRoom.title}</span>
+                                            <Chip size="sm" color="primary" variant="flat" startContent={<MapPinIcon size={12} />}>
+                                                {locationList.long[currentRoom.location?.toLowerCase()] ?? currentRoom.location}
+                                            </Chip>
+                                            {currentRoom.category.map((c) => (
+                                                <Chip key={c} size="sm" variant="flat">
+                                                    {categoryList.long[c.trim().toLowerCase()] ?? c}
+                                                </Chip>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-sm text-default-500">
+                                            <UsersIcon size={14} />
+                                            Max capacity: <span className="font-semibold text-default-700">{currentRoom.limit}</span> students
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-default-400 text-sm h-full rounded-xl border border-dashed border-default-200 p-4">
+                                        <CalendarSearchIcon size={16} />
+                                        Select a room to see its details and schedule.
+                                    </div>
+                                )}
                             </div>
                         </div>
                         {currentRoom ? (
@@ -164,22 +191,32 @@ export default function ViewRoomPage() {
                                 isHideInfo={true}
                                 customSubtitle={customSubtitle}
                             />
-                        ) : <>Please select room to view schedule</>}
+                        ) : (
+                            <div className="flex flex-col items-center justify-center gap-2 py-16 text-default-400">
+                                <CalendarSearchIcon size={32} />
+                                <p className="text-sm">Please select a room to view its schedule.</p>
+                            </div>
+                        )}
                     </Card>
                 ) : (
-                    <form className="flex justify-center p-12 items-center flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
-                        <h4 className="text-lg">Input your <strong>MSCB</strong> to view the room schedule</h4>
-                        <div className="flex gap-2">
-                            <Input
-                                className="max-w-80"
-                                placeholder="MSCB"
-                                {...register('teacher_id')}
-                                isInvalid={!!errors.teacher_id}
-                                errorMessage={errors.teacher_id?.message}
-                            />
-                            <Button type="submit" color="primary">Submit</Button>
-                        </div>
-                    </form>
+                    <Card className="max-w-2xl mx-auto">
+                        <form className="flex justify-center py-10 px-4 items-center flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-100 text-secondary">
+                                <CalendarSearchIcon size={24} />
+                            </div>
+                            <h4 className="text-lg text-center">Enter your <strong>MSCB</strong> to view the room schedule</h4>
+                            <div className="flex gap-2 w-full max-w-sm">
+                                <Input
+                                    className="flex-1"
+                                    placeholder="MSCB"
+                                    {...register('teacher_id')}
+                                    isInvalid={!!errors.teacher_id}
+                                    errorMessage={errors.teacher_id?.message}
+                                />
+                                <Button type="submit" color="secondary">Submit</Button>
+                            </div>
+                        </form>
+                    </Card>
                 )
             ) : (
                 <p className="text-center text-default-400 text-sm py-6">

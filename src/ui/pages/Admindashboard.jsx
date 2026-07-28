@@ -1,30 +1,50 @@
 "use client";
-import Card from "@/ui/Card";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import dynamic from "next/dynamic";
 import SquareHolder from "../SquareHolder";
 import { Chip } from "@heroui/react";
+import { motion } from "framer-motion";
 import { DoorOpenIcon, BookOpenIcon, CalendarCheckIcon, TrendingUpIcon } from "lucide-react";
 
 const PieChart = dynamic(() => import("@/ui/viz/PieChart"), { ssr: false });
 
-function StatCard({ icon: Icon, label, value, sub, color = "secondary" }) {
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const glassCard =
+  "rounded-2xl border border-default-200 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm p-5";
+
+function StatCard({ icon: Icon, label, value, sub }) {
   return (
-    <Card className="flex flex-col gap-2 h-full">
+    <motion.div
+      variants={fadeUp}
+      whileHover={{ y: -3 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className={`${glassCard} flex flex-col gap-2 h-full`}
+    >
       <div className="flex items-center gap-2 text-default-500 text-xs font-semibold uppercase tracking-wide">
-        <Icon size={14} />
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary-100 text-secondary">
+          <Icon size={15} />
+        </span>
         {label}
       </div>
       <div className="text-3xl font-bold text-default-900">{value ?? "—"}</div>
       {sub && <div className="text-xs text-default-400">{sub}</div>}
-    </Card>
+    </motion.div>
   );
 }
 
 function ChartCard({ title, count, label, description, children }) {
   return (
-    <Card className="flex flex-col gap-2 h-full">
+    <motion.div variants={fadeUp} className={`${glassCard} flex flex-col gap-2 h-full`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs text-default-400 font-semibold uppercase tracking-wide">{title}</p>
@@ -40,7 +60,7 @@ function ChartCard({ title, count, label, description, children }) {
           {children}
         </SquareHolder>
       </div>
-    </Card>
+    </motion.div>
   );
 }
 
@@ -64,7 +84,12 @@ export default function Admindashboard() {
   return (
     <div className="flex flex-col gap-6">
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
         <StatCard
           icon={DoorOpenIcon}
           label="Total Rooms"
@@ -89,10 +114,15 @@ export default function Admindashboard() {
           value={approvalRate != null ? `${approvalRate}%` : undefined}
           sub={approved ? `${approved} approved · ${pending} pending` : "No bookings yet"}
         />
-      </div>
+      </motion.div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
         <ChartCard
           title="Rooms"
           count={room?.count}
@@ -123,7 +153,7 @@ export default function Admindashboard() {
             isDonut={true}
           />
         </ChartCard>
-      </div>
+      </motion.div>
     </div>
   );
 }

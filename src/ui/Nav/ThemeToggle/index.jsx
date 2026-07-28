@@ -20,7 +20,8 @@ export default function ThemeToggle() {
       variant="light"
       size="sm"
       radius="full"
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      // Keep a theme-neutral label until mounted to avoid a hydration mismatch
+      aria-label={!mounted ? "Toggle theme" : isDark ? "Switch to light mode" : "Switch to dark mode"}
       onPress={() => setTheme(isDark ? "light" : "dark")}
     >
       {/* Render a stable placeholder until mounted to avoid hydration mismatch */}

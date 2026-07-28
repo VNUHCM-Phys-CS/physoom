@@ -1,10 +1,168 @@
-export default function() {
-    return <div className="prose container max-w-screen-lg m-auto">
-        <h1>About us</h1>
-        <h3>What is Physoom?</h3>
-        <p>Physoom is an app developed by Ngan V.T. Nguyen to aid the Physics staff at VNU-HCMUS to arrange teaching schedules more efficiently.
-            The traditional method of using Excel will require a lot of time and effort to cooperate with another teacher to tighten their schedule and needs.
- With Physoom, teachers can easily input their availability and preferences, allowing the app to generate optimized schedules in a fraction of the time. This not only streamlines the process but also reduces the likelihood of scheduling conflicts. 
+"use client";
+
+import { Chip } from "@heroui/react";
+import { motion } from "framer-motion";
+import {
+  CalendarDaysIcon,
+  ZapIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+  ClockIcon,
+  SparklesIcon,
+} from "lucide-react";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const BENEFITS = [
+  {
+    icon: ShieldCheckIcon,
+    title: "Conflict detection",
+    desc: "Overlapping rooms, teachers, and classes are flagged automatically before they become a problem.",
+  },
+  {
+    icon: ZapIcon,
+    title: "Faster than Excel",
+    desc: "Build a full semester of schedules in a fraction of the time the traditional spreadsheet workflow took.",
+  },
+  {
+    icon: ClockIcon,
+    title: "Real-time availability",
+    desc: "See exactly what's booked across every room and facility, updated live as bookings change.",
+  },
+  {
+    icon: UsersIcon,
+    title: "Built for teams",
+    desc: "Teachers, room managers, and admins each get a workflow tuned to what they actually need to do.",
+  },
+];
+
+export default function AboutPage() {
+  return (
+    <main className="container max-w-screen-lg mx-auto px-4 py-12">
+      {/* Hero */}
+      <motion.section
+        className="flex flex-col items-center text-center gap-5 mb-14"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div
+          variants={fadeUp}
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary text-white shadow-lg shadow-secondary/30"
+        >
+          <CalendarDaysIcon size={32} />
+        </motion.div>
+        <motion.div variants={fadeUp}>
+          <Chip color="secondary" variant="flat" size="sm">
+            About Physoom
+          </Chip>
+        </motion.div>
+        <motion.h1
+          variants={fadeUp}
+          className="text-3xl md:text-5xl font-bold text-default-900 max-w-2xl leading-tight"
+        >
+          Scheduling for the Physics department, reinvented
+        </motion.h1>
+        <motion.p
+          variants={fadeUp}
+          className="text-default-500 max-w-xl text-sm md:text-base leading-relaxed"
+        >
+          Physoom replaces the slow, error-prone spreadsheet workflow with a
+          shared, real-time system for arranging teaching schedules and room
+          bookings.
+        </motion.p>
+      </motion.section>
+
+      {/* What is Physoom */}
+      <motion.section
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.3 }}
+        className="rounded-2xl border border-default-200 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm p-6 md:p-8 mb-12"
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <SparklesIcon size={18} className="text-secondary" />
+          <h2 className="text-lg font-semibold text-default-900">
+            What is Physoom?
+          </h2>
+        </div>
+        <p className="text-default-600 leading-relaxed text-sm md:text-base">
+          Physoom is an app developed to help the Physics staff at{" "}
+          <span className="font-semibold text-default-900">VNU-HCMUS</span>{" "}
+          arrange teaching schedules more efficiently. The traditional method of
+          using Excel required a lot of time and effort to coordinate between
+          teachers and tighten everyone&apos;s schedule and needs. With Physoom,
+          teachers can easily input their availability and preferences, letting
+          the app generate optimized schedules in a fraction of the time — while
+          reducing the likelihood of scheduling conflicts.
         </p>
-    </div>
+      </motion.section>
+
+      {/* Benefits */}
+      <motion.section
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.2 }}
+        className="mb-12"
+      >
+        <p className="text-xs font-semibold uppercase tracking-widest text-default-400 mb-4 text-center">
+          Why it helps
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {BENEFITS.map(({ icon: Icon, title, desc }) => (
+            <motion.div
+              key={title}
+              variants={fadeUp}
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="flex gap-4 p-5 rounded-2xl border border-default-200 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm h-full"
+            >
+              <div className="w-10 h-10 rounded-xl bg-secondary-100 text-secondary flex items-center justify-center shrink-0">
+                <Icon size={20} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-semibold text-sm text-default-900">
+                  {title}
+                </span>
+                <p className="text-xs text-default-500 leading-relaxed">
+                  {desc}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* Credit */}
+      <motion.section
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, amount: 0.4 }}
+        className="text-center"
+      >
+        <div className="inline-flex flex-col items-center gap-1 rounded-2xl border border-default-200 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm px-8 py-6">
+          <p className="text-xs uppercase tracking-widest text-default-400 font-semibold">
+            Created by
+          </p>
+          <p className="text-lg font-bold text-default-900">Ngan V.T. Nguyen</p>
+          <p className="text-sm text-default-500">
+            for the Physics staff at VNU-HCMUS
+          </p>
+        </div>
+      </motion.section>
+    </main>
+  );
 }
