@@ -5,7 +5,14 @@ import dynamic from "next/dynamic";
 import SquareHolder from "../SquareHolder";
 import { Chip } from "@heroui/react";
 import { motion } from "framer-motion";
-import { DoorOpenIcon, BookOpenIcon, CalendarCheckIcon, TrendingUpIcon } from "lucide-react";
+import {
+  DoorOpenIcon,
+  BookOpenIcon,
+  CalendarCheckIcon,
+  TrendingUpIcon,
+  TicketIcon,
+  PieChartIcon,
+} from "lucide-react";
 
 const PieChart = dynamic(() => import("@/ui/viz/PieChart"), { ssr: false });
 
@@ -42,7 +49,7 @@ function StatCard({ icon: Icon, label, value, sub }) {
   );
 }
 
-function ChartCard({ title, count, label, description, children }) {
+function ChartCard({ title, count, label, description, isEmpty, emptyText = "No data yet", children }) {
   return (
     <motion.div variants={fadeUp} className={`${glassCard} flex flex-col gap-2 h-full`}>
       <div className="flex items-start justify-between">
@@ -57,17 +64,27 @@ function ChartCard({ title, count, label, description, children }) {
       </div>
       <div className="px-6 mt-1">
         <SquareHolder>
-          {children}
+          {isEmpty ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2 text-default-300">
+              <PieChartIcon size={28} />
+              <span className="text-xs text-default-400">{emptyText}</span>
+            </div>
+          ) : (
+            children
+          )}
         </SquareHolder>
       </div>
     </motion.div>
   );
 }
 
+const sum = (arr) => (arr ?? []).reduce((a, b) => a + (b || 0), 0);
+
 export default function Admindashboard() {
   const { data: room } = useSWR("/api/room/viz", fetcher, { revalidateOnFocus: false });
   const { data: course } = useSWR("/api/course/viz", fetcher, { revalidateOnFocus: false });
   const { data: booking } = useSWR("/api/booking/viz", fetcher, { revalidateOnFocus: false });
+  const { data: event } = useSWR("/api/room-event/viz", fetcher, { revalidateOnFocus: false });
 
   const approved = booking?.values?.[0] ?? 0;
   const pending = booking?.values?.[1] ?? 0;
@@ -81,11 +98,17 @@ export default function Admindashboard() {
     ? Math.round((bookedCourses / totalCourses) * 100)
     : null;
 
+  // Event bookings (custom room events)
+  const eventTotal = event?.count ?? 0;
+  const eventApproved = event?.approved ?? 0;
+  const eventPending = event?.pending ?? 0;
+  const eventRejected = event?.rejected ?? 0;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Stat cards */}
       <motion.div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
         variants={stagger}
         initial="hidden"
         animate="show"
@@ -109,6 +132,12 @@ export default function Admindashboard() {
           sub={bookingRate != null ? `${bookingRate}% of all courses` : undefined}
         />
         <StatCard
+          icon={TicketIcon}
+          label="Event Bookings"
+          value={eventTotal || undefined}
+          sub={eventTotal ? `${eventApproved} approved · ${eventPending} pending` : "No events yet"}
+        />
+        <StatCard
           icon={TrendingUpIcon}
           label="Approval Rate"
           value={approvalRate != null ? `${approvalRate}%` : undefined}
@@ -118,7 +147,7 @@ export default function Admindashboard() {
 
       {/* Charts */}
       <motion.div
-        className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch"
         variants={stagger}
         initial="hidden"
         animate="show"
@@ -128,6 +157,7 @@ export default function Admindashboard() {
           count={room?.count}
           label="total rooms"
           description="By location"
+          isEmpty={!room || sum(room?.values) === 0}
         >
           <PieChart values={room?.values} labels={room?.labels} />
         </ChartCard>
@@ -137,6 +167,8 @@ export default function Admindashboard() {
           count={course?.count}
           label="total courses"
           description="By credit"
+          isEmpty={!course || sum(course?.values) === 0}
+          emptyText="No courses yet"
         >
           <PieChart values={course?.values} labels={course?.labels} />
         </ChartCard>
@@ -146,10 +178,27 @@ export default function Admindashboard() {
           count={totalCourses}
           label="total courses"
           description={bookingRate != null ? `${bookingRate}% booked` : undefined}
+          isEmpty={approved + pending + unbooked === 0}
+          emptyText="No bookings yet"
         >
           <PieChart
             values={[approved, pending, unbooked]}
             labels={["Approved", "Pending", "Not booked"]}
+            isDonut={true}
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="Event Bookings"
+          count={eventTotal}
+          label="total events"
+          description="By status"
+          isEmpty={eventTotal === 0}
+          emptyText="No events yet"
+        >
+          <PieChart
+            values={[eventApproved, eventPending, eventRejected]}
+            labels={["Approved", "Pending", "Rejected"]}
             isDonut={true}
           />
         </ChartCard>
