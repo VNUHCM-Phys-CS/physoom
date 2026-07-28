@@ -321,6 +321,7 @@ export default function BookingMulti() {
                 onDragStart={handleDragStart}
                 customSubtitle={customSubtitle}
                 onDelete={handleDelete}
+                onEventUpdate={mutateUserEvent}
               />
               {intructionText()}
             </Tab>
@@ -336,6 +337,7 @@ export default function BookingMulti() {
                 onDragStart={handleDragStart}
                 customSubtitle={customSubtitle}
                 onDelete={handleDelete}
+                onEventUpdate={mutateUserEvent}
               />
               {intructionText()}
             </Tab>

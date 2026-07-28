@@ -52,6 +52,10 @@ export default function EventModal({ data, isOpen, onOpenChange, onSave }) {
     try {
       const payload = { ...formData };
       payload.teacher_email = payload.teacher_email.split(",").map(s => s.trim()).filter(Boolean);
+      // Convert naive datetime-local strings to ISO on the client so the server
+      // stores the user's local time rather than reinterpreting it as UTC.
+      if (payload.start) payload.start = new Date(payload.start).toISOString();
+      if (payload.end) payload.end = new Date(payload.end).toISOString();
       
       const method = data ? "PUT" : "POST";
       if (data) payload._id = data._id;

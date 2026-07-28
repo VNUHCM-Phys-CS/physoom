@@ -64,10 +64,17 @@ function BookModal({ isOpen, onOpenChange, rooms, onSuccess, initialStart, initi
     }
     setLoading(true);
     try {
+      // Normalize naive datetime-local strings to ISO on the client so the
+      // server doesn't reinterpret them in its own (UTC) timezone.
+      const payload = {
+        ...form,
+        start: form.start ? new Date(form.start).toISOString() : form.start,
+        end: form.end ? new Date(form.end).toISOString() : form.end,
+      };
       const res = await fetch("/api/room-event", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {

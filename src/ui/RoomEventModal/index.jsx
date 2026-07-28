@@ -235,10 +235,16 @@ export function RoomEventModal({
     try {
       const url = isEdit ? `/api/room-event/${event._id}` : "/api/room-event";
       const method = isEdit ? "PUT" : "POST";
+      // Normalize the naive datetime-local strings to full ISO on the client,
+      // where the user's timezone is known. Otherwise `new Date(str)` on the
+      // server parses them in the SERVER timezone (UTC in production), which
+      // shifts every booking by the local offset.
+      const startISO = form.start ? new Date(form.start).toISOString() : form.start;
+      const endISO = form.end ? new Date(form.end).toISOString() : form.end;
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomId: form.roomId, title: form.title, start: form.start, end: form.end, note: form.note, host, attendees }),
+        body: JSON.stringify({ roomId: form.roomId, title: form.title, start: startISO, end: endISO, note: form.note, host, attendees }),
       });
       const data = await res.json();
       if (!res.ok) {

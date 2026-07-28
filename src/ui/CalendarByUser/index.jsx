@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import LoadingWrapper from "../LoadingWrapper";
 import { Calendar, momentLocalizer } from "react-big-calendar";
@@ -76,25 +76,33 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
     const [view, setView] = useState("week");
     const [pendingDrop, setPendingDrop] = useState(null);
     const [dropLoading, setDropLoading] = useState(false);
+    // Optimistic time overrides (id -> {start, end}) so a dragged event stays at
+    // its new position even when the parent view doesn't refetch its data.
+    const [timeOverrides, setTimeOverrides] = useState({});
 
     const onNavigate = useCallback((newDate) => setDate(newDate), []);
     const onView = useCallback((newView) => setView(newView), []);
+
+    // Drop overrides whenever fresh data arrives from the parent (it already
+    // reflects the saved change, so the local override is no longer needed).
+    useEffect(() => { setTimeOverrides({}); }, [_events]);
 
     // _events are coming from CalendarEvent API. All occurrences are now returned.
     const events = useMemo(()=>{
         return (_events ?? []).map((e) => {
             if (e.start && e.end) {
+                const ov = timeOverrides[e._id];
                 return {
                     id: e._id,
                     title: e.title || (e.course ? (typeof e.course === 'object' ? e.course.title : "Class") : "Event"),
-                    start: new Date(e.start),
-                    end: new Date(e.end),
+                    start: new Date(ov?.start ?? e.start),
+                    end: new Date(ov?.end ?? e.end),
                     resource: e
                 };
             }
             return null;
         }).filter(Boolean);
-    }, [_events]);
+    }, [_events, timeOverrides]);
 
     const eventStyleGetter = useCallback((event) => {
         const type = event.resource?.type || 'class';
@@ -159,12 +167,19 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    // Date objects serialize to full ISO (UTC) — timezone-safe.
                     start: pendingDrop.start,
                     end: pendingDrop.end,
                 }),
             });
-            if (res.ok && onEventUpdate) {
-                onEventUpdate();
+            if (res.ok) {
+                // Keep the event at its new time locally even if the parent
+                // doesn't refetch, so it no longer snaps back to the old slot.
+                setTimeOverrides((prev) => ({
+                    ...prev,
+                    [pendingDrop.event.id]: { start: pendingDrop.start, end: pendingDrop.end },
+                }));
+                if (onEventUpdate) onEventUpdate();
             }
         } catch (e) {
             console.error(e);

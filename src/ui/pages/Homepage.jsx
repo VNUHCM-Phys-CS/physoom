@@ -5,8 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { CalendarIcon, DoorOpenIcon, ClockIcon, UsersIcon } from "lucide-react";
 
-const MotionLink = motion.create(Link);
-
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
@@ -70,23 +68,17 @@ function FeatureCard({ icon: Icon, title, desc, href, locked }) {
     </div>
   );
 
-  if (locked) {
-    return (
-      <motion.div variants={fadeUp} className="h-full">
-        {inner}
-      </motion.div>
-    );
-  }
+  // Keep a stable motion.div wrapper regardless of `locked` so it never
+  // remounts when the session resolves (which would strand it at opacity 0).
   return (
-    <MotionLink
-      href={href}
-      className="block h-full"
+    <motion.div
       variants={fadeUp}
-      whileHover={{ y: -4 }}
+      whileHover={locked ? undefined : { y: -4 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="h-full"
     >
-      {inner}
-    </MotionLink>
+      {locked ? inner : <Link href={href} className="block h-full">{inner}</Link>}
+    </motion.div>
   );
 }
 
@@ -152,8 +144,7 @@ export default function Home() {
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3"
           variants={stagger}
           initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
+          animate="show"
         >
           {FEATURES.map((f) => (
             <FeatureCard

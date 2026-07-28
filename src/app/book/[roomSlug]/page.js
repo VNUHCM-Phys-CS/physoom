@@ -165,8 +165,10 @@ export default function BookRoomPage({ params }) {
         body: JSON.stringify({
           roomId: room._id,
           title: formTitle,
-          start: formStart,
-          end: formEnd,
+          // Normalize to ISO on the client so the server keeps the user's
+          // local time instead of reinterpreting it in the server timezone.
+          start: formStart ? new Date(formStart).toISOString() : formStart,
+          end: formEnd ? new Date(formEnd).toISOString() : formEnd,
           note: formNote,
         }),
       });
