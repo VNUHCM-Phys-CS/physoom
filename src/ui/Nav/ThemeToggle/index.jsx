@@ -2,23 +2,33 @@
 
 import { useTheme } from "next-themes";
 import { Button } from "@heroui/react";
+import { MoonIcon, SunIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   // Avoid hydration mismatch
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return null;
+  const isDark = resolvedTheme === "dark";
 
   return (
     <Button
-      variant="flat"
-      onPress={() => setTheme(theme === "light" ? "dark" : "light")}
+      isIconOnly
+      variant="light"
+      size="sm"
+      radius="full"
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      onPress={() => setTheme(isDark ? "light" : "dark")}
     >
-      {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+      {/* Render a stable placeholder until mounted to avoid hydration mismatch */}
+      {mounted ? (
+        isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />
+      ) : (
+        <span className="w-[18px] h-[18px]" />
+      )}
     </Button>
   );
 }

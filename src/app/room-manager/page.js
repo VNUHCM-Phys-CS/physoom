@@ -24,6 +24,7 @@ import {
   Switch,
 } from "@heroui/react";
 import { fetcher } from "@/lib/ulti";
+import { useConfirm } from "@/ui/ConfirmDialog";
 import moment from "moment";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -145,6 +146,7 @@ function BookModal({ isOpen, onOpenChange, rooms, onSuccess, initialStart, initi
 // ---- Pending Events Tab ----
 function PendingTab({ events, isLoading, mutate }) {
   const [actionLoading, setActionLoading] = useState({});
+  const { confirm, confirmDialog } = useConfirm();
 
   const pendingEvents = (events ?? []).filter((e) => e.status === "pending");
 
@@ -169,6 +171,10 @@ function PendingTab({ events, isLoading, mutate }) {
 
   const handleDelete = useCallback(
     async (id) => {
+      const ok = await confirm({
+        message: "Delete this booking request? This action cannot be undone.",
+      });
+      if (!ok) return;
       setActionLoading((prev) => ({ ...prev, [id]: true }));
       try {
         await fetch(`/api/room-event/${id}`, { method: "DELETE" });
@@ -179,7 +185,7 @@ function PendingTab({ events, isLoading, mutate }) {
         setActionLoading((prev) => ({ ...prev, [id]: false }));
       }
     },
-    [mutate]
+    [mutate, confirm]
   );
 
   const columns = [
@@ -240,18 +246,21 @@ function PendingTab({ events, isLoading, mutate }) {
   if (isLoading) return <p className="text-default-400">Loading...</p>;
 
   return (
-    <Table aria-label="Pending events" isHeaderSticky classNames={{ wrapper: "max-h-[500px]" }}>
-      <TableHeader columns={columns}>
-        {(col) => <TableColumn key={col.key}>{col.label}</TableColumn>}
-      </TableHeader>
-      <TableBody items={pendingEvents} emptyContent="No pending requests for your rooms.">
-        {(event) => (
-          <TableRow key={event._id}>
-            {(columnKey) => <TableCell>{renderCell(event, columnKey)}</TableCell>}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+    <>
+      {confirmDialog}
+      <Table aria-label="Pending events" isHeaderSticky classNames={{ wrapper: "max-h-[500px]" }}>
+        <TableHeader columns={columns}>
+          {(col) => <TableColumn key={col.key}>{col.label}</TableColumn>}
+        </TableHeader>
+        <TableBody items={pendingEvents} emptyContent="No pending requests for your rooms.">
+          {(event) => (
+            <TableRow key={event._id}>
+              {(columnKey) => <TableCell>{renderCell(event, columnKey)}</TableCell>}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </>
   );
 }
 
@@ -359,6 +368,7 @@ function MyRoomsTab({ rooms, mutateRooms }) {
 
 // ---- Calendar Tab ----
 function RoomManagerCalendarTab({ customEvents, mutate, managedRooms }) {
+  const { confirm, confirmDialog } = useConfirm();
   const roomIds = useMemo(() => (managedRooms ?? []).map((r) => r._id).join(","), [managedRooms]);
   const { data: classEvents } = useSWR(
     roomIds ? `/api/calendar-events?type=class&rooms=${roomIds}` : null,
@@ -439,6 +449,10 @@ function RoomManagerCalendarTab({ customEvents, mutate, managedRooms }) {
   };
 
   const handleDelete = async (id) => {
+    const ok = await confirm({
+      message: "Delete this event? This action cannot be undone.",
+    });
+    if (!ok) return;
     setActionLoading((p) => ({ ...p, [id]: true }));
     try {
       await fetch(`/api/room-event/${id}`, { method: "DELETE" });
@@ -452,6 +466,7 @@ function RoomManagerCalendarTab({ customEvents, mutate, managedRooms }) {
 
   return (
     <>
+      {confirmDialog}
       <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <Select

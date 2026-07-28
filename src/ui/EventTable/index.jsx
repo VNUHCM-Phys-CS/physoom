@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import { useDisclosure } from "@heroui/react";
 import EventModal from "../EventModal";
+import { useConfirm } from "../ConfirmDialog";
 
 const EVENT_FIELDS = [
   { name: "Title", uid: "title", sortable: true },
@@ -27,6 +28,7 @@ export default function EventTable({ statusOptions }) {
   
   const [data, setData] = useState({});
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { confirm, confirmDialog } = useConfirm();
 
   const formattedData = useMemo(() => {
     return (events || []).map(e => ({
@@ -39,6 +41,11 @@ export default function EventTable({ statusOptions }) {
   }, [events]);
 
   const onDelete = useCallback(async (selectedData) => {
+    const count = selectedData?.length ?? 0;
+    const ok = await confirm({
+      message: `Delete ${count} event${count === 1 ? "" : "s"}? This action cannot be undone.`,
+    });
+    if (!ok) return;
     try {
       const res = await fetch("/api/calendar-events", {
         method: "DELETE",
@@ -49,7 +56,7 @@ export default function EventTable({ statusOptions }) {
     } catch (error) {
       console.error(error);
     }
-  }, [mutate]);
+  }, [mutate, confirm]);
 
   const onEdit = useCallback((eventData) => {
     setData(eventData);
@@ -63,6 +70,7 @@ export default function EventTable({ statusOptions }) {
 
   return (
     <>
+      {confirmDialog}
       <TableEvent
         columns={EVENT_FIELDS}
         data={formattedData}

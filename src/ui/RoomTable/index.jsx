@@ -27,6 +27,7 @@ import { VerticalDotsIcon } from "@/ui/icons/VerticalDotsIcon";
 import { SearchIcon } from "@/ui/icons/SearchIcon";
 import { ChevronDownIcon } from "@/ui/icons/ChevronDownIcon";
 import { WarningIcon } from "../icons/WarningIcon";
+import { useConfirm } from "../ConfirmDialog";
 
 const ROOM_FIELDS = [
   { name: "Room name", uid: "title", sortable: true },
@@ -45,6 +46,7 @@ export default function RoomTable() {
   });
   const [editData, setEditData] = useState({});
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { confirm, confirmDialog } = useConfirm();
 
   // Table state
   const [filterValue, setFilterValue] = useState("");
@@ -58,6 +60,11 @@ export default function RoomTable() {
 
   const onDelete = useCallback(
     async (items) => {
+      const count = items?.length ?? 0;
+      const ok = await confirm({
+        message: `Delete ${count} room${count === 1 ? "" : "s"}? This action cannot be undone.`,
+      });
+      if (!ok) return;
       try {
         const res = await fetch("/api/room", {
           method: "DELETE",
@@ -72,7 +79,7 @@ export default function RoomTable() {
         console.log(error);
       }
     },
-    [mutate]
+    [mutate, confirm]
   );
 
   const onEdit = useCallback(
@@ -322,6 +329,7 @@ export default function RoomTable() {
 
   return (
     <>
+      {confirmDialog}
       <Table
         aria-label="Room table"
         isHeaderSticky

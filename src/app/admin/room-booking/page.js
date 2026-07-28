@@ -29,6 +29,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { fetcher } from "@/lib/ulti";
+import { useConfirm } from "@/ui/ConfirmDialog";
 import moment from "moment";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -729,6 +730,7 @@ export default function RoomBookingPage() {
   const { data: rooms, mutate: mutateRooms } = useSWR("/api/room", fetcher);
 
   const [actionLoading, setActionLoading] = useState({});
+  const { confirm, confirmDialog } = useConfirm();
   const [selectedTab, setSelectedTab] = useState(searchParams.get("tab") || "pending");
   const initRoom = searchParams.get("room") || null;
   const initEventId = searchParams.get("eventId") || null;
@@ -757,6 +759,10 @@ export default function RoomBookingPage() {
 
   const handleDelete = useCallback(
     async (id) => {
+      const ok = await confirm({
+        message: "Delete this event? This action cannot be undone.",
+      });
+      if (!ok) return;
       setActionLoading((prev) => ({ ...prev, [id]: true }));
       try {
         await fetch(`/api/room-event/${id}`, { method: "DELETE" });
@@ -767,7 +773,7 @@ export default function RoomBookingPage() {
         setActionLoading((prev) => ({ ...prev, [id]: false }));
       }
     },
-    [mutateEvents]
+    [mutateEvents, confirm]
   );
 
   const handleGoToCourse = useCallback((ev) => {
@@ -778,6 +784,7 @@ export default function RoomBookingPage() {
 
   return (
     <div>
+      {confirmDialog}
       <h1 className="text-2xl font-bold mb-4">Room Booking Management</h1>
       <Tabs aria-label="Room booking tabs" selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
         <Tab key="pending" title={`Pending (${pendingEvents.length})`}>

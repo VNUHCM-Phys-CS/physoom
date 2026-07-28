@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import CourseModal from "../CourseModal";
 import { useDisclosure } from "@heroui/react";
+import { useConfirm } from "../ConfirmDialog";
 
 const COURSE_FIELDS = [
   { name: "Course name", uid: "title", sortable: true },
@@ -34,7 +35,13 @@ export default function CourseTable() {
   });
   const [data, setData] = useState({});
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { confirm, confirmDialog } = useConfirm();
   const onDelete = useCallback(async (data) => {
+    const count = data?.length ?? 0;
+    const ok = await confirm({
+      message: `Delete ${count} course${count === 1 ? "" : "s"}? This action cannot be undone.`,
+    });
+    if (!ok) return;
     try {
       const res = await fetch("/api/course", {
         method: "DELETE",
@@ -50,14 +57,14 @@ export default function CourseTable() {
       console.log(error);
       console.log("Something wrong");
     }
-  }, []);
+  }, [confirm, mutate]);
   const onEdit = useCallback(async (data) => {
     setData(data);
     onOpen();
   }, []);
-  console.log(data);
   return (
     <>
+      {confirmDialog}
       <TableEvent
         columns={COURSE_FIELDS}
         data={course}
