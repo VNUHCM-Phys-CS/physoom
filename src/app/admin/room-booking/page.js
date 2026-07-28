@@ -782,6 +782,23 @@ export default function RoomBookingPage() {
     router.push(courseId ? `/admin/booking?course=${courseId}` : "/admin/booking");
   }, [router]);
 
+  // Optimistically merge a created/updated event into the cache so the
+  // calendar re-renders immediately, then revalidate in the background.
+  const handleEventSaved = useCallback((savedEvent) => {
+    if (!savedEvent?._id) {
+      mutateEvents();
+      return;
+    }
+    mutateEvents((cur) => {
+      const list = cur ?? [];
+      const idx = list.findIndex((e) => String(e._id) === String(savedEvent._id));
+      if (idx === -1) return [...list, savedEvent];
+      const next = [...list];
+      next[idx] = { ...next[idx], ...savedEvent };
+      return next;
+    }, { revalidate: true });
+  }, [mutateEvents]);
+
   return (
     <div>
       {confirmDialog}
@@ -825,7 +842,7 @@ export default function RoomBookingPage() {
             onOpenChange={onAddOpenChange}
             rooms={rooms}
             isPrivileged={true}
-            onSuccess={mutateEvents}
+            onSuccess={handleEventSaved}
           />
         </Tab>
         <Tab key="calendar" title="Calendar">
@@ -837,7 +854,7 @@ export default function RoomBookingPage() {
               actionLoading={actionLoading}
               onGoToCourse={handleGoToCourse}
               rooms={rooms}
-              onEventsChanged={mutateEvents}
+              onEventsChanged={handleEventSaved}
               initialRoom={initRoom}
               initialEventId={initEventId}
             />

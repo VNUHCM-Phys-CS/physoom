@@ -254,7 +254,9 @@ export function RoomEventModal({
           setError(data.message || (isEdit ? "Failed to update booking." : "Failed to create booking."));
         }
       } else {
-        onSuccess?.();
+        // Pass the saved event back so the parent can update its calendar
+        // immediately instead of waiting on a background revalidation.
+        onSuccess?.(data.event);
         onClose();
       }
     } catch {

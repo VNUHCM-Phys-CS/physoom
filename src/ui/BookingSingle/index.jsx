@@ -1,5 +1,5 @@
 "use client";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import {
   fetcheroptions,
   fetcher,
@@ -92,6 +92,23 @@ function EventListSidebar({ events, email, selectedId, onSelect }) {
 
 function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRooms, rooms, onSuccess }) {
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure();
+  const { data: users } = useSWR("/api/user/list", fetcher);
+
+  // Resolve an email to "Name (email)" when the user exists in the database.
+  const nameByEmail = useMemo(() => {
+    const map = {};
+    (users ?? []).forEach((u) => { if (u.email) map[u.email.toLowerCase()] = u.name; });
+    return map;
+  }, [users]);
+  const label = useCallback(
+    (addr) => {
+      const name = nameByEmail[addr?.toLowerCase?.()];
+      return name ? `${name} (${addr})` : addr;
+    },
+    [nameByEmail]
+  );
+  const labelList = useCallback((arr) => (arr ?? []).map(label).join(", "), [label]);
+
   if (!event) return null;
 
   const isCreator = (event.teacher_email ?? []).includes(email);
@@ -121,13 +138,13 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
                     {moment(event.start).format("DD/MM/YYYY HH:mm")} – {moment(event.end).format("HH:mm")}
                   </p>
                   {(event.teacher_email ?? []).length > 0 && (
-                    <p><span className="text-default-500">Created by:</span> {event.teacher_email.join(", ")}</p>
+                    <p><span className="text-default-500">Created by:</span> {labelList(event.teacher_email)}</p>
                   )}
                   {(event.host ?? []).length > 0 && (
-                    <p><span className="text-default-500">Host:</span> {event.host.join(", ")}</p>
+                    <p><span className="text-default-500">Host:</span> {labelList(event.host)}</p>
                   )}
                   {(event.attendees ?? []).length > 0 && (
-                    <p><span className="text-default-500">Attendees:</span> {event.attendees.join(", ")}</p>
+                    <p><span className="text-default-500">Attendees:</span> {labelList(event.attendees)}</p>
                   )}
                   {(event.tags ?? []).length > 0 && (
                     <p><span className="text-default-500">Note:</span> {event.tags.join(", ")}</p>
@@ -143,7 +160,7 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
                   <div className="mt-3 flex flex-col gap-1 bg-default-50 border border-default-200 rounded-lg px-3 py-2 text-sm">
                     <span className="font-medium text-default-700">You don't have permission to edit this event.</span>
                     {contacts.length > 0 && (
-                      <span className="text-default-400 text-xs">Contact the creator or host: {contacts.join(", ")}</span>
+                      <span className="text-default-400 text-xs">Contact the creator or host: {labelList(contacts)}</span>
                     )}
                   </div>
                 )}
@@ -295,7 +312,7 @@ function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick,
         rooms={accessibleRooms}
         isPrivileged={isAdmin || (managedRooms ?? []).some((r) => String(r._id) === roomFilter)}
         createdBy={email}
-        onSuccess={mutateRoomEvents}
+        onSuccess={() => mutateRoomEvents()}
         initialStart={slotStart}
         initialEnd={slotEnd}
         initialRoomId={roomFilter || ""}
@@ -381,6 +398,15 @@ export default function BookingSingle({ email }) {
     fetcher,
     { revalidateOnFocus: false }
   );
+
+  const { mutate: globalMutate } = useSWRConfig();
+  // Refresh every room-event query (the sidebar list AND the per-room calendar
+  // feed inside EventBookingTab) so an edit shows up on the calendar right away.
+  const refreshRoomEvents = useCallback(() => {
+    globalMutate(
+      (key) => typeof key === "string" && key.startsWith("/api/room-event")
+    );
+  }, [globalMutate]);
 
   const { data: currentbooking, isLoading: isLoadingBook } = useSWR(
     [
@@ -637,7 +663,7 @@ export default function BookingSingle({ email }) {
           isAdmin={isAdmin}
           managedRooms={managedRooms}
           rooms={allRooms}
-          onSuccess={() => mutateMyEvents()}
+          onSuccess={refreshRoomEvents}
         />
       </div>
     );
