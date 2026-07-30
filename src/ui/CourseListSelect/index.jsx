@@ -36,8 +36,8 @@ export default function CourseListSelect({
     let done = {};
     (userEvents ?? []).forEach((d) => (done[d?.course?.title] = true));
     let l = [
-      { title: "Pending class", data: [], emptyText: "No action needed" },
-      { title: "Planned class", data: [] },
+      { key: "pending", title: t("booking.pendingClass"), data: [], emptyText: t("booking.noAction") },
+      { key: "planned", title: t("booking.plannedClass"), data: [] },
     ];
     (course ?? []).forEach((c) => {
       if (done[c.title]) l[1].data.push(c);
@@ -45,7 +45,7 @@ export default function CourseListSelect({
     });
     if (l[1].data.length === 0) l = [l[0]];
     return l;
-  }, [userEvents, course]);
+  }, [userEvents, course, t]);
   useEffect(() => {
     const select = Array.from(selectedKeys);
     if (select[0] && onSelectionChange) {
@@ -170,7 +170,7 @@ export default function CourseListSelect({
           hideSelectedIcon
         >
           {courseGroup.map((cg) => (
-            <ListboxSection key={cg.title} title={cg.title} showDivider>
+            <ListboxSection key={cg.key} title={cg.title} showDivider>
               {cg.data.map(
                 ({ title, location, teacher_email, credit, _id, isLock }) => (
                   <ListboxItem
@@ -195,7 +195,7 @@ export default function CourseListSelect({
                             {credit} credits
                           </Chip>
                         </div>
-                        {cg.title === "Planned class" && onUnschedule && (
+                        {cg.key === "planned" && onUnschedule && (
                           <Button
                             size="sm"
                             variant="flat"

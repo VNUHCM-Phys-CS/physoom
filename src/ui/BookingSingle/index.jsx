@@ -646,7 +646,7 @@ export default function BookingSingle({ email }) {
         </Drawer>
         <Card className="w-full sm:w-3/4">
           <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab} destroyInactiveTabPanel={false}>
-            <Tab key="general" title="Classroom schedule">
+            <Tab key="general" title={t("booking.classroomSchedule")}>
               {booking && !isLoadingBook ? (
                 <CalendarByRoom
                   initRoom={
@@ -665,11 +665,11 @@ export default function BookingSingle({ email }) {
                 />
               ) : (
                 <div className="prose">
-                  <h4>Please choose course</h4>
+                  <h4>{t("booking.pleaseChoose")}</h4>
                 </div>
               )}
             </Tab>
-            <Tab key="personal" title="Personal schedule">
+            <Tab key="personal" title={t("booking.personalSchedule")}>
               <CalendarByUser
                 _events={userEvents}
                 customSubtitle={customSubtitle}
@@ -677,14 +677,14 @@ export default function BookingSingle({ email }) {
                 onEventUpdate={mutateUserEvent}
               />
             </Tab>
-            <Tab key="class_sche" title="Class schedule">
+            <Tab key="class_sche" title={t("booking.classSchedule")}>
               <CalendarByUser
                 _events={classEvents}
                 selectedID={booking?.course?._id}
                 onEventUpdate={mutateClassEvent}
               />
             </Tab>
-            <Tab key="event_booking" title="Event Booking">
+            <Tab key="event_booking" title={t("booking.eventBooking")}>
               <EventBookingTab
                 allRooms={allRooms}
                 managedRooms={managedRooms}

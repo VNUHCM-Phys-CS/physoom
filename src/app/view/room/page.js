@@ -13,6 +13,7 @@ import useSWR from "swr";
 import Card from "@/ui/Card";
 import { categoryList, locationList } from "@/models/ulti";
 import { HashIcon, ArrowRightIcon, DoorOpenIcon, MapPinIcon, UsersIcon, CalendarSearchIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const schema = z.object({
     teacher_id: z.string().min(1, 'ID is required')
@@ -20,6 +21,7 @@ const schema = z.object({
 
 function QuickCodeEntry() {
     const router = useRouter();
+    const { t } = useI18n();
     const [code, setCode] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ function QuickCodeEntry() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const trimmed = code.trim().toUpperCase();
-        if (trimmed.length !== 6) { setError("Code must be 6 characters"); return; }
+        if (trimmed.length !== 6) { setError(t("room.codeLen")); return; }
         setError("");
         setLoading(true);
         try {
@@ -36,10 +38,10 @@ function QuickCodeEntry() {
                 const { token } = await res.json();
                 router.push(`/share/${token}`);
             } else {
-                setError("Code not found. Please check and try again.");
+                setError(t("room.codeNotFound"));
             }
         } catch {
-            setError("Something went wrong. Please try again.");
+            setError(t("room.codeError"));
         } finally {
             setLoading(false);
         }
@@ -49,7 +51,7 @@ function QuickCodeEntry() {
         <div className="flex flex-col items-center gap-3 py-10 px-4">
             <div className="flex items-center gap-2 text-default-500 text-sm font-medium">
                 <HashIcon size={15} />
-                Quick access with a share code
+                {t("room.quickAccess")}
             </div>
             <form onSubmit={handleSubmit} className="flex gap-2 items-start">
                 <div className="flex flex-col gap-1">
@@ -65,11 +67,11 @@ function QuickCodeEntry() {
                     />
                 </div>
                 <Button type="submit" color="secondary" isLoading={loading} endContent={!loading && <ArrowRightIcon size={15} />}>
-                    Go
+                    {t("room.go")}
                 </Button>
             </form>
             <p className="text-xs text-default-400 text-center max-w-xs">
-                Get this code from a display screen, QR poster, or your administrator.
+                {t("room.codeHint")}
             </p>
         </div>
     );
@@ -77,6 +79,7 @@ function QuickCodeEntry() {
 
 export default function ViewRoomPage() {
     const { data: session } = useSession();
+    const { t } = useI18n();
     const [isCheck, setIsCheck] = useState();
     const [teacher_id, setTeacherID] = useState();
     const [filter, setFilter] = useState();
@@ -121,10 +124,10 @@ export default function ViewRoomPage() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-white">
                         <DoorOpenIcon size={18} />
                     </span>
-                    <h1 className="text-2xl font-bold text-default-900">Room Schedule</h1>
+                    <h1 className="text-2xl font-bold text-default-900">{t("room.title")}</h1>
                 </div>
                 <p className="text-sm text-default-500 max-w-md">
-                    Browse real-time room availability across the department.
+                    {t("room.subtitle")}
                 </p>
             </div>
 
@@ -133,7 +136,7 @@ export default function ViewRoomPage() {
                 <QuickCodeEntry />
                 {session?.user && (
                     <div className="border-t border-default-100 pt-4 mt-2 text-center text-xs text-default-400">
-                        Or use your MSCB below to view the room schedule
+                        {t("room.orMscb")}
                     </div>
                 )}
             </Card>
@@ -145,9 +148,9 @@ export default function ViewRoomPage() {
                         <div className="flex flex-col md:flex-row gap-4 mb-4">
                             <div className="w-full md:w-72 shrink-0">
                                 <Autocomplete
-                                    label="Room"
+                                    label={t("room.roomLabel")}
                                     variant="bordered"
-                                    placeholder="Search by Room"
+                                    placeholder={t("room.searchByRoom")}
                                     startContent={<DoorOpenIcon size={16} className="text-default-400" />}
                                     selectedKey={filter}
                                     onSelectionChange={setFilter}
@@ -173,13 +176,13 @@ export default function ViewRoomPage() {
                                         </div>
                                         <div className="flex items-center gap-1.5 text-sm text-default-500">
                                             <UsersIcon size={14} />
-                                            Max capacity: <span className="font-semibold text-default-700">{currentRoom.limit}</span> students
+                                            {t("room.maxCap")} <span className="font-semibold text-default-700">{currentRoom.limit}</span> {t("room.students")}
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2 text-default-400 text-sm h-full rounded-xl border border-dashed border-default-200 p-4">
                                         <CalendarSearchIcon size={16} />
-                                        Select a room to see its details and schedule.
+                                        {t("room.selectHint")}
                                     </div>
                                 )}
                             </div>
@@ -194,7 +197,7 @@ export default function ViewRoomPage() {
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-2 py-16 text-default-400">
                                 <CalendarSearchIcon size={32} />
-                                <p className="text-sm">Please select a room to view its schedule.</p>
+                                <p className="text-sm">{t("room.pleaseSelect")}</p>
                             </div>
                         )}
                     </Card>
@@ -204,7 +207,7 @@ export default function ViewRoomPage() {
                             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-100 text-secondary">
                                 <CalendarSearchIcon size={24} />
                             </div>
-                            <h4 className="text-lg text-center">Enter your <strong>MSCB</strong> to view the room schedule</h4>
+                            <h4 className="text-lg text-center">{t("room.enterMscb")}</h4>
                             <div className="flex gap-2 w-full max-w-sm">
                                 <Input
                                     className="flex-1"
@@ -213,14 +216,14 @@ export default function ViewRoomPage() {
                                     isInvalid={!!errors.teacher_id}
                                     errorMessage={errors.teacher_id?.message}
                                 />
-                                <Button type="submit" color="secondary">Submit</Button>
+                                <Button type="submit" color="secondary">{t("room.submit")}</Button>
                             </div>
                         </form>
                     </Card>
                 )
             ) : (
                 <p className="text-center text-default-400 text-sm py-6">
-                    Log in with your school account to view the room schedule with your MSCB.
+                    {t("room.loginToView")}
                 </p>
             )}
         </div>
