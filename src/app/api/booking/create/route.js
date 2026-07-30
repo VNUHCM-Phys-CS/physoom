@@ -62,8 +62,17 @@ function getOccurrences(start_date, end_date, weekday, start_minutes, end_minute
     const occStart = current.clone().startOf('day').add(start_minutes, 'minutes').toDate();
     const occEnd = current.clone().startOf('day').add(end_minutes, 'minutes').toDate();
 
-    const isHoliday = holidays.some(h =>
-      occStart >= new Date(h.start) && occStart <= new Date(h.end)
+    // Compare by calendar day: a single-day holiday is stored with
+    // start=end=midnight, so an instant range check would miss occurrences
+    // later that same day. Treat a holiday as covering whole days inclusive.
+    const occDay = current.clone().startOf('day');
+    const isHoliday = holidays.some((h) =>
+      occDay.isBetween(
+        moment(h.start).startOf('day'),
+        moment(h.end).endOf('day'),
+        undefined,
+        '[]'
+      )
     );
 
     if (!isHoliday) {
