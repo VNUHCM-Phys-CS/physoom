@@ -40,8 +40,26 @@ export default function TermsAndHolidaysPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [nationalYear, setNationalYear] = useState(String(new Date().getFullYear()));
   const [loadingNational, setLoadingNational] = useState(false);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setFormData({ title: "", type: "term", start: "", end: "" });
+    onOpen();
+  };
+
+  const openEdit = (item) => {
+    setEditingId(item._id);
+    setFormData({
+      title: item.title || "",
+      type: item.type || "term",
+      start: item.start ? moment(item.start).format("YYYY-MM-DD") : "",
+      end: item.end ? moment(item.end).format("YYYY-MM-DD") : "",
+    });
+    onOpen();
+  };
 
   // Search + sort
   const [search, setSearch] = useState("");
@@ -111,13 +129,14 @@ export default function TermsAndHolidaysPage() {
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/calendar-events", {
-        method: "POST",
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(editingId ? { _id: editingId, ...formData } : formData)
       });
       if (res.ok) {
         mutate();
         onClose();
+        setEditingId(null);
         setFormData({ title: "", type: "term", start: "", end: "" });
       }
     } catch (e) {
@@ -164,7 +183,7 @@ export default function TermsAndHolidaysPage() {
           >
             {t("terms.loadNational")}
           </Button>
-          <Button color="primary" onPress={onOpen} endContent={<PlusIcon />}>
+          <Button color="primary" onPress={openCreate} endContent={<PlusIcon />}>
             {t("terms.createNew")}
           </Button>
         </div>
@@ -208,9 +227,14 @@ export default function TermsAndHolidaysPage() {
               <TableCell>{moment(item.start).format('DD MMM YYYY')}</TableCell>
               <TableCell>{moment(item.end).format('DD MMM YYYY')}</TableCell>
               <TableCell>
-                <Button size="sm" color="danger" variant="flat" onPress={() => onDelete(item._id)}>
-                  {t("terms.delete")}
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="flat" onPress={() => openEdit(item)}>
+                    {t("tbl.edit")}
+                  </Button>
+                  <Button size="sm" color="danger" variant="flat" onPress={() => onDelete(item._id)}>
+                    {t("terms.delete")}
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           )}
@@ -219,7 +243,7 @@ export default function TermsAndHolidaysPage() {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalContent>
-          <ModalHeader>{t("terms.createModal")}</ModalHeader>
+          <ModalHeader>{editingId ? t("terms.editModal") : t("terms.createModal")}</ModalHeader>
           <ModalBody className="flex flex-col gap-4">
             <Input
               label={t("terms.fieldTitle")}
