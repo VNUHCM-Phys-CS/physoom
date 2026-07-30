@@ -49,42 +49,44 @@ function getOccurrences(start_date, end_date, weekday, start_minutes, end_minute
   // weekday: 2=Mon, 3=Tue … 7=Sat, 8=Sun
   const targetJsDay = weekday === 8 ? 0 : weekday - 1;
 
-  let current = moment(start_date).startOf('day');
-  // end_date is computed as start_date + (duration-1) weeks. When start_date's
-  // weekday differs from the class weekday, advancing to the first matching day
-  // pushes every occurrence forward, so the last one would fall just past
-  // end_date and get dropped (3-week course → only 2 sessions). Extend the
-  // boundary by a week's slack so the intended number of weeks is generated.
-  const end = moment(end_date).add(6, 'days').endOf('day');
+  // Number of sessions the term intends. end_date is computed as
+  // start_date + (duration-1) weeks, so this recovers `duration` regardless of
+  // how start_date's weekday lines up with the class weekday.
+  const targetCount = Math.max(
+    1,
+    Math.round(moment(end_date).diff(moment(start_date), "days") / 7) + 1
+  );
 
-  // Advance to first match
-  while (current.day() !== targetJsDay && current.isBefore(end)) {
-    current.add(1, 'days');
-  }
-
-  const occurrences = [];
-  while (current.isBefore(end) || current.isSame(end, 'day')) {
-    const occStart = current.clone().startOf('day').add(start_minutes, 'minutes').toDate();
-    const occEnd = current.clone().startOf('day').add(end_minutes, 'minutes').toDate();
-
-    // Compare by calendar day: a single-day holiday is stored with
-    // start=end=midnight, so an instant range check would miss occurrences
-    // later that same day. Treat a holiday as covering whole days inclusive.
-    const occDay = current.clone().startOf('day');
-    const isHoliday = holidays.some((h) =>
-      occDay.isBetween(
-        moment(h.start).startOf('day'),
-        moment(h.end).endOf('day'),
+  const isHolidayDay = (day) =>
+    holidays.some((h) =>
+      day.isBetween(
+        moment(h.start).startOf("day"),
+        moment(h.end).endOf("day"),
         undefined,
-        '[]'
+        "[]"
       )
     );
 
-    if (!isHoliday) {
-      occurrences.push({ start: occStart, end: occEnd });
-    }
+  // Advance to the first class weekday on/after start_date.
+  let current = moment(start_date).startOf("day");
+  while (current.day() !== targetJsDay) current.add(1, "days");
 
-    current.add(1, 'weeks');
+  // Keep the number of sessions: a week that lands on a holiday is skipped and
+  // compensated by extending into the following week(s). A safety cap prevents
+  // an infinite loop if holidays were ever misconfigured to span everything.
+  const occurrences = [];
+  const MAX_WEEKS = targetCount + 26;
+  let scanned = 0;
+  while (occurrences.length < targetCount && scanned < MAX_WEEKS) {
+    const occDay = current.clone().startOf("day");
+    if (!isHolidayDay(occDay)) {
+      occurrences.push({
+        start: occDay.clone().add(start_minutes, "minutes").toDate(),
+        end: occDay.clone().add(end_minutes, "minutes").toDate(),
+      });
+    }
+    current.add(1, "weeks");
+    scanned++;
   }
   return occurrences;
 }

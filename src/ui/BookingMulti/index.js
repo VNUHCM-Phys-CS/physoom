@@ -11,6 +11,9 @@ import SearchCalender from "../SearchCalender";
 import CourseListSelect from "../CourseListSelect";
 import CourseModal from "../CourseModal";
 import DeleteConfirmationModal from "../DeleteConfirmationModal";
+import { useConfirm } from "../ConfirmDialog";
+import { useI18n } from "@/i18n/I18nProvider";
+import { toast } from "react-toastify";
 import { useDisclosure, Button } from "@heroui/react";
 import { ExternalLinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -18,6 +21,8 @@ import moment from "moment";
 
 export default function BookingMulti() {
   const router = useRouter();
+  const { t } = useI18n();
+  const { confirm, confirmDialog } = useConfirm();
   const [selectedTab, setSelectedTab] = useState("general");
   const [searhCourse, setSearhCourse] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState();
@@ -254,6 +259,35 @@ export default function BookingMulti() {
     onDeleteModalOpen();
   }, [onDeleteModalOpen]);
 
+  // Move a planned course back to pending: delete its booking (keep the course).
+  const handleUnschedule = useCallback(async ({ _id }) => {
+    const ok = await confirm({
+      title: t("course.moveToPending"),
+      message: t("course.confirmUnschedule"),
+      confirmLabel: t("course.moveToPending"),
+      confirmColor: "warning",
+    });
+    if (!ok) return;
+    try {
+      const res = await fetch("/api/booking/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "course", id: _id }),
+      });
+      if (res.ok) {
+        mutateCourse();
+        mutateUserEvent();
+        mutateBooking();
+        mutateCurrentBooking();
+        toast.success(t("course.moveToPending"));
+      } else {
+        toast.error("Failed to move course to pending.");
+      }
+    } catch {
+      toast.error("Failed to move course to pending.");
+    }
+  }, [confirm, t, mutateCourse, mutateUserEvent, mutateBooking, mutateCurrentBooking]);
+
   const intructionText = useCallback(() => {
     return <p className="text-gray-700 font-medium">
       💡 You can <span className="font-bold">click</span> to select a course,
@@ -262,6 +296,7 @@ export default function BookingMulti() {
   }, []);
   return (
     <div className="flex py-2 px-2 mx-auto gap-2">
+      {confirmDialog}
       <Card className="w-1/3 md:w-1/4  max-h-dvh flex flex-col">
         <Input
           label="Search"
@@ -277,6 +312,7 @@ export default function BookingMulti() {
           onSelectionChange={onSelectCourse}
           onUpdate={mutateCourse}
           currentId={selectedCourseId}
+          onUnschedule={handleUnschedule}
         />
       </Card>
       <Card className="w-2/3 md:w-3/4 max-h-dvh">
