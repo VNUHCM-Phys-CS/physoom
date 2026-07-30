@@ -16,6 +16,7 @@ import { courseSchema as schema } from "@/models/utils";
 import { Plus, Trash, Trash2Icon } from "lucide-react";
 import { categoryList, locationList } from "@/models/ulti";
 import { toast } from "react-toastify";
+import LecturerEmailInput from "./LecturerEmailInput";
 
 const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -217,15 +218,15 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                       name={`teacher_email.${index}`}
                       control={control}
                       render={({ field }) => (
-                        <Input
-                          {...field}
+                        <LecturerEmailInput
+                          value={field.value || ""}
+                          onChange={field.onChange}
                           placeholder={`Email ${index + 1}`}
                           errorMessage={
                             errors.teacher_email?.[index]?.message || "Required"
                           }
                           isInvalid={!!errors.teacher_email?.[index]}
                           required
-                          style={{ flex: 1 }}
                         />
                       )}
                     />
