@@ -5,47 +5,60 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
+  DropdownSection,
   Button,
 } from "@heroui/react";
 import { toast } from "react-toastify";
-import { Download, MoreHorizontal } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Download } from "lucide-react";
+import { useCallback } from "react";
+import useStore from "@/store/store";
 
-export default function ExportBookingButton({ data }) {
-  const _id = useMemo(() => data?.map((d) => d._id), [data]);
-  const handleDownload = useCallback(() => {
-    downloadBookingList(_id);
-  });
-  const handleDownloadFormal = useCallback(() => {
-    downloadBookingList(_id, "formal");
-  });
+export default function ExportBookingButton() {
+  const course_selected = useStore((s) => s.course_selected);
+  const classIds = course_selected?.class_id;
+  const classLabel = Array.isArray(classIds) ? classIds.join(", ") : classIds;
+
+  const doExport = useCallback((style, class_id) => {
+    downloadBookingList({ style, class_id });
+  }, []);
+
   return (
-    <>
-      <Dropdown>
-        <DropdownTrigger>
-          <Button color="primary" variant="ghost" endContent={<Download />}>
-            Export
-          </Button>
-        </DropdownTrigger>
-        <DropdownMenu>
-          <DropdownItem onPress={handleDownload}>As List</DropdownItem>
-          <DropdownItem onPress={handleDownloadFormal}>As Fromal</DropdownItem>
-        </DropdownMenu>
-      </Dropdown>
-    </>
+    <Dropdown>
+      <DropdownTrigger>
+        <Button color="primary" variant="ghost" endContent={<Download />}>
+          Export
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Export options">
+        {classLabel ? (
+          <DropdownSection title={`Lớp hiện tại (${classLabel})`} showDivider>
+            <DropdownItem key="cur-list" onPress={() => doExport(undefined, classIds)}>
+              As List
+            </DropdownItem>
+            <DropdownItem key="cur-formal" onPress={() => doExport("formal", classIds)}>
+              As Formal
+            </DropdownItem>
+          </DropdownSection>
+        ) : null}
+        <DropdownSection title="Tất cả các lớp">
+          <DropdownItem key="all-list" onPress={() => doExport(undefined, undefined)}>
+            As List
+          </DropdownItem>
+          <DropdownItem key="all-formal" onPress={() => doExport("formal", undefined)}>
+            As Formal
+          </DropdownItem>
+        </DropdownSection>
+      </DropdownMenu>
+    </Dropdown>
   );
 }
-async function downloadBookingList(_id, style) {
+
+async function downloadBookingList({ style, class_id }) {
   try {
     const response = await fetch("/api/booking/export", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        _id,
-        style,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ style, class_id }),
     });
 
     if (!response.ok) {
@@ -55,14 +68,11 @@ async function downloadBookingList(_id, style) {
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
 
-    // Create a temporary link to download the file
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "booking_list.xlsx"); // Set the file name
+    link.setAttribute("download", "booking_list.xlsx");
     document.body.appendChild(link);
     link.click();
-
-    // Cleanup
     link.parentNode.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (error) {

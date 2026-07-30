@@ -18,10 +18,12 @@ import { useDisclosure, Button } from "@heroui/react";
 import { ExternalLinkIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import moment from "moment";
+import useStore from "@/store/store";
 
 export default function BookingMulti() {
   const router = useRouter();
   const { t } = useI18n();
+  const setCourse_selected = useStore((s) => s.setCourse_selected);
   const { confirm, confirmDialog } = useConfirm();
   const [selectedTab, setSelectedTab] = useState("general");
   const [searhCourse, setSearhCourse] = useState("");
@@ -126,7 +128,8 @@ export default function BookingMulti() {
     }
     setSelectedCourseId(course?._id);
     setSelectedEventForDelete(null);
-  }, []);
+    setCourse_selected(course);
+  }, [setCourse_selected]);
   const { data: _events, mutate: mutateUserEvent } = useSWR(
     [
       "/api/booking",

@@ -7,8 +7,8 @@ import { defaultGridLT, defaultGridNVC, extractBaseClass } from "@/lib/ulti";
 import ExcelJS from "exceljs";
 import CalendarEvent from "@/models/calendarEvent";
 import User from "@/models/user";
-import "@/models/course"; // register schemas used by .populate
-import "@/models/room";
+import Course from "@/models/course";
+import "@/models/room"; // register schema used by .populate
 import { cloneDeep, groupBy, isArray } from "lodash";
 import path from "path";
 import { readFileSync } from "fs";
@@ -31,11 +31,18 @@ export async function POST(request) {
   try {
     if (user && user.isAdmin) {
       await connectToDb();
-      let { _id, style } = await request.json();
+      let { _id, style, class_id } = await request.json();
 
       // Build match — if _id filter given, treat as series_ids
       const matchStage = { type: 'class', isCancelled: { $ne: true } };
       if (_id && isArray(_id)) matchStage.series_id = { $in: _id };
+
+      // Optional: restrict to a specific class (course.class_id)
+      if (class_id) {
+        const classIds = isArray(class_id) ? class_id : [class_id];
+        const courses = await Course.find({ class_id: { $in: classIds } }, "_id").lean();
+        matchStage.course = { $in: courses.map((c) => c._id) };
+      }
 
       // Aggregate: one representative doc per series_id
       const series = await CalendarEvent.aggregate([
