@@ -17,8 +17,10 @@ import { Plus, Trash, Trash2Icon } from "lucide-react";
 import { categoryList, locationList } from "@/models/ulti";
 import { toast } from "react-toastify";
 import LecturerEmailInput from "./LecturerEmailInput";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
+  const { t } = useI18n();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const {
     control,
@@ -78,7 +80,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
 
       if (!validateResponse.ok || !validateData.isValid) {
         toast.error(
-          validateData.message || "Validation failed. Please try again."
+          validateData.message || t("course.validationFailed")
         );
         return;
       }
@@ -99,16 +101,16 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
       const saveData = await saveResponse.json();
 
       if (!saveResponse.ok) {
-        toast.error(saveData.message || "Failed to save the data.");
+        toast.error(saveData.message || t("course.saveFailed"));
         return;
       }
 
-      toast.success("Data saved successfully!");
+      toast.success(t("course.saved"));
       onSave(); // Callback to refresh the parent component
       onOpenChange(false); // Close the modal
     } catch (error) {
       console.error("Error saving data:", error);
-      toast.error("An unexpected error occurred. Please try again.");
+      toast.error(t("course.unexpectedError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +122,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
         {(onClose) => (
           <>
             <ModalHeader>
-              <h3 id="modal-title">{data ? "Update Data" : "Create Data"}</h3>
+              <h3 id="modal-title">{data ? t("course.updateData") : t("course.createData")}</h3>
             </ModalHeader>
             <ModalBody>
               <Controller
@@ -130,8 +132,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     clearable
-                    label="Course ID"
-                    placeholder="Enter Course ID"
+                    label={t("course.courseId")}
+                    placeholder={t("course.courseId")}
                     errorMessage={errors.course_id?.message}
                     isInvalid={!!errors.course_id}
                     required
@@ -145,8 +147,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     clearable
-                    label="Course ID Extend"
-                    placeholder="Enter Course ID extend"
+                    label={t("course.courseIdExt")}
+                    placeholder={t("course.courseIdExt")}
                     errorMessage={errors.course_id_extend?.message}
                     isInvalid={!!errors.course_id_extend}
                     required
@@ -160,8 +162,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     clearable
-                    label="Title"
-                    placeholder="Enter title"
+                    label={t("form.title")}
+                    placeholder={t("form.title")}
                     errorMessage={errors.title?.message}
                     isInvalid={!!errors.title}
                     required
@@ -170,7 +172,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
               />
 
               <div>
-                <label>Class ID</label>
+                <label>{t("course.classId")}</label>
                 {fields_classID.map((field, index) => (
                   <div
                     key={field.id}
@@ -204,11 +206,11 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   </div>
                 ))}
                 <Button auto flat onPress={() => append_classID("")}>
-                  <Plus /> Add class ID
+                  <Plus /> {t("course.addClassId")}
                 </Button>
               </div>
               <div>
-                <label>Teacher Emails</label>
+                <label>{t("course.teacherEmails")}</label>
                 {fields.map((field, index) => (
                   <div
                     key={field.id}

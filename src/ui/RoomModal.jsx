@@ -16,8 +16,10 @@ import { roomSchema as schema } from "@/models/utils";
 import { Plus, Trash, Trash2Icon } from "lucide-react";
 import { locationList, categoryList } from "@/models/ulti";
 import { toast } from "react-toastify";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
+  const { t } = useI18n();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const {
     control,
@@ -99,7 +101,7 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
         {(onClose) => (
           <>
             <ModalHeader>
-              <h3 id="modal-title">{data ? "Update Room" : "Create Room"}</h3>
+              <h3 id="modal-title">{data ? t("room.updateRoom") : t("room.createRoom")}</h3>
             </ModalHeader>
             <ModalBody>
               <Controller
@@ -109,8 +111,8 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     clearable
-                    label="Title"
-                    placeholder="Enter room title"
+                    label={t("form.title")}
+                    placeholder={t("room.enterTitle")}
                     errorMessage={errors.title?.message}
                     isInvalid={!!errors.title}
                     required
@@ -124,8 +126,8 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     type="number"
-                    label="Capacity Limit"
-                    placeholder="Enter capacity limit"
+                    label={t("room.capacity")}
+                    placeholder={t("room.enterCapacity")}
                     errorMessage={errors.limit?.message}
                     isInvalid={!!errors.limit}
                     required
@@ -142,8 +144,8 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                 render={({ field }) => (
                   <Select
                     {...field}
-                    label="Location"
-                    placeholder="Select a location"
+                    label={t("room.location")}
+                    placeholder={t("room.selectLocation")}
                     selectedKeys={[field.value]}
                     onChange={(val) => field.onChange(val)}
                   >
@@ -158,8 +160,8 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                 control={control}
                 render={({ field }) => (
                   <Select
-                    label="Category"
-                    placeholder="Select a category"
+                    label={t("room.category")}
+                    placeholder={t("room.selectCategory")}
                     selectedKeys={field.value || []}
                     onChange={(val) => {
                       field.onChange(val.target.value.split(","));
@@ -179,22 +181,22 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     clearable
-                    label="Note"
-                    placeholder="Enter any additional notes"
+                    label={t("form.note")}
+                    placeholder={t("room.enterNote")}
                   />
                 )}
               />
             </ModalBody>
             <ModalFooter>
               <Button auto flat color="error" onPress={onClose}>
-                Cancel
+                {t("form.cancel")}
               </Button>
               <Button
                 auto
                 onPress={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
               >
-                Save
+                {t("form.save")}
               </Button>
             </ModalFooter>
           </>
