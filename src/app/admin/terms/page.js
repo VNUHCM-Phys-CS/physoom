@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import { 
@@ -42,6 +42,34 @@ export default function TermsAndHolidaysPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nationalYear, setNationalYear] = useState(String(new Date().getFullYear()));
   const [loadingNational, setLoadingNational] = useState(false);
+
+  // Search + sort
+  const [search, setSearch] = useState("");
+  const [sortDescriptor, setSortDescriptor] = useState({ column: "start", direction: "ascending" });
+
+  const displayed = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let rows = (events ?? []).filter(
+      (e) =>
+        !q ||
+        String(e.title ?? "").toLowerCase().includes(q) ||
+        String(e.type ?? "").toLowerCase().includes(q)
+    );
+    const { column, direction } = sortDescriptor;
+    rows = [...rows].sort((a, b) => {
+      let av, bv;
+      if (column === "start" || column === "end") {
+        av = new Date(a[column]).getTime() || 0;
+        bv = new Date(b[column]).getTime() || 0;
+      } else {
+        av = String(a[column] ?? "").toLowerCase();
+        bv = String(b[column] ?? "").toLowerCase();
+      }
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return direction === "descending" ? -cmp : cmp;
+    });
+    return rows;
+  }, [events, search, sortDescriptor]);
 
   // Add the Vietnamese national public holidays for a year, skipping any that
   // already exist (matched by title + start date).
@@ -142,16 +170,30 @@ export default function TermsAndHolidaysPage() {
         </div>
       </div>
 
-      <Table aria-label="Terms and Holidays Table" >
+      <Input
+        isClearable
+        size="sm"
+        className="max-w-xs"
+        placeholder={t("tbl.search")}
+        value={search}
+        onValueChange={setSearch}
+        onClear={() => setSearch("")}
+      />
+
+      <Table
+        aria-label="Terms and Holidays Table"
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+      >
         <TableHeader>
-          <TableColumn>{t("terms.colTitle")}</TableColumn>
-          <TableColumn>{t("terms.colType")}</TableColumn>
-          <TableColumn>{t("terms.colStart")}</TableColumn>
-          <TableColumn>{t("terms.colEnd")}</TableColumn>
-          <TableColumn>{t("terms.colActions")}</TableColumn>
+          <TableColumn key="title" allowsSorting>{t("terms.colTitle")}</TableColumn>
+          <TableColumn key="type" allowsSorting>{t("terms.colType")}</TableColumn>
+          <TableColumn key="start" allowsSorting>{t("terms.colStart")}</TableColumn>
+          <TableColumn key="end" allowsSorting>{t("terms.colEnd")}</TableColumn>
+          <TableColumn key="actions">{t("terms.colActions")}</TableColumn>
         </TableHeader>
         <TableBody
-          items={events || []}
+          items={displayed}
           isLoading={isLoading}
           emptyContent={t("terms.empty")}
         >
