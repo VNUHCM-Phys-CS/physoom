@@ -10,17 +10,63 @@ import {
 } from "@heroui/react";
 import { toast } from "react-toastify";
 import { Download } from "lucide-react";
-import { useCallback } from "react";
+import { useMemo } from "react";
 import useStore from "@/store/store";
 
-export default function ExportBookingButton() {
+/**
+ * Export button with two modes:
+ *  - Search mode (`events` given): exports exactly the series currently shown
+ *    (e.g. a teacher/room/class search result).
+ *  - Page mode (no `events`): exports the class selected in BookingMulti (via
+ *    the shared store) or all classes.
+ */
+export default function ExportBookingButton({ events }) {
   const course_selected = useStore((s) => s.course_selected);
   const classIds = course_selected?.class_id;
   const classLabel = Array.isArray(classIds) ? classIds.join(", ") : classIds;
 
-  const doExport = useCallback((style, class_id) => {
-    downloadBookingList({ style, class_id });
-  }, []);
+  const seriesIds = useMemo(() => {
+    if (!events) return null;
+    return [...new Set(events.map((e) => e.series_id || e._id).filter(Boolean))];
+  }, [events]);
+
+  const run = (style, body) => downloadBookingList({ style, ...body });
+
+  const items = [];
+  if (seriesIds) {
+    // Export exactly what the current search shows.
+    items.push(
+      <DropdownItem key="s-list" onPress={() => run(undefined, { _id: seriesIds })}>
+        As List
+      </DropdownItem>,
+      <DropdownItem key="s-formal" onPress={() => run("formal", { _id: seriesIds })}>
+        As Formal
+      </DropdownItem>
+    );
+  } else {
+    if (classLabel) {
+      items.push(
+        <DropdownSection key="cur" title={`Lớp hiện tại (${classLabel})`} showDivider>
+          <DropdownItem key="c-list" onPress={() => run(undefined, { class_id: classIds })}>
+            As List
+          </DropdownItem>
+          <DropdownItem key="c-formal" onPress={() => run("formal", { class_id: classIds })}>
+            As Formal
+          </DropdownItem>
+        </DropdownSection>
+      );
+    }
+    items.push(
+      <DropdownSection key="all" title="Tất cả các lớp">
+        <DropdownItem key="a-list" onPress={() => run(undefined, {})}>
+          As List
+        </DropdownItem>
+        <DropdownItem key="a-formal" onPress={() => run("formal", {})}>
+          As Formal
+        </DropdownItem>
+      </DropdownSection>
+    );
+  }
 
   return (
     <Dropdown>
@@ -29,36 +75,17 @@ export default function ExportBookingButton() {
           Export
         </Button>
       </DropdownTrigger>
-      <DropdownMenu aria-label="Export options">
-        {classLabel ? (
-          <DropdownSection title={`Lớp hiện tại (${classLabel})`} showDivider>
-            <DropdownItem key="cur-list" onPress={() => doExport(undefined, classIds)}>
-              As List
-            </DropdownItem>
-            <DropdownItem key="cur-formal" onPress={() => doExport("formal", classIds)}>
-              As Formal
-            </DropdownItem>
-          </DropdownSection>
-        ) : null}
-        <DropdownSection title="Tất cả các lớp">
-          <DropdownItem key="all-list" onPress={() => doExport(undefined, undefined)}>
-            As List
-          </DropdownItem>
-          <DropdownItem key="all-formal" onPress={() => doExport("formal", undefined)}>
-            As Formal
-          </DropdownItem>
-        </DropdownSection>
-      </DropdownMenu>
+      <DropdownMenu aria-label="Export options">{items}</DropdownMenu>
     </Dropdown>
   );
 }
 
-async function downloadBookingList({ style, class_id }) {
+async function downloadBookingList({ style, _id, class_id }) {
   try {
     const response = await fetch("/api/booking/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ style, class_id }),
+      body: JSON.stringify({ style, _id, class_id }),
     });
 
     if (!response.ok) {

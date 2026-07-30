@@ -155,7 +155,7 @@ export default function ({onClickEvent, onDoubleClick, onDragStart}) {
             </Autocomplete>
           )}
         </div>
-        <ExportBookingButton data={userEvents} />
+        <ExportBookingButton events={userEvents} />
       </div>
       <CalendarByUser _events={userEvents} customSubtitle={customSubtitle} onClickEvent={onClickEvent} onDoubleClick={onDoubleClick} onDragStart={onDragStart}/>
     </>
