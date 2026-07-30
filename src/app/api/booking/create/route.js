@@ -67,6 +67,14 @@ function getOccurrences(start_date, end_date, weekday, start_minutes, end_minute
       )
     );
 
+  // Vietnam is a fixed UTC+7 (no DST). Build occurrence instants explicitly in
+  // VN local time so class times are correct regardless of the server's
+  // timezone (Vercel runs in UTC). Take the calendar Y/M/D from the day and
+  // add the minutes-from-midnight as VN local time.
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const vnInstant = (day, minutes) =>
+    new Date(Date.UTC(day.year(), day.month(), day.date(), 0, 0, 0) - VN_OFFSET_MS + minutes * 60000);
+
   // Advance to the first class weekday on/after start_date.
   let current = moment(start_date).startOf("day");
   while (current.day() !== targetJsDay) current.add(1, "days");
@@ -81,8 +89,8 @@ function getOccurrences(start_date, end_date, weekday, start_minutes, end_minute
     const occDay = current.clone().startOf("day");
     if (!isHolidayDay(occDay)) {
       occurrences.push({
-        start: occDay.clone().add(start_minutes, "minutes").toDate(),
-        end: occDay.clone().add(end_minutes, "minutes").toDate(),
+        start: vnInstant(occDay, start_minutes),
+        end: vnInstant(occDay, end_minutes),
       });
     }
     current.add(1, "weeks");
