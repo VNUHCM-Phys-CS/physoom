@@ -336,6 +336,11 @@ export default function BookingSingle({ email }) {
 
   // Main tab + room — kept in sync with URL
   const [mainTab, setMainTab] = useState(() => searchParams.get("tab") || "general");
+  // Nudge react-big-calendar to recompute its layout after a hidden tab shows.
+  const handleMainTabChange = useCallback((key) => {
+    setMainTab(key);
+    setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
+  }, []);
   const [eventRoomId, setEventRoomId] = useState(() => searchParams.get("room") || null);
   const initialCourseId = useRef(searchParams.get("course") || null);
 
@@ -649,7 +654,7 @@ export default function BookingSingle({ email }) {
           </DrawerContent>
         </Drawer>
         <Card className="w-full sm:w-3/4">
-          <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab} destroyInactiveTabPanel={false}>
+          <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={handleMainTabChange} destroyInactiveTabPanel={false}>
             <Tab key="general" title={t("booking.classroomSchedule")}>
               {booking && !isLoadingBook ? (
                 <CalendarByRoom

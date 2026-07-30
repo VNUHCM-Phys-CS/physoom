@@ -24,6 +24,12 @@ export default function BookingMulti() {
   const { t } = useI18n();
   const { confirm, confirmDialog } = useConfirm();
   const [selectedTab, setSelectedTab] = useState("general");
+  // react-big-calendar computes its layout from the container size; a panel
+  // mounted while its tab was hidden needs a nudge to recalc once shown.
+  const handleTabChange = useCallback((key) => {
+    setSelectedTab(key);
+    setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
+  }, []);
   const [searhCourse, setSearhCourse] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState();
   const [selectedEventForDelete, setSelectedEventForDelete] = useState(null);
@@ -317,8 +323,8 @@ export default function BookingMulti() {
       </Card>
       <Card className="w-2/3 md:w-3/4 max-h-dvh">
         <ScrollShadow className="h-full">
-          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={setSelectedTab} destroyInactiveTabPanel={false}>
-            <Tab key="general" title="Classroom schedule">
+          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={handleTabChange} destroyInactiveTabPanel={false}>
+            <Tab key="general" title={t("booking.classroomSchedule")}>
               {booking && !isLoadingBook && !isLoadingEvent ? (
                 <CalendarByRoom
                   initRoom={
@@ -345,7 +351,7 @@ export default function BookingMulti() {
                 </div>
               )}
             </Tab>
-            <Tab key="personal" title="Lecturer schedule">
+            <Tab key="personal" title={t("booking.lecturerSchedule")}>
               <div className="prose">
                 <h3>Lecturer: {booking?.teacher_email ?? "No info"}</h3>
               </div>
@@ -361,7 +367,7 @@ export default function BookingMulti() {
               />
               {intructionText()}
             </Tab>
-            <Tab key="class_sche" title="Class schedule">
+            <Tab key="class_sche" title={t("booking.classSchedule")}>
               <div className="prose">
                 <h3>Class: {booking?.course?.class_id ?? "No info"}</h3>
               </div>
@@ -377,7 +383,7 @@ export default function BookingMulti() {
               />
               {intructionText()}
             </Tab>
-            <Tab key="searchEvent" title="Search Schedule">
+            <Tab key="searchEvent" title={t("booking.searchSchedule")}>
               <SearchCalender onClickEvent={onClickEvent} onDoubleClick={onDoubleClick} onDragStart={handleDragStart} />
               {intructionText()}
             </Tab>
