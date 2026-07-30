@@ -144,6 +144,11 @@ export const dictionaries = {
     "terms.endDate": "Ngày kết thúc",
     "terms.delete": "Xoá",
     "terms.confirmDelete": "Bạn có chắc muốn xoá mục này?",
+    "terms.loadNational": "Nạp lễ quốc gia (VN)",
+    "terms.year": "Năm",
+    "terms.nationalAdded": "Đã thêm {n} ngày lễ quốc gia cho năm {y}.",
+    "terms.nationalNoneNew": "Các ngày lễ quốc gia năm {y} đã có sẵn.",
+    "terms.nationalNoLunar": "Chưa có sẵn ngày Tết/Giỗ tổ cho năm {y} — chỉ thêm các lễ dương lịch. Vui lòng kiểm tra và thêm Tết thủ công.",
 
     // Common table / form
     "tbl.search": "Tìm theo tên...",
@@ -333,6 +338,11 @@ export const dictionaries = {
     "terms.endDate": "End Date",
     "terms.delete": "Delete",
     "terms.confirmDelete": "Are you sure you want to delete this?",
+    "terms.loadNational": "Load VN national holidays",
+    "terms.year": "Year",
+    "terms.nationalAdded": "Added {n} national holidays for {y}.",
+    "terms.nationalNoneNew": "National holidays for {y} already exist.",
+    "terms.nationalNoLunar": "Tết / Hung Kings dates aren't preset for {y} — only fixed-date holidays were added. Please add Tết manually.",
 
     "tbl.search": "Search by name...",
     "tbl.columns": "Columns",
