@@ -281,7 +281,7 @@ export default function BookingMulti() {
       </Card>
       <Card className="w-2/3 md:w-3/4 max-h-dvh">
         <ScrollShadow className="h-full">
-          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
+          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={setSelectedTab} destroyInactiveTabPanel={false}>
             <Tab key="general" title="Classroom schedule">
               {booking && !isLoadingBook && !isLoadingEvent ? (
                 <CalendarByRoom

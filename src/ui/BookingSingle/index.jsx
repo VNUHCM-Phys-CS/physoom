@@ -602,7 +602,7 @@ export default function BookingSingle({ email }) {
           </DrawerContent>
         </Drawer>
         <Card className="w-full sm:w-3/4">
-          <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab}>
+          <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab} destroyInactiveTabPanel={false}>
             <Tab key="general" title="Classroom schedule">
               {booking && !isLoadingBook ? (
                 <CalendarByRoom
