@@ -1,4 +1,3 @@
-"use server";
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
