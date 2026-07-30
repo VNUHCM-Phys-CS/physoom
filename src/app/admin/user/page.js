@@ -222,10 +222,22 @@ export default function UserManagementPage() {
     );
   }, [users, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const [sortDescriptor, setSortDescriptor] = useState({ column: "name", direction: "ascending" });
+  const sorted = useMemo(() => {
+    const { column, direction } = sortDescriptor;
+    const rows = [...filtered].sort((a, b) => {
+      const av = String(a[column] ?? "").toLowerCase();
+      const bv = String(b[column] ?? "").toLowerCase();
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return direction === "descending" ? -cmp : cmp;
+    });
+    return rows;
+  }, [filtered, sortDescriptor]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const pageRows = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page]
+    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sorted, page]
   );
 
   const resetPage = useCallback(() => setPage(1), []);
@@ -295,6 +307,8 @@ export default function UserManagementPage() {
       <Table
         aria-label="Users table"
         removeWrapper
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
         bottomContent={
           totalPages > 1 && (
             <div className="flex justify-center pt-2">
@@ -304,10 +318,10 @@ export default function UserManagementPage() {
         }
       >
         <TableHeader>
-          <TableColumn>NAME</TableColumn>
-          <TableColumn>EMAIL</TableColumn>
-          <TableColumn>MSCB</TableColumn>
-          <TableColumn>ADMIN</TableColumn>
+          <TableColumn key="name" allowsSorting>NAME</TableColumn>
+          <TableColumn key="email" allowsSorting>EMAIL</TableColumn>
+          <TableColumn key="teacher_id" allowsSorting>MSCB</TableColumn>
+          <TableColumn key="isAdmin" allowsSorting>ADMIN</TableColumn>
           <TableColumn>ACTIONS</TableColumn>
         </TableHeader>
         <TableBody items={pageRows} isLoading={isLoading} emptyContent="No users found.">
