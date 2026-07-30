@@ -3,6 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
+import Course from "@/models/course";
 import mongoose from "mongoose";
 import { includes } from "lodash";
 import { auth } from "@/lib/auth";
@@ -168,6 +169,24 @@ export const POST = async (request) => {
         continue;
       }
 
+      // Class conflict: other courses sharing this class's id must not overlap
+      // (a class of students can't sit two subjects at once).
+      let classConflictCourseIds = [];
+      let classIds = Array.isArray(d.course?.class_id)
+        ? d.course.class_id
+        : (d.course?.class_id ? [d.course.class_id] : null);
+      if (!classIds) {
+        const c = await Course.findById(courseId, "class_id").lean();
+        classIds = Array.isArray(c?.class_id) ? c.class_id : (c?.class_id ? [c.class_id] : []);
+      }
+      if (classIds?.length) {
+        const others = await Course.find(
+          { class_id: { $in: classIds }, _id: { $ne: courseId } },
+          "_id"
+        ).lean();
+        classConflictCourseIds = others.map((c) => c._id);
+      }
+
       // Conflict detection across all occurrences
       const courseConflicts = [];
       const validOccurrences = [];
@@ -210,9 +229,31 @@ export const POST = async (request) => {
             const dayStr = weekdayNames[teacherOverlap.weekday] || `Thứ ${teacherOverlap.weekday}`;
             const sLabel = minutesToLabel(teacherOverlap.time_slot?.start_time || 0, grid.data);
             const eLabel = minutesToLabel(teacherOverlap.time_slot?.end_time || 0, grid.data);
-            courseConflicts.push({ 
-              at: occ.start, 
-              reason: `Teacher conflict with "${teacherOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})` 
+            courseConflicts.push({
+              at: occ.start,
+              reason: `Teacher conflict with "${teacherOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+            });
+            continue;
+          }
+        }
+
+        if (classConflictCourseIds.length) {
+          const classOverlap = await CalendarEvent.findOne({
+            course: { $in: classConflictCourseIds },
+            type: 'class',
+            status: BLOCKING,
+            isCancelled: { $ne: true },
+            start: { $lt: occ.end },
+            end: { $gt: occ.start }
+          }).lean();
+
+          if (classOverlap) {
+            const dayStr = weekdayNames[classOverlap.weekday] || `Thứ ${classOverlap.weekday}`;
+            const sLabel = minutesToLabel(classOverlap.time_slot?.start_time || 0, grid.data);
+            const eLabel = minutesToLabel(classOverlap.time_slot?.end_time || 0, grid.data);
+            courseConflicts.push({
+              at: occ.start,
+              reason: `Class conflict with "${classOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})`
             });
             continue;
           }
