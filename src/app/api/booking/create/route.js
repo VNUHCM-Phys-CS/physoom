@@ -50,7 +50,12 @@ function getOccurrences(start_date, end_date, weekday, start_minutes, end_minute
   const targetJsDay = weekday === 8 ? 0 : weekday - 1;
 
   let current = moment(start_date).startOf('day');
-  const end = moment(end_date).endOf('day');
+  // end_date is computed as start_date + (duration-1) weeks. When start_date's
+  // weekday differs from the class weekday, advancing to the first matching day
+  // pushes every occurrence forward, so the last one would fall just past
+  // end_date and get dropped (3-week course → only 2 sessions). Extend the
+  // boundary by a week's slack so the intended number of weeks is generated.
+  const end = moment(end_date).add(6, 'days').endOf('day');
 
   // Advance to first match
   while (current.day() !== targetJsDay && current.isBefore(end)) {
