@@ -25,6 +25,6 @@ export const roomSchema = z.object({
   title: z.string().nonempty("Title is required"),
   limit: z.number().int("Limit must be an integer"),
   location: z.string().nonempty("Location is required"),
-  category: z.array(z.string().nonempty("Category is required")),
+  category: z.array(z.string()).optional().default([]),
   note: z.string().optional(),
 });
