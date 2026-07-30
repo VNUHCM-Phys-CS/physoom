@@ -5,7 +5,10 @@ import * as XLSX from "xlsx-js-style"; // Import xlsx-js-style
 import { auth } from "@/lib/auth";
 import { defaultGridLT, defaultGridNVC, extractBaseClass } from "@/lib/ulti";
 import ExcelJS from "exceljs";
+import CalendarEvent from "@/models/calendarEvent";
 import User from "@/models/user";
+import "@/models/course"; // register schemas used by .populate
+import "@/models/room";
 import { cloneDeep, groupBy, isArray } from "lodash";
 import path from "path";
 import { readFileSync } from "fs";
