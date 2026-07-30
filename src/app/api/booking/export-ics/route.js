@@ -29,11 +29,19 @@ export const GET = async (request) => {
     const icsEvents = events.map(e => {
        const start = new Date(e.start);
        const end = new Date(e.end);
+       const name = e.course?.title || e.title || 'Event';
+       // Use UTC parts + utc input type so the times are correct in any
+       // calendar app regardless of the server's timezone.
+       const toUtcParts = (d) => [
+         d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(),
+       ];
        return {
-         title: e.title + (e.course ? ` - ${e.course.title}` : ''),
-         description: `Course: ${e.course?.title || 'N/A'}\nRoom: ${e.room?.title || 'N/A'}\nTeacher: ${e.teacher_email.join(', ')}`,
-         start: [start.getFullYear(), start.getMonth() + 1, start.getDate(), start.getHours(), start.getMinutes()],
-         end: [end.getFullYear(), end.getMonth() + 1, end.getDate(), end.getHours(), end.getMinutes()],
+         title: e.room?.title ? `${name} · ${e.room.title}` : name,
+         description: `Course: ${e.course?.title || 'N/A'}\nRoom: ${e.room?.title || 'N/A'}\nTeacher: ${(e.teacher_email || []).join(', ')}`,
+         start: toUtcParts(start),
+         startInputType: 'utc',
+         end: toUtcParts(end),
+         endInputType: 'utc',
          location: e.room?.title || '',
        };
     });

@@ -10,6 +10,7 @@ import {
 import CourseList from "../CourseList";
 import { useConfirm } from "../ConfirmDialog";
 import { useI18n } from "@/i18n/I18nProvider";
+import ExportIcsButton from "../ExportIcsButton";
 import { toast } from "react-toastify";
 import Card from "../Card";
 import _ from "lodash";
@@ -674,6 +675,9 @@ export default function BookingSingle({ email }) {
               )}
             </Tab>
             <Tab key="personal" title={t("booking.personalSchedule")}>
+              <div className="flex justify-end mb-2">
+                <ExportIcsButton email={email} />
+              </div>
               <CalendarByUser
                 _events={userEvents}
                 customSubtitle={customSubtitle}

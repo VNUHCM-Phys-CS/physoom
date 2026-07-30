@@ -36,6 +36,13 @@ export const dictionaries = {
     "booking.pendingClass": "Môn chờ xếp",
     "booking.plannedClass": "Môn đã xếp",
     "booking.noAction": "Không cần thao tác",
+    "ics.addToCalendar": "Thêm vào lịch",
+    "ics.download": "Tải file .ics",
+    "ics.downloadDesc": "Nhập một lần vào Google/Outlook/Apple Calendar",
+    "ics.subscribe": "Sao chép link đồng bộ",
+    "ics.subscribeDesc": "Dán vào 'Thêm lịch từ URL' để tự cập nhật",
+    "ics.copied": "Đã sao chép link. Dán vào Google Calendar → Thêm lịch → Từ URL.",
+    "ics.copyFailed": "Không sao chép được link.",
 
     // Home
     "home.welcomeBack": "Chào mừng trở lại,",
@@ -235,6 +242,13 @@ export const dictionaries = {
     "booking.pendingClass": "Pending class",
     "booking.plannedClass": "Planned class",
     "booking.noAction": "No action needed",
+    "ics.addToCalendar": "Add to calendar",
+    "ics.download": "Download .ics file",
+    "ics.downloadDesc": "One-time import into Google/Outlook/Apple Calendar",
+    "ics.subscribe": "Copy subscribe link",
+    "ics.subscribeDesc": "Paste into 'Add calendar from URL' to keep it in sync",
+    "ics.copied": "Link copied. Paste into Google Calendar → Add → From URL.",
+    "ics.copyFailed": "Could not copy the link.",
 
     "home.welcomeBack": "Welcome back,",
     "home.userTagline": "Manage course room bookings, browse room availability, or reserve a space for your next event.",
