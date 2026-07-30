@@ -172,10 +172,15 @@ export const POST = async (request) => {
       const courseConflicts = [];
       const validOccurrences = [];
 
+      // Block against both approved and pending bookings so two requests can't
+      // silently claim the same room/teacher slot (which would collide once
+      // both get approved). Rejected/cancelled events don't block.
+      const BLOCKING = { $in: ['approved', 'pending'] };
+
       for (const occ of occurrences) {
         const roomOverlap = await CalendarEvent.findOne({
           room: roomId,
-          status: 'approved',
+          status: BLOCKING,
           isCancelled: { $ne: true },
           start: { $lt: occ.end },
           end: { $gt: occ.start }
@@ -185,17 +190,17 @@ export const POST = async (request) => {
           const dayStr = weekdayNames[roomOverlap.weekday] || `Thứ ${roomOverlap.weekday}`;
           const sLabel = minutesToLabel(roomOverlap.time_slot?.start_time || 0, grid.data);
           const eLabel = minutesToLabel(roomOverlap.time_slot?.end_time || 0, grid.data);
-          courseConflicts.push({ 
-            at: occ.start, 
-            reason: `Room conflict with "${roomOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})` 
+          courseConflicts.push({
+            at: occ.start,
+            reason: `Room conflict with "${roomOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})`
           });
           continue;
         }
 
-        if (status === 'approved' && d.teacher_email?.length) {
+        if (d.teacher_email?.length) {
           const teacherOverlap = await CalendarEvent.findOne({
             teacher_email: { $in: d.teacher_email },
-            status: 'approved',
+            status: BLOCKING,
             isCancelled: { $ne: true },
             start: { $lt: occ.end },
             end: { $gt: occ.start }

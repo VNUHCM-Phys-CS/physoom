@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
+import { toast } from "react-toastify";
 import { RoomEventModal, UserPicker } from "@/ui/RoomEventModal";
 import {
   Tabs,
@@ -781,14 +782,19 @@ export default function RoomBookingPage() {
     async (id, status) => {
       setActionLoading((prev) => ({ ...prev, [id]: true }));
       try {
-        await fetch(`/api/room-event/${id}`, {
+        const res = await fetch(`/api/room-event/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status }),
         });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast.error(data.message || "Action failed.");
+        }
         mutateEvents();
       } catch (err) {
         console.error(err);
+        toast.error("Action failed.");
       } finally {
         setActionLoading((prev) => ({ ...prev, [id]: false }));
       }

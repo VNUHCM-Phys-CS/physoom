@@ -26,6 +26,7 @@ import {
 import { fetcher } from "@/lib/ulti";
 import { useConfirm } from "@/ui/ConfirmDialog";
 import moment from "moment";
+import { toast } from "react-toastify";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -161,14 +162,17 @@ function PendingTab({ events, isLoading, mutate }) {
     async (id, status) => {
       setActionLoading((prev) => ({ ...prev, [id]: true }));
       try {
-        await fetch(`/api/room-event/${id}`, {
+        const res = await fetch(`/api/room-event/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status }),
         });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) toast.error(data.message || "Action failed.");
         mutate();
       } catch (err) {
         console.error(err);
+        toast.error("Action failed.");
       } finally {
         setActionLoading((prev) => ({ ...prev, [id]: false }));
       }
@@ -444,11 +448,13 @@ function RoomManagerCalendarTab({ customEvents, mutate, managedRooms }) {
   const handleAction = async (id, status) => {
     setActionLoading((p) => ({ ...p, [id]: true }));
     try {
-      await fetch(`/api/room-event/${id}`, {
+      const res = await fetch(`/api/room-event/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) toast.error(data.message || "Action failed.");
       mutate();
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));

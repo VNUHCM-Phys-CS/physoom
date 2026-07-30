@@ -78,6 +78,30 @@ export const PATCH = async (request, { params }) => {
       return NextResponse.json({ success: false }, { status: 401 });
     }
 
+    // Re-check conflicts at approval time: a slot free when the request was made
+    // may have been taken since. Refuse to approve into an occupied slot.
+    if (status === "approved" && event?.start && event?.end && event?.room) {
+      const roomId = event.room?._id ?? event.room;
+      const clash = await CalendarEvent.findOne({
+        _id: { $ne: event._id },
+        room: roomId,
+        status: "approved",
+        isCancelled: { $ne: true },
+        start: { $lt: event.end },
+        end: { $gt: event.start },
+      }).lean();
+      if (clash) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Cannot approve: the room is already booked by "${clash.title}" at this time.`,
+            conflict: { title: clash.title, start: clash.start, end: clash.end },
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const updated = await CalendarEvent.findByIdAndUpdate(
       id,
       { status },
