@@ -16,21 +16,24 @@ import {
 } from "@heroui/react";
 import { CalendarDaysIcon, LogInIcon, LogOutIcon } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
+import LanguageToggle from "../LanguageToggle";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const Links = ({ session }) => {
   const pathName = usePathname();
+  const { t } = useI18n();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const user = session?.user;
 
   // Build the visible link set from the session, in display order.
   const navItems = [
-    { title: "Home", path: "/" },
-    user && { title: "Booking", path: "/booking" },
-    { title: "Room Schedule", path: "/view/room" },
-    user?.isAdmin && { title: "Admin Dashboard", path: "/admin" },
-    user && !user.isAdmin && { title: "Room Manager", path: "/room-manager" },
-    { title: "About", path: "/about" },
+    { title: t("nav.home"), path: "/" },
+    user && { title: t("nav.booking"), path: "/booking" },
+    { title: t("nav.roomSchedule"), path: "/view/room" },
+    user?.isAdmin && { title: t("nav.adminDashboard"), path: "/admin" },
+    user && !user.isAdmin && { title: t("nav.roomManager"), path: "/room-manager" },
+    { title: t("nav.about"), path: "/about" },
   ].filter(Boolean);
 
   const isActive = (path) =>
@@ -55,7 +58,7 @@ const Links = ({ session }) => {
       <NavbarContent justify="start">
         <NavbarMenuToggle
           className="sm:hidden"
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
         />
         <NavbarBrand>
           <Link href="/" className="flex items-center gap-2">
@@ -88,6 +91,9 @@ const Links = ({ session }) => {
       {/* Actions */}
       <NavbarContent justify="end">
         <NavbarItem>
+          <LanguageToggle />
+        </NavbarItem>
+        <NavbarItem>
           <ThemeToggle />
         </NavbarItem>
         <NavbarItem>
@@ -99,7 +105,7 @@ const Links = ({ session }) => {
               startContent={<LogOutIcon size={16} />}
               onPress={() => signOut({ callbackUrl: "/" })}
             >
-              Logout
+              {t("nav.logout")}
             </Button>
           ) : (
             <Button
@@ -109,7 +115,7 @@ const Links = ({ session }) => {
               startContent={<LogInIcon size={16} />}
               onPress={() => signIn("google")}
             >
-              Login
+              {t("nav.login")}
             </Button>
           )}
         </NavbarItem>

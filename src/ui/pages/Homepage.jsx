@@ -4,6 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CalendarIcon, DoorOpenIcon, ClockIcon, UsersIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -16,38 +17,16 @@ const stagger = {
 };
 
 const FEATURES = [
-  {
-    icon: CalendarIcon,
-    title: "Course Booking",
-    desc: "Schedule classrooms for your courses across the full semester with conflict detection.",
-    href: "/booking",
-    auth: true,
-  },
-  {
-    icon: DoorOpenIcon,
-    title: "Room Schedule",
-    desc: "Browse real-time room availability and see what's happening across all facilities.",
-    href: "/view/room",
-    auth: false,
-  },
-  {
-    icon: ClockIcon,
-    title: "Event Booking",
-    desc: "Reserve rooms for one-off events, seminars, or meetings with instant confirmation.",
-    href: "/booking",
-    auth: true,
-  },
-  {
-    icon: UsersIcon,
-    title: "Room Manager",
-    desc: "Manage room access, approve requests, and track usage for your assigned rooms.",
-    href: "/room-manager",
-    auth: true,
-    managerOnly: true,
-  },
+  { icon: CalendarIcon, titleKey: "home.feat.course.title", descKey: "home.feat.course.desc", href: "/booking", auth: true },
+  { icon: DoorOpenIcon, titleKey: "home.feat.roomSchedule.title", descKey: "home.feat.roomSchedule.desc", href: "/view/room", auth: false },
+  { icon: ClockIcon, titleKey: "home.feat.event.title", descKey: "home.feat.event.desc", href: "/booking", auth: true },
+  { icon: UsersIcon, titleKey: "home.feat.manager.title", descKey: "home.feat.manager.desc", href: "/room-manager", auth: true, managerOnly: true },
 ];
 
-function FeatureCard({ icon: Icon, title, desc, href, locked }) {
+function FeatureCard({ icon: Icon, titleKey, descKey, href, locked }) {
+  const { t } = useI18n();
+  const title = t(titleKey);
+  const desc = t(descKey);
   const inner = (
     <div className={`flex flex-col gap-3 p-5 rounded-2xl border transition-all h-full
       ${locked
@@ -61,7 +40,7 @@ function FeatureCard({ icon: Icon, title, desc, href, locked }) {
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-default-900">{title}</span>
-          {locked && <Chip size="sm" variant="flat" color="default">Login required</Chip>}
+          {locked && <Chip size="sm" variant="flat" color="default">{t("home.loginRequired")}</Chip>}
         </div>
         <p className="text-xs text-default-500 leading-relaxed">{desc}</p>
       </div>
@@ -84,6 +63,7 @@ function FeatureCard({ icon: Icon, title, desc, href, locked }) {
 
 export default function Home() {
   const { data: session } = useSession();
+  const { t } = useI18n();
   const user = session?.user;
 
   return (
@@ -98,18 +78,18 @@ export default function Home() {
         {user ? (
           <>
             <motion.div variants={fadeUp} className="flex flex-col items-center gap-1">
-              <p className="text-default-400 text-sm font-medium">Welcome back,</p>
+              <p className="text-default-400 text-sm font-medium">{t("home.welcomeBack")}</p>
               <h1 className="text-3xl md:text-4xl font-bold text-default-900">{user.name}</h1>
             </motion.div>
             <motion.p variants={fadeUp} className="text-default-500 max-w-md text-sm leading-relaxed">
-              Manage course room bookings, browse room availability, or reserve a space for your next event.
+              {t("home.userTagline")}
             </motion.p>
             <motion.div variants={fadeUp} className="flex gap-3 flex-wrap justify-center">
               <Button as={Link} href="/booking" color="secondary" variant="solid" size="md">
-                Go to Booking
+                {t("home.goToBooking")}
               </Button>
               <Button as={Link} href="/view/room" color="default" variant="bordered" size="md">
-                View Room Schedule
+                {t("home.viewRoomSchedule")}
               </Button>
             </motion.div>
           </>
@@ -120,17 +100,17 @@ export default function Home() {
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             >
-              <Chip color="secondary" variant="flat" size="sm">Physics Department</Chip>
+              <Chip color="secondary" variant="flat" size="sm">{t("home.badge")}</Chip>
             </motion.div>
             <motion.h1 variants={fadeUp} className="text-3xl md:text-5xl font-bold text-default-900 max-w-xl leading-tight">
-              Room Booking &amp; Schedule System
+              {t("home.title")}
             </motion.h1>
             <motion.p variants={fadeUp} className="text-default-500 max-w-md text-sm md:text-base leading-relaxed">
-              Book classrooms for courses, reserve rooms for events, and view real-time room availability — all in one place.
+              {t("home.subtitle")}
             </motion.p>
             <motion.div variants={fadeUp}>
               <Button color="secondary" variant="solid" size="lg" onPress={() => signIn("google")}>
-                Sign in with Google
+                {t("home.signInGoogle")}
               </Button>
             </motion.div>
           </>
@@ -139,7 +119,7 @@ export default function Home() {
 
       {/* Feature cards */}
       <section className="max-w-4xl mx-auto w-full px-4 pb-16">
-        <p className="text-xs font-semibold uppercase tracking-widest text-default-400 mb-4 text-center">What you can do</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-default-400 mb-4 text-center">{t("home.whatYouCanDo")}</p>
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3"
           variants={stagger}
@@ -148,7 +128,7 @@ export default function Home() {
         >
           {FEATURES.map((f) => (
             <FeatureCard
-              key={f.title}
+              key={f.titleKey}
               {...f}
               locked={f.auth && !user}
             />
