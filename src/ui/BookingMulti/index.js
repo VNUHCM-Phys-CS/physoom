@@ -24,12 +24,6 @@ export default function BookingMulti() {
   const { t } = useI18n();
   const { confirm, confirmDialog } = useConfirm();
   const [selectedTab, setSelectedTab] = useState("general");
-  // react-big-calendar computes its layout from the container size; a panel
-  // mounted while its tab was hidden needs a nudge to recalc once shown.
-  const handleTabChange = useCallback((key) => {
-    setSelectedTab(key);
-    setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
-  }, []);
   const [searhCourse, setSearhCourse] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState();
   const [selectedEventForDelete, setSelectedEventForDelete] = useState(null);
@@ -323,7 +317,7 @@ export default function BookingMulti() {
       </Card>
       <Card className="w-2/3 md:w-3/4 max-h-dvh">
         <ScrollShadow className="h-full">
-          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={handleTabChange} destroyInactiveTabPanel={false}>
+          <Tabs radius={"full"} color="secondary" selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
             <Tab key="general" title={t("booking.classroomSchedule")}>
               {booking && !isLoadingBook && !isLoadingEvent ? (
                 <CalendarByRoom
