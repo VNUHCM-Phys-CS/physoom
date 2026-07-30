@@ -5,6 +5,7 @@ import {
 } from "@heroui/react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
+import LecturerEmailMultiInput from "../LecturerEmailInput/MultiInput";
 
 export default function EventModal({ data, isOpen, onOpenChange, onSave }) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -19,7 +20,7 @@ export default function EventModal({ data, isOpen, onOpenChange, onSave }) {
     end: "",
     room: "",
     course: "",
-    teacher_email: ""
+    teacher_email: []
   });
 
   useEffect(() => {
@@ -40,10 +41,12 @@ export default function EventModal({ data, isOpen, onOpenChange, onSave }) {
         end: formatDT(data.end),
         room: data.room?._id || "",
         course: data.course?._id || "",
-        teacher_email: Array.isArray(data.teacher_email) ? data.teacher_email.join(", ") : (data.teacher_email || "")
+        teacher_email: Array.isArray(data.teacher_email)
+          ? data.teacher_email
+          : (data.teacher_email ? [data.teacher_email] : [])
       });
     } else {
-      setFormData({ title: "", type: "custom", status: "approved", start: "", end: "", room: "", course: "", teacher_email: "" });
+      setFormData({ title: "", type: "custom", status: "approved", start: "", end: "", room: "", course: "", teacher_email: [] });
     }
   }, [data]);
 
@@ -51,7 +54,7 @@ export default function EventModal({ data, isOpen, onOpenChange, onSave }) {
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
-      payload.teacher_email = payload.teacher_email.split(",").map(s => s.trim()).filter(Boolean);
+      payload.teacher_email = (payload.teacher_email || []).filter(Boolean);
       // Convert naive datetime-local strings to ISO on the client so the server
       // stores the user's local time rather than reinterpreting it as UTC.
       if (payload.start) payload.start = new Date(payload.start).toISOString();
@@ -146,10 +149,10 @@ export default function EventModal({ data, isOpen, onOpenChange, onSave }) {
                  {(courses || []).map(c => <SelectItem key={c._id}>{c.title}</SelectItem>)}
                </Select>
 
-               <Input 
-                 label="Teacher Email (Comma separated)" 
-                 value={formData.teacher_email} 
-                 onChange={e => setFormData({...formData, teacher_email: e.target.value})} 
+               <LecturerEmailMultiInput
+                 label="Teacher Emails"
+                 value={formData.teacher_email}
+                 onChange={(emails) => setFormData({ ...formData, teacher_email: emails })}
                />
             </ModalBody>
             <ModalFooter>
