@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/ulti";
 import LoadingWrapper from "../LoadingWrapper";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
@@ -87,14 +89,19 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
     // reflects the saved change, so the local override is no longer needed).
     useEffect(() => { setTimeOverrides({}); }, [_events]);
 
+    // Holidays / breaks — shown as all-day background context on the calendar.
+    const { data: holidays } = useSWR("/api/calendar-events?type=holiday", fetcher);
+
     // _events are coming from CalendarEvent API. All occurrences are now returned.
     const events = useMemo(()=>{
-        return (_events ?? []).map((e) => {
+        const base = (_events ?? []).map((e) => {
             if (e.start && e.end) {
                 const ov = timeOverrides[e._id];
+                const roomTitle = e.room?.title || (typeof e.room === "string" ? "" : "");
+                const baseTitle = e.title || (e.course ? (typeof e.course === 'object' ? e.course.title : "Class") : "Event");
                 return {
                     id: e._id,
-                    title: e.title || (e.course ? (typeof e.course === 'object' ? e.course.title : "Class") : "Event"),
+                    title: roomTitle ? `${baseTitle} · ${roomTitle}` : baseTitle,
                     start: new Date(ov?.start ?? e.start),
                     end: new Date(ov?.end ?? e.end),
                     resource: e
@@ -102,7 +109,20 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
             }
             return null;
         }).filter(Boolean);
-    }, [_events, timeOverrides]);
+
+        const hol = (holidays ?? []).map((h) => ({
+            id: `hol-${h._id}`,
+            title: `🎌 ${h.title}`,
+            // All-day range: react-big-calendar treats the end as exclusive, so
+            // add a day to include the final holiday date.
+            start: moment(h.start).startOf("day").toDate(),
+            end: moment(h.end).add(1, "day").startOf("day").toDate(),
+            allDay: true,
+            resource: { ...h, isHoliday: true },
+        }));
+
+        return [...hol, ...base];
+    }, [_events, timeOverrides, holidays]);
 
     const eventStyleGetter = useCallback((event) => {
         const type = event.resource?.type || 'class';
@@ -141,6 +161,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
 
     const canDragResize = useCallback((event) => {
         if (readOnly) return false;
+        if (event.resource?.isHoliday || event.resource?.type === 'holiday') return false;
         if (event.resource?.type === 'class') return false;
         if (session?.user?.isAdmin) return true;
         const email = session?.user?.email;
@@ -153,6 +174,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
 
     const onEventDrop = useCallback(
         ({ event, start, end }) => {
+            if (event.resource?.isHoliday || event.resource?.type === 'holiday') return;
             if (event.resource?.type === 'class') return;
             setPendingDrop({ event, start, end });
         },
@@ -213,7 +235,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                             <div className="rbc-event-content">
                               {props.title}
                             </div>
-                            {!readOnly && onDelete && (
+                            {!readOnly && onDelete && !props.event.resource?.isHoliday && (
                               <button
                                 className="delete-btn absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 p-0.5 bg-white text-danger rounded-full hover:bg-danger hover:text-white transition-opacity z-50 shadow-sm flex items-center justify-center border border-danger/20"
                                 style={{ width: '18px', height: '18px' }}
@@ -229,8 +251,8 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                           </div>
                         )
                     }}
-                    onSelectEvent={onClickEvent}
-                    onDoubleClickEvent={onDoubleClick}
+                    onSelectEvent={(e, ...rest) => { if (e?.resource?.isHoliday) return; onClickEvent?.(e, ...rest); }}
+                    onDoubleClickEvent={(e, ...rest) => { if (e?.resource?.isHoliday) return; onDoubleClick?.(e, ...rest); }}
                     onEventDrop={!readOnly ? onEventDrop : undefined}
                     onEventResize={!readOnly ? onEventDrop : undefined}
                     resizable={!readOnly}
