@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import SquareHolder from "../SquareHolder";
 import { Chip } from "@heroui/react";
 import { motion } from "framer-motion";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   DoorOpenIcon,
   BookOpenIcon,
@@ -81,6 +82,7 @@ function ChartCard({ title, count, label, description, isEmpty, emptyText = "No 
 const sum = (arr) => (arr ?? []).reduce((a, b) => a + (b || 0), 0);
 
 export default function Admindashboard() {
+  const { t } = useI18n();
   const { data: room } = useSWR("/api/room/viz", fetcher, { revalidateOnFocus: false });
   const { data: course } = useSWR("/api/course/viz", fetcher, { revalidateOnFocus: false });
   const { data: booking } = useSWR("/api/booking/viz", fetcher, { revalidateOnFocus: false });
@@ -106,6 +108,11 @@ export default function Admindashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="text-xl font-bold text-default-900">{t("admin.dashboard")}</h2>
+        <p className="text-sm text-default-400">{t("admin.overview")}</p>
+      </div>
+
       {/* Stat cards */}
       <motion.div
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
@@ -115,33 +122,33 @@ export default function Admindashboard() {
       >
         <StatCard
           icon={DoorOpenIcon}
-          label="Total Rooms"
+          label={t("dash.totalRooms")}
           value={room?.count}
-          sub={room?.labels?.length ? `${room.labels.length} location${room.labels.length > 1 ? "s" : ""}` : undefined}
+          sub={room?.labels?.length ? `${room.labels.length} ${t("dash.locations")}` : undefined}
         />
         <StatCard
           icon={BookOpenIcon}
-          label="Total Courses"
+          label={t("dash.totalCourses")}
           value={course?.count}
           sub={course?.labels?.length ? `${course.labels.length} credit group${course.labels.length > 1 ? "s" : ""}` : undefined}
         />
         <StatCard
           icon={CalendarCheckIcon}
-          label="Booked Courses"
+          label={t("dash.bookedCourses")}
           value={bookedCourses || undefined}
-          sub={bookingRate != null ? `${bookingRate}% of all courses` : undefined}
+          sub={bookingRate != null ? `${bookingRate}%` : undefined}
         />
         <StatCard
           icon={TicketIcon}
-          label="Event Bookings"
+          label={t("dash.eventBookings")}
           value={eventTotal || undefined}
-          sub={eventTotal ? `${eventApproved} approved · ${eventPending} pending` : "No events yet"}
+          sub={eventTotal ? `${eventApproved} ${t("dash.approved")} · ${eventPending} ${t("dash.pending")}` : t("dash.noEvents")}
         />
         <StatCard
           icon={TrendingUpIcon}
-          label="Approval Rate"
+          label={t("dash.approvalRate")}
           value={approvalRate != null ? `${approvalRate}%` : undefined}
-          sub={approved ? `${approved} approved · ${pending} pending` : "No bookings yet"}
+          sub={approved ? `${approved} ${t("dash.approved")} · ${pending} ${t("dash.pending")}` : t("dash.noBookings")}
         />
       </motion.div>
 
@@ -153,52 +160,49 @@ export default function Admindashboard() {
         animate="show"
       >
         <ChartCard
-          title="Rooms"
+          title={t("dash.totalRooms")}
           count={room?.count}
-          label="total rooms"
-          description="By location"
+          description={t("dash.byLocation")}
           isEmpty={!room || sum(room?.values) === 0}
+          emptyText={t("dash.noData")}
         >
           <PieChart values={room?.values} labels={room?.labels} />
         </ChartCard>
 
         <ChartCard
-          title="Courses"
+          title={t("dash.totalCourses")}
           count={course?.count}
-          label="total courses"
-          description="By credit"
+          description={t("dash.byCredit")}
           isEmpty={!course || sum(course?.values) === 0}
-          emptyText="No courses yet"
+          emptyText={t("dash.noData")}
         >
           <PieChart values={course?.values} labels={course?.labels} />
         </ChartCard>
 
         <ChartCard
-          title="Booking Status"
+          title={t("dash.bookingStatus")}
           count={totalCourses}
-          label="total courses"
-          description={bookingRate != null ? `${bookingRate}% booked` : undefined}
+          description={bookingRate != null ? `${bookingRate}%` : undefined}
           isEmpty={approved + pending + unbooked === 0}
-          emptyText="No bookings yet"
+          emptyText={t("dash.noBookings")}
         >
           <PieChart
             values={[approved, pending, unbooked]}
-            labels={["Approved", "Pending", "Not booked"]}
+            labels={[t("dash.approved"), t("dash.pending"), t("dash.notBooked")]}
             isDonut={true}
           />
         </ChartCard>
 
         <ChartCard
-          title="Event Bookings"
+          title={t("dash.eventBookings")}
           count={eventTotal}
-          label="total events"
-          description="By status"
+          description={t("dash.byStatus")}
           isEmpty={eventTotal === 0}
-          emptyText="No events yet"
+          emptyText={t("dash.noEvents")}
         >
           <PieChart
             values={[eventApproved, eventPending, eventRejected]}
-            labels={["Approved", "Pending", "Rejected"]}
+            labels={[t("dash.approved"), t("dash.pending"), t("dash.rejected")]}
             isDonut={true}
           />
         </ChartCard>

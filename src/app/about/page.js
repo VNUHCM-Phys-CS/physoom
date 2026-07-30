@@ -10,6 +10,7 @@ import {
   ClockIcon,
   SparklesIcon,
 } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -22,29 +23,14 @@ const stagger = {
 };
 
 const BENEFITS = [
-  {
-    icon: ShieldCheckIcon,
-    title: "Conflict detection",
-    desc: "Overlapping rooms, teachers, and classes are flagged automatically before they become a problem.",
-  },
-  {
-    icon: ZapIcon,
-    title: "Faster than Excel",
-    desc: "Build a full semester of schedules in a fraction of the time the traditional spreadsheet workflow took.",
-  },
-  {
-    icon: ClockIcon,
-    title: "Real-time availability",
-    desc: "See exactly what's booked across every room and facility, updated live as bookings change.",
-  },
-  {
-    icon: UsersIcon,
-    title: "Built for teams",
-    desc: "Teachers, room managers, and admins each get a workflow tuned to what they actually need to do.",
-  },
+  { icon: ShieldCheckIcon, titleKey: "about.benefit.conflict.title", descKey: "about.benefit.conflict.desc" },
+  { icon: ZapIcon, titleKey: "about.benefit.fast.title", descKey: "about.benefit.fast.desc" },
+  { icon: ClockIcon, titleKey: "about.benefit.realtime.title", descKey: "about.benefit.realtime.desc" },
+  { icon: UsersIcon, titleKey: "about.benefit.team.title", descKey: "about.benefit.team.desc" },
 ];
 
 export default function AboutPage() {
+  const { t } = useI18n();
   return (
     <main className="container max-w-screen-lg mx-auto px-4 py-12">
       {/* Hero */}
@@ -64,22 +50,20 @@ export default function AboutPage() {
         </motion.div>
         <motion.div variants={fadeUp}>
           <Chip color="secondary" variant="flat" size="sm">
-            About Physoom
+            {t("about.badge")}
           </Chip>
         </motion.div>
         <motion.h1
           variants={fadeUp}
           className="text-3xl md:text-5xl font-bold text-default-900 max-w-2xl leading-tight"
         >
-          Scheduling for the Physics department, reinvented
+          {t("about.title")}
         </motion.h1>
         <motion.p
           variants={fadeUp}
           className="text-default-500 max-w-xl text-sm md:text-base leading-relaxed"
         >
-          Physoom replaces the slow, error-prone spreadsheet workflow with a
-          shared, real-time system for arranging teaching schedules and room
-          bookings.
+          {t("about.subtitle")}
         </motion.p>
       </motion.section>
 
@@ -94,18 +78,11 @@ export default function AboutPage() {
         <div className="flex items-center gap-2 mb-3">
           <SparklesIcon size={18} className="text-secondary" />
           <h2 className="text-lg font-semibold text-default-900">
-            What is Physoom?
+            {t("about.whatTitle")}
           </h2>
         </div>
         <p className="text-default-600 leading-relaxed text-sm md:text-base">
-          Physoom is an app developed to help the Physics staff at{" "}
-          <span className="font-semibold text-default-900">VNU-HCMUS</span>{" "}
-          arrange teaching schedules more efficiently. The traditional method of
-          using Excel required a lot of time and effort to coordinate between
-          teachers and tighten everyone&apos;s schedule and needs. With Physoom,
-          teachers can easily input their availability and preferences, letting
-          the app generate optimized schedules in a fraction of the time — while
-          reducing the likelihood of scheduling conflicts.
+          {t("about.whatBody")}
         </p>
       </motion.section>
 
@@ -118,12 +95,12 @@ export default function AboutPage() {
         className="mb-12"
       >
         <p className="text-xs font-semibold uppercase tracking-widest text-default-400 mb-4 text-center">
-          Why it helps
+          {t("about.whyTitle")}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {BENEFITS.map(({ icon: Icon, title, desc }) => (
+          {BENEFITS.map(({ icon: Icon, titleKey, descKey }) => (
             <motion.div
-              key={title}
+              key={titleKey}
               variants={fadeUp}
               whileHover={{ y: -4 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -134,10 +111,10 @@ export default function AboutPage() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="font-semibold text-sm text-default-900">
-                  {title}
+                  {t(titleKey)}
                 </span>
                 <p className="text-xs text-default-500 leading-relaxed">
-                  {desc}
+                  {t(descKey)}
                 </p>
               </div>
             </motion.div>
@@ -155,11 +132,11 @@ export default function AboutPage() {
       >
         <div className="inline-flex flex-col items-center gap-1 rounded-2xl border border-default-200 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm px-8 py-6">
           <p className="text-xs uppercase tracking-widest text-default-400 font-semibold">
-            Created by
+            {t("about.createdBy")}
           </p>
           <p className="text-lg font-bold text-default-900">Ngan V.T. Nguyen</p>
           <p className="text-sm text-default-500">
-            for the Physics staff at VNU-HCMUS
+            {t("about.createdFor")}
           </p>
         </div>
       </motion.section>

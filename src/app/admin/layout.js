@@ -9,22 +9,24 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const NAV_ITEMS = [
-  { title: "Dashboard", path: "/admin" },
-  { title: "Course", path: "/admin/course" },
-  { title: "Room", path: "/admin/room" },
-  { title: "Course Booking", path: "/admin/booking" },
-  { title: "Room Booking", path: "/admin/room-booking" },
-  { title: "Terms & Holidays", path: "/admin/terms" },
-  { title: "Users", path: "/admin/user" },
-  { title: "View Share", path: "/admin/view-share" },
+  { key: "admin.nav.dashboard", path: "/admin" },
+  { key: "admin.nav.course", path: "/admin/course" },
+  { key: "admin.nav.room", path: "/admin/room" },
+  { key: "admin.nav.courseBooking", path: "/admin/booking" },
+  { key: "admin.nav.roomBooking", path: "/admin/room-booking" },
+  { key: "admin.nav.terms", path: "/admin/terms" },
+  { key: "admin.nav.users", path: "/admin/user" },
+  { key: "admin.nav.viewShare", path: "/admin/view-share" },
 ];
 
 export default function Layout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (status !== "loading") {
@@ -63,7 +65,7 @@ export default function Layout({ children }) {
                       : "text-default-600 hover:text-default-900 hover:bg-default-200"
                   }`}
                 >
-                  {item.title}
+                  {t(item.key)}
                 </Link>
               </NavbarItem>
             );
