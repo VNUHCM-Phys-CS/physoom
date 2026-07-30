@@ -85,7 +85,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
       const endpoint = data?._id
         ? `/api/course/${data._id}`
         : `/api/course/create`;
-      const method = data._id ? "PUT" : "POST";
+      const method = data?._id ? "PUT" : "POST";
 
       const saveResponse = await fetch(endpoint, {
         method,

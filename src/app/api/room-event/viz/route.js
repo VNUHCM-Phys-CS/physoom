@@ -3,6 +3,9 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 
+// Read fresh counts on every request instead of caching the build-time result.
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/room-event/viz
  * Aggregate custom room-event bookings by approval status for the dashboard.
