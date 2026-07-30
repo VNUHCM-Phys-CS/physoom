@@ -13,10 +13,12 @@ import { ScrollShadow } from "@heroui/react";
 import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
-import { Unlock } from "next/font/google";
 import { UnlockFill } from "../icons/UnlockFill";
+import { CalendarOffIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
-export default function CourseList({ course, onSelectionChange, userEvents }) {
+export default function CourseList({ course, onSelectionChange, userEvents, onUnschedule }) {
+  const { t } = useI18n();
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
   const courseGroup = useMemo(() => {
     let done = {};
@@ -86,6 +88,18 @@ export default function CourseList({ course, onSelectionChange, userEvents }) {
                           {credit} credits
                         </Chip>
                       </div>
+                      {cg.title === "Planned class" && onUnschedule && (
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          color="warning"
+                          className="mt-2"
+                          startContent={<CalendarOffIcon size={13} />}
+                          onPress={() => onUnschedule({ _id, title })}
+                        >
+                          {t("course.moveToPending")}
+                        </Button>
+                      )}
                     </div>
                   }
                   className="stack-item py-3"

@@ -8,6 +8,9 @@ import {
   customSubtitle,
 } from "@/lib/ulti";
 import CourseList from "../CourseList";
+import { useConfirm } from "../ConfirmDialog";
+import { useI18n } from "@/i18n/I18nProvider";
+import { toast } from "react-toastify";
 import Card from "../Card";
 import _ from "lodash";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -328,6 +331,8 @@ export default function BookingSingle({ email }) {
   const { data: session } = useSession();
   const isAdmin = !!session?.user?.isAdmin;
   const searchParams = useSearchParams();
+  const { t } = useI18n();
+  const { confirm, confirmDialog } = useConfirm();
 
   // Main tab + room — kept in sync with URL
   const [mainTab, setMainTab] = useState(() => searchParams.get("tab") || "general");
@@ -456,6 +461,43 @@ export default function BookingSingle({ email }) {
     setBooking(newBooking);
   }, []);
   const { userEvents, mutateUserEvent } = useContext(UserCalendarContext);
+
+  // Move a course from "planned" back to "pending": delete its booking
+  // (CalendarEvents) but keep the Course document itself.
+  const handleUnschedule = useCallback(
+    async ({ _id }) => {
+      const ok = await confirm({
+        title: t("course.moveToPending"),
+        message: t("course.confirmUnschedule"),
+        confirmLabel: t("course.moveToPending"),
+        confirmColor: "warning",
+      });
+      if (!ok) return;
+      try {
+        const res = await fetch("/api/booking/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "course", id: _id }),
+        });
+        if (res.ok) {
+          mutateUserEvent?.();
+          mutateCourse();
+          globalMutate((key) => {
+            const k = Array.isArray(key) ? key[0] : key;
+            return typeof k === "string" && k.startsWith("/api/booking");
+          });
+          setBooking((b) => (String(b?.course?._id) === String(_id) ? undefined : b));
+          toast.success(t("course.moveToPending"));
+        } else {
+          toast.error("Failed to move course to pending.");
+        }
+      } catch {
+        toast.error("Failed to move course to pending.");
+      }
+    },
+    [confirm, t, mutateUserEvent, mutateCourse, globalMutate]
+  );
+
   const { data: classEvents, mutate: mutateClassEvent } = useSWR(
     [
       booking ? "/api/calendar-events/fetch" : null,
@@ -514,7 +556,7 @@ export default function BookingSingle({ email }) {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {sidebarTab === "courses" ? (
-          <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} />
+          <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
         ) : (
           <EventListSidebar
             events={myEvents}
@@ -543,7 +585,7 @@ export default function BookingSingle({ email }) {
           </button>
           {coursesOpen && (
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} />
+              <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
             </div>
           )}
         </div>
@@ -573,6 +615,7 @@ export default function BookingSingle({ email }) {
   if (email)
     return (
       <div className="flex flex-col sm:flex-row py-2 px-2 mx-auto gap-2">
+        {confirmDialog}
         {/* Mobile drawer trigger button - only visible on small screens */}
         <div className="sm:hidden mb-2">
           <Button

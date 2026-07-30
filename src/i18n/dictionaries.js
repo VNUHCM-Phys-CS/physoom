@@ -23,6 +23,8 @@ export const dictionaries = {
     "common.save": "Lưu",
     "common.cancel": "Huỷ",
     "common.close": "Đóng",
+    "course.moveToPending": "Chuyển sang chờ xếp",
+    "course.confirmUnschedule": "Xoá toàn bộ lịch đã xếp của môn này và chuyển về trạng thái chờ xếp? Môn học vẫn được giữ lại.",
 
     // Home
     "home.welcomeBack": "Chào mừng trở lại,",
@@ -125,6 +127,8 @@ export const dictionaries = {
     "common.save": "Save",
     "common.cancel": "Cancel",
     "common.close": "Close",
+    "course.moveToPending": "Move to pending",
+    "course.confirmUnschedule": "Remove all scheduled sessions for this course and move it back to pending? The course itself is kept.",
 
     "home.welcomeBack": "Welcome back,",
     "home.userTagline": "Manage course room bookings, browse room availability, or reserve a space for your next event.",
