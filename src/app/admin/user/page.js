@@ -214,11 +214,11 @@ export default function UserManagementPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return users ?? [];
+    // teacher_id (MSCB) can be a number, so coerce every field to a string
+    // before lower-casing.
+    const has = (v) => String(v ?? "").toLowerCase().includes(q);
     return (users ?? []).filter(
-      (u) =>
-        u.email?.toLowerCase().includes(q) ||
-        u.name?.toLowerCase().includes(q) ||
-        u.teacher_id?.toLowerCase().includes(q)
+      (u) => has(u.email) || has(u.name) || has(u.teacher_id)
     );
   }, [users, search]);
 
