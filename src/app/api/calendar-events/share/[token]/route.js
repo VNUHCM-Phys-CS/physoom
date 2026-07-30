@@ -38,29 +38,30 @@ export const GET = async (request, { params }) => {
 
     // Mask restricted information
     const maskedEvents = events.map(e => {
-        let titleParts = [];
-        
-        if (share.settings.displayClassInfo && e.course) {
-            titleParts.push(e.course.title);
-            if (e.course.class_id) titleParts.push(`(${e.course.class_id.join(', ')})`);
+        const titleParts = [];
+        // "Show Course Names" (displayEventDetail) reveals the name — either the
+        // course title (class events) or the event's own title (room bookings).
+        const name = e.course?.title || e.title;
+        if (share.settings.displayEventDetail && name) {
+            titleParts.push(name);
+            if (share.settings.displayClassInfo && e.course?.class_id?.length) {
+                titleParts.push(`(${e.course.class_id.join(', ')})`);
+            }
         } else {
             titleParts.push("Occupied");
         }
 
         if (share.settings.displayTeacherInfo && e.teacher_email && e.teacher_email.length > 0) {
-            titleParts.push(`- By ${e.teacher_email.join(', ')}`);
+            titleParts.push(`- ${e.teacher_email.join(', ')}`);
         } else {
             e.teacher_email = undefined; // Strip it
         }
 
         if (!share.settings.displayEventDetail) {
             e.course = undefined;
-            // e.title is left alone if it's a generic occupied, but if we don't display details, we generalize the title
-            e.title = "Reserved";
-        } else {
-            e.title = titleParts.join(' ');
         }
-        
+        e.title = titleParts.join(' ');
+
         return e;
     });
 

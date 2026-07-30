@@ -1,17 +1,26 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import useSWR from "swr";
 import CalendarByUser from "@/ui/CalendarByUser";
 import Calendar from "@/ui/Calendar";
-import { Button, Tabs, Tab, Card, CardBody } from "@heroui/react";
+import { Button, Tabs, Tab, Card, CardBody, Select, SelectItem } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { booking2calendar, defaultGridNVC, defaultGridLT } from "@/lib/ulti";
-import { LayoutGridIcon, CalendarIcon } from "lucide-react";
+import { LayoutGridIcon, CalendarIcon, DoorOpenIcon } from "lucide-react";
 
 export default function SharedSchedulePage({ params }) {
     const token = params.token;
     const router = useRouter();
     const [viewType, setViewType] = useState("standard");
+    const [roomFilter, setRoomFilter] = useState("all");
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640);
+        check();
+        window.addEventListener("resize", check);
+        return () => window.removeEventListener("resize", check);
+    }, []);
 
     const fetcherWithAuth = async (url) => {
         const res = await fetch(url);
@@ -30,6 +39,22 @@ export default function SharedSchedulePage({ params }) {
 
     const { data: events, error, isLoading } = useSWR(`/api/calendar-events/share/${token}`, fetcherWithAuth);
 
+    // Unique rooms present in the shared schedule, for the room filter.
+    const rooms = useMemo(() => {
+        const map = new Map();
+        (events ?? []).forEach((e) => {
+            const r = e.room;
+            if (r?._id) map.set(String(r._id), r);
+        });
+        return Array.from(map.values());
+    }, [events]);
+
+    // Events filtered by the selected room ("all" shows everything).
+    const filteredEvents = useMemo(() => {
+        if (roomFilter === "all") return events ?? [];
+        return (events ?? []).filter((e) => String(e.room?._id) === roomFilter);
+    }, [events, roomFilter]);
+
     // Determine grid based on room locations
     const gridData = useMemo(() => {
         if (!events || events.length === 0) return defaultGridNVC;
@@ -42,9 +67,9 @@ export default function SharedSchedulePage({ params }) {
 
     // Map events for the custom Grid (Tiết)
     const gridEvents = useMemo(() => {
-        if (!events) return [];
+        if (!filteredEvents) return [];
         // Map CalendarEvent documents to the shape booking2calendar expects
-        const mockBookings = events.map(e => ({
+        const mockBookings = filteredEvents.map(e => ({
             _id: e._id,
             weekday: e.weekday,
             time_slot: {
@@ -59,7 +84,7 @@ export default function SharedSchedulePage({ params }) {
         })).filter(b => b.weekday !== undefined && b.time_slot?.start_time !== undefined);
 
         return mockBookings.map(b => booking2calendar(b, gridData.data));
-    }, [events, gridData]);
+    }, [filteredEvents, gridData]);
 
     const customColorEvent = (event) => {
         const type = event.raw?.type || 'class';
@@ -122,17 +147,37 @@ export default function SharedSchedulePage({ params }) {
                     />
                 </Tabs>
             </div>
-            
-            <div className="flex-1 w-full bg-white/60 dark:bg-zinc-900/60 rounded-3xl p-4 shadow-2xl backdrop-blur-xl border border-white/20 overflow-hidden relative min-h-[600px]">
+
+            {/* Room filter — only when the share covers more than one room */}
+            {rooms.length > 1 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    <DoorOpenIcon size={16} className="text-default-400" />
+                    <Select
+                        aria-label="Filter by room"
+                        size="sm"
+                        selectedKeys={[roomFilter]}
+                        onSelectionChange={(keys) => setRoomFilter(Array.from(keys)[0] || "all")}
+                        className="max-w-[220px]"
+                    >
+                        <SelectItem key="all">Tất cả phòng ({rooms.length})</SelectItem>
+                        {rooms.map((r) => (
+                            <SelectItem key={String(r._id)}>{r.title}</SelectItem>
+                        ))}
+                    </Select>
+                </div>
+            )}
+
+            <div className="flex-1 w-full bg-white/60 dark:bg-zinc-900/60 rounded-3xl p-2 sm:p-4 shadow-2xl backdrop-blur-xl border border-white/20 overflow-hidden relative min-h-[520px]">
                 {viewType === "standard" ? (
-                    <CalendarByUser 
-                        _events={events} 
-                        isLoading={isLoading} 
-                        readOnly={true} 
+                    <CalendarByUser
+                        _events={filteredEvents}
+                        isLoading={isLoading}
+                        readOnly={true}
+                        defaultView={isMobile ? "day" : "week"}
                     />
                 ) : (
                     <div className="h-full overflow-auto">
-                        <Calendar 
+                        <Calendar
                            gridData={gridData.data}
                            events={gridEvents}
                            readOnly={true}

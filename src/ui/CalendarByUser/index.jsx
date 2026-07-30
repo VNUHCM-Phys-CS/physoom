@@ -72,10 +72,10 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
     );
 }
 
-export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete}) {
+export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week"}) {
     const { data: session } = useSession();
     const [date, setDate] = useState(new Date());
-    const [view, setView] = useState("week");
+    const [view, setView] = useState(defaultView);
     const [pendingDrop, setPendingDrop] = useState(null);
     const [dropLoading, setDropLoading] = useState(false);
     // Optimistic time overrides (id -> {start, end}) so a dragged event stays at
