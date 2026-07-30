@@ -23,8 +23,10 @@ import {
 } from "@heroui/react";
 import moment from "moment";
 import { PlusIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function TermsAndHolidaysPage() {
+  const { t } = useI18n();
   const { data: events, mutate, isLoading } = useSWR("/api/calendar-events?type=term,holiday", fetcher);
   const { isOpen, onOpen, onClose } = useDisclosure();
   
@@ -58,7 +60,7 @@ export default function TermsAndHolidaysPage() {
   };
 
   const onDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this?")) return;
+    if (!confirm(t("terms.confirmDelete"))) return;
     try {
       await fetch("/api/calendar-events", {
         method: "DELETE",
@@ -74,24 +76,24 @@ export default function TermsAndHolidaysPage() {
   return (
     <div className="p-4 flex flex-col gap-4">
       <div className="flex justify-between items-center w-full">
-        <h1 className="text-2xl font-bold">Terms & Holidays</h1>
+        <h1 className="text-2xl font-bold">{t("terms.title")}</h1>
         <Button color="primary" onPress={onOpen} endContent={<PlusIcon />}>
-          Create New
+          {t("terms.createNew")}
         </Button>
       </div>
 
       <Table aria-label="Terms and Holidays Table" >
         <TableHeader>
-          <TableColumn>TITLE</TableColumn>
-          <TableColumn>TYPE</TableColumn>
-          <TableColumn>START DATE</TableColumn>
-          <TableColumn>END DATE</TableColumn>
-          <TableColumn>ACTIONS</TableColumn>
+          <TableColumn>{t("terms.colTitle")}</TableColumn>
+          <TableColumn>{t("terms.colType")}</TableColumn>
+          <TableColumn>{t("terms.colStart")}</TableColumn>
+          <TableColumn>{t("terms.colEnd")}</TableColumn>
+          <TableColumn>{t("terms.colActions")}</TableColumn>
         </TableHeader>
-        <TableBody 
-          items={events || []} 
+        <TableBody
+          items={events || []}
           isLoading={isLoading}
-          emptyContent={"No terms or holidays found."}
+          emptyContent={t("terms.empty")}
         >
           {(item) => (
             <TableRow key={item._id}>
@@ -105,7 +107,7 @@ export default function TermsAndHolidaysPage() {
               <TableCell>{moment(item.end).format('DD MMM YYYY')}</TableCell>
               <TableCell>
                 <Button size="sm" color="danger" variant="flat" onPress={() => onDelete(item._id)}>
-                  Delete
+                  {t("terms.delete")}
                 </Button>
               </TableCell>
             </TableRow>
@@ -115,34 +117,34 @@ export default function TermsAndHolidaysPage() {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalContent>
-          <ModalHeader>Create Term or Holiday</ModalHeader>
+          <ModalHeader>{t("terms.createModal")}</ModalHeader>
           <ModalBody className="flex flex-col gap-4">
-            <Input 
-              label="Title" 
-              placeholder="e.g. Fall 2026 or Spring Break" 
+            <Input
+              label={t("terms.fieldTitle")}
+              placeholder={t("terms.fieldTitlePh")}
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
               isRequired
             />
-            <Select 
-              label="Type" 
+            <Select
+              label={t("terms.fieldType")}
               selectedKeys={[formData.type]}
               onChange={(e) => setFormData({...formData, type: e.target.value})}
             >
-              <SelectItem key="term" value="term">Academic Term</SelectItem>
-              <SelectItem key="holiday" value="holiday">Holiday / Break</SelectItem>
+              <SelectItem key="term" value="term">{t("terms.typeTerm")}</SelectItem>
+              <SelectItem key="holiday" value="holiday">{t("terms.typeHoliday")}</SelectItem>
             </Select>
-            <Input 
+            <Input
               type="date"
-              label="Start Date" 
+              label={t("terms.startDate")}
               placeholder=" "
               value={formData.start}
               onChange={(e) => setFormData({...formData, start: e.target.value})}
               isRequired
             />
-            <Input 
+            <Input
               type="date"
-              label="End Date" 
+              label={t("terms.endDate")}
               placeholder=" "
               value={formData.end}
               onChange={(e) => setFormData({...formData, end: e.target.value})}
@@ -150,8 +152,8 @@ export default function TermsAndHolidaysPage() {
             />
           </ModalBody>
           <ModalFooter>
-             <Button variant="light" onPress={onClose}>Cancel</Button>
-             <Button color="primary" onPress={onSubmit} isLoading={isSubmitting}>Save</Button>
+             <Button variant="light" onPress={onClose}>{t("common.cancel")}</Button>
+             <Button color="primary" onPress={onSubmit} isLoading={isSubmitting}>{t("common.save")}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
