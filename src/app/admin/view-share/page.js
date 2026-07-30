@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import useSWR from "swr";
 import { fetcher, fetcheroptions } from "@/lib/ulti";
 import { 
@@ -50,6 +50,33 @@ export default function ViewShareAdminPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Search + sort
+  const [search, setSearch] = useState("");
+  const [sortDescriptor, setSortDescriptor] = useState({ column: "title", direction: "ascending" });
+
+  const displayed = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const has = (v) => String(v ?? "").toLowerCase().includes(q);
+    let rows = (shares ?? []).filter(
+      (s) =>
+        !q ||
+        has(s.title) ||
+        has(s.shortCode) ||
+        (s.rooms ?? []).some((r) => has(r.title))
+    );
+    const { column, direction } = sortDescriptor;
+    const val = (s) => {
+      if (column === "requireLogin") return s.settings?.requireLogin ? "1" : "0";
+      return String(s[column] ?? "").toLowerCase();
+    };
+    rows = [...rows].sort((a, b) => {
+      const av = val(a), bv = val(b);
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return direction === "descending" ? -cmp : cmp;
+    });
+    return rows;
+  }, [shares, search, sortDescriptor]);
 
   const handleOpenCreate = () => {
     setFormData({ 
@@ -151,17 +178,32 @@ export default function ViewShareAdminPage() {
         </Button>
       </div>
 
-      <Table aria-label="Shared Links Table">
+      <Input
+        isClearable
+        size="sm"
+        className="max-w-xs"
+        placeholder="Search by title, code or room..."
+        startContent={<SearchIcon size={15} className="text-default-400" />}
+        value={search}
+        onValueChange={setSearch}
+        onClear={() => setSearch("")}
+      />
+
+      <Table
+        aria-label="Shared Links Table"
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+      >
         <TableHeader>
-          <TableColumn>TITLE</TableColumn>
-          <TableColumn>ROOMS</TableColumn>
-          <TableColumn>CODE</TableColumn>
-          <TableColumn>LOGIN REQUIRED</TableColumn>
-          <TableColumn>LINK / QR</TableColumn>
-          <TableColumn>ACTIONS</TableColumn>
+          <TableColumn key="title" allowsSorting>TITLE</TableColumn>
+          <TableColumn key="rooms">ROOMS</TableColumn>
+          <TableColumn key="shortCode" allowsSorting>CODE</TableColumn>
+          <TableColumn key="requireLogin" allowsSorting>LOGIN REQUIRED</TableColumn>
+          <TableColumn key="link">LINK / QR</TableColumn>
+          <TableColumn key="actions">ACTIONS</TableColumn>
         </TableHeader>
-        <TableBody 
-          items={shares || []} 
+        <TableBody
+          items={displayed}
           isLoading={isLoading}
           emptyContent={"No active shares found."}
         >
