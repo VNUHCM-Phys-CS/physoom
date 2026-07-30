@@ -112,7 +112,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
 
         const hol = (holidays ?? []).map((h) => ({
             id: `hol-${h._id}`,
-            title: `🎌 ${h.title}`,
+            title: `🎉 ${h.title}`,
             // All-day range: react-big-calendar treats the end as exclusive, so
             // add a day to include the final holiday date.
             start: moment(h.start).startOf("day").toDate(),
