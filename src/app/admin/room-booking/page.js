@@ -115,28 +115,48 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
   const [roomFilter, setRoomFilter] = useState("");
   const [roomInput, setRoomInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortDescriptor, setSortDescriptor] = useState({ column: "start", direction: "descending" });
 
   const filteredRooms = useMemo(
     () => (rooms ?? []).filter((r) => r.title.toLowerCase().includes(roomInput.toLowerCase())),
     [rooms, roomInput]
   );
 
-  const filtered = (events ?? []).filter((e) => {
-    if (roomFilter) {
-      const title = typeof e.room === "object" ? e.room?.title : "";
-      if (title !== roomFilter) return false;
-    }
-    if (statusFilter && e.status !== statusFilter) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const has = (v) => String(v ?? "").toLowerCase().includes(q);
+    let rows = (events ?? []).filter((e) => {
+      if (roomFilter) {
+        const title = typeof e.room === "object" ? e.room?.title : "";
+        if (title !== roomFilter) return false;
+      }
+      if (statusFilter && e.status !== statusFilter) return false;
+      if (q && !(has(e.title) || has(e.room?.title) || (e.teacher_email ?? []).some(has))) return false;
+      return true;
+    });
+    const { column, direction } = sortDescriptor;
+    const val = (e) => {
+      if (column === "start" || column === "end") return new Date(e[column]).getTime() || 0;
+      if (column === "room") return String(e.room?.title ?? "").toLowerCase();
+      if (column === "teacher_email") return (e.teacher_email ?? []).join(",").toLowerCase();
+      return String(e[column] ?? "").toLowerCase();
+    };
+    rows = [...rows].sort((a, b) => {
+      const av = val(a), bv = val(b);
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return direction === "descending" ? -cmp : cmp;
+    });
+    return rows;
+  }, [events, roomFilter, statusFilter, search, sortDescriptor]);
 
   const columns = [
-    { key: "title", label: "Title" },
-    { key: "room", label: "Room" },
-    { key: "teacher_email", label: "Requested By" },
-    { key: "start", label: "Start" },
-    { key: "end", label: "End" },
-    { key: "status", label: "Status" },
+    { key: "title", label: "Title", sortable: true },
+    { key: "room", label: "Room", sortable: true },
+    { key: "teacher_email", label: "Requested By", sortable: true },
+    { key: "start", label: "Start", sortable: true },
+    { key: "end", label: "End", sortable: true },
+    { key: "status", label: "Status", sortable: true },
     { key: "actions", label: "Actions" },
   ];
 
@@ -196,6 +216,15 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
 
   return (
     <div>
+      <Input
+        isClearable
+        size="sm"
+        className="max-w-xs mb-3"
+        placeholder="Search by title, room or requester..."
+        value={search}
+        onValueChange={setSearch}
+        onClear={() => setSearch("")}
+      />
       {showRoomFilter && (
         <div className="flex gap-3 mb-4">
           <Autocomplete
@@ -229,9 +258,19 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
           </Select>
         </div>
       )}
-      <Table aria-label="Events table" isHeaderSticky classNames={{ wrapper: "max-h-[500px]" }}>
+      <Table
+        aria-label="Events table"
+        isHeaderSticky
+        classNames={{ wrapper: "max-h-[500px]" }}
+        sortDescriptor={sortDescriptor}
+        onSortChange={setSortDescriptor}
+      >
         <TableHeader columns={columns}>
-          {(col) => <TableColumn key={col.key}>{col.label}</TableColumn>}
+          {(col) => (
+            <TableColumn key={col.key} allowsSorting={col.sortable}>
+              {col.label}
+            </TableColumn>
+          )}
         </TableHeader>
         <TableBody items={filtered} emptyContent="No events found">
           {(event) => (
