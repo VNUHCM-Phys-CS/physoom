@@ -10,7 +10,14 @@ export const POST = async (request) => {
   try {
     await connectToDb();
     let { filter, isApproximate } = await request.json();
-    let class_id = (filter ?? {})["course.class_id"];
+
+    // Safety: never dump the whole collection. An empty filter usually means a
+    // missing class_id that JSON.stringify dropped — return nothing instead.
+    if (!filter || Object.keys(filter).length === 0) {
+      return NextResponse.json([]);
+    }
+
+    let class_id = filter["course.class_id"];
     
     // First, find relevant courses if class_id is specified
     if (class_id) {

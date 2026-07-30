@@ -498,13 +498,17 @@ export default function BookingSingle({ email }) {
     [confirm, t, mutateUserEvent, mutateCourse, globalMutate]
   );
 
+  const classFilterId = getClass(booking?.course?.class_id);
+  const hasClassId = Array.isArray(classFilterId)
+    ? classFilterId.filter(Boolean).length > 0
+    : !!classFilterId;
   const { data: classEvents, mutate: mutateClassEvent } = useSWR(
     [
-      booking ? "/api/calendar-events/fetch" : null,
+      booking && hasClassId ? "/api/calendar-events/fetch" : null,
       {
         method: "POST",
         body: JSON.stringify({
-          filter: { "course.class_id": getClass(booking?.course?.class_id) },
+          filter: { "course.class_id": classFilterId },
           isApproximate: true,
         }),
       },
