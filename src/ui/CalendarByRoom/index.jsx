@@ -196,6 +196,15 @@ export default function CalendarByRoom({
             precision
             // reviewData
           );
+          // If this course already has exactly one schedule in this room, treat
+          // the click as a MOVE: attach its series_id so the API replaces the
+          // old occurrences instead of leaving them behind as a duplicate.
+          const existing = (eventsByRoom ?? []).filter(
+            (e) => String(e.course?._id ?? e.course) === String(booking.course?._id)
+          );
+          if (existing.length === 1) {
+            request.series_id = existing[0].series_id || existing[0]._id;
+          }
           try {
             setIsLoadingFetch(true);
             const res = await fetch("/api/booking/create", {
@@ -230,7 +239,7 @@ export default function CalendarByRoom({
         }
       }
     },
-    [gridObject, booking, currentRoom]
+    [gridObject, booking, currentRoom, eventsByRoom, mutate, onBooking]
   );
   const isLoading = isLoadingFetch || isLoadingEvent;
   const customColorEvent = useCallback((e) => {
