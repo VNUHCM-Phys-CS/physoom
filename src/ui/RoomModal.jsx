@@ -70,7 +70,9 @@ const RoomModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        // /api/room/create expects an array (bulk upsert); the [id] PUT
+        // endpoint expects a single object.
+        body: JSON.stringify(data?._id ? formData : [formData]),
       });
 
       const saveData = await saveResponse.json();

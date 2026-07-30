@@ -90,6 +90,11 @@ export default function RoomTable() {
     [onOpen]
   );
 
+  const onAddNew = useCallback(() => {
+    setEditData(null);
+    onOpen();
+  }, [onOpen]);
+
   const onToggleBookable = useCallback(
     async (roomItem) => {
       const newValue = !roomItem.isBookable;
@@ -266,6 +271,9 @@ export default function RoomTable() {
             >
               Delete Selected
             </Button>
+            <Button color="primary" endContent={<PlusIcon />} onPress={onAddNew}>
+              Add Room
+            </Button>
           </div>
         </div>
         <div className="flex justify-between items-center">
@@ -284,7 +292,7 @@ export default function RoomTable() {
         </div>
       </div>
     ),
-    [filterValue, visibleColumns, selectedKeys, data, onDelete]
+    [filterValue, visibleColumns, selectedKeys, data, onDelete, onAddNew]
   );
 
   const bottomContent = React.useMemo(
@@ -364,7 +372,7 @@ export default function RoomTable() {
         </TableBody>
       </Table>
       {isOpen && (
-        <RoomModal data={editData} isOpen={isOpen} onOpenChange={onOpenChange} />
+        <RoomModal data={editData} isOpen={isOpen} onOpenChange={onOpenChange} onSave={mutate} />
       )}
     </>
   );

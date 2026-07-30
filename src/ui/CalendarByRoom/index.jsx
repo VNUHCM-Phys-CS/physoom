@@ -10,6 +10,7 @@ import Calendar from "../Calendar";
 import { Chip, Select, SelectItem } from "@heroui/react";
 import LoadingWrapper from "../LoadingWrapper";
 import { StarIcon } from "../icons/StarIcon";
+import { toast } from "react-toastify";
 import _ from "lodash";
 
 export default function CalendarByRoom({
@@ -201,16 +202,30 @@ export default function CalendarByRoom({
               method: "POST",
               body: JSON.stringify([request]),
             });
-            if (res.status !== 201) {
-              console.log("Something wrong");
-            } else {
-              // success
+            const result = await res.json().catch(() => ({}));
+            if (res.status !== 201 || result?.success === false) {
+              toast.error(result?.message || "Could not schedule this slot.");
+            } else if (result?.conflicts?.length) {
+              // The API returns 201 with a conflicts array even when nothing was
+              // created (e.g. missing term dates, holiday overlap, room/teacher
+              // clash). Surface the reason instead of silently doing nothing.
+              const c = result.conflicts[0];
+              const reason =
+                c.reason ||
+                c.examples?.[0]?.reason ||
+                "Scheduling conflict — check the term dates and existing bookings.";
+              toast.warning(reason);
+              // Some occurrences may still have been created — refresh anyway.
               mutate();
               if (onBooking) onBooking();
+            } else {
+              mutate();
+              if (onBooking) onBooking();
+              toast.success("Course scheduled.");
             }
           } catch (error) {
             console.log(error);
-            console.log("Something wrong");
+            toast.error("Something went wrong while scheduling.");
           }
         }
       }
