@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
 import Course from "@/models/course";
+import Room from "@/models/room"; // register Room schema for .populate("room")
 import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
 

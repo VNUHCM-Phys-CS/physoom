@@ -2,6 +2,7 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import ViewShare from "@/models/viewShare";
+import "@/models/room"; // register Room schema for ViewShare.populate("rooms")
 import { auth } from "@/lib/auth";
 import { v4 as uuidv4 } from "uuid";
 

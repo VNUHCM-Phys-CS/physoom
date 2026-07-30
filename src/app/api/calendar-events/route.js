@@ -3,6 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 import "@/models/course"; // ensure Course schema is registered for populate
+import "@/models/room";   // ensure Room schema is registered for populate
 import { auth } from "@/lib/auth";
 
 export const GET = async (request) => {

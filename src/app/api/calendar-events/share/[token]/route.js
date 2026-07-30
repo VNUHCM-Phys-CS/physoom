@@ -3,6 +3,8 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 import ViewShare from "@/models/viewShare";
+import "@/models/course"; // register schemas for .populate("course"/"room"/"rooms")
+import "@/models/room";
 import { auth } from "@/lib/auth";
 
 export const GET = async (request, { params }) => {

@@ -2,6 +2,8 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
+import "@/models/course"; // register schemas for .populate('course room')
+import "@/models/room";
 import { createEvents } from "ics";
 
 export const GET = async (request) => {

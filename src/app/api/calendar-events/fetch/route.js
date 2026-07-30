@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
 import Course from "@/models/course";
+import "@/models/room"; // register Room schema for .populate("room")
 
 export const POST = async (request) => {
   try {
