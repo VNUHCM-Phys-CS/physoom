@@ -7,10 +7,17 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; // Import the styles
 import { Providers } from "@/ui/providers";
 import { I18nProvider } from "@/i18n/I18nProvider";
+import PwaRegister from "@/ui/PwaRegister";
 
 export const metadata = {
   title: "Physoom app",
-  description: "Physoom app by zipexpo",
+  description: "Hệ thống đặt phòng & lịch học — Khoa Vật lý VNU-HCMUS",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, title: "Physoom", statusBarStyle: "default" },
+};
+
+export const viewport = {
+  themeColor: "#7c3aed",
 };
 
 export default function RootLayout({ children }) {
@@ -20,6 +27,7 @@ export default function RootLayout({ children }) {
         <Providers>
           <I18nProvider>
           <AuthProvider>
+            <PwaRegister />
             <AnimatedBackground />
             <div className="flex-none">
               <Nav />
