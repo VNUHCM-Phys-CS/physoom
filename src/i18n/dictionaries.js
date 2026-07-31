@@ -11,6 +11,9 @@ export const dictionaries = {
     "notif.title": "Thông báo",
     "notif.markAll": "Đánh dấu đã đọc",
     "notif.empty": "Chưa có thông báo",
+    "notif.enablePush": "Bật thông báo trên máy tính",
+    "notif.pushOn": "Đã bật thông báo máy tính",
+    "notif.pushDenied": "Thông báo bị chặn — hãy bật lại trong cài đặt trình duyệt.",
 
     // Navigation
     "nav.home": "Trang chủ",
@@ -224,6 +227,9 @@ export const dictionaries = {
     "notif.title": "Notifications",
     "notif.markAll": "Mark all read",
     "notif.empty": "No notifications yet",
+    "notif.enablePush": "Enable desktop notifications",
+    "notif.pushOn": "Desktop notifications on",
+    "notif.pushDenied": "Notifications blocked — re-enable in browser settings.",
 
     "nav.home": "Home",
     "nav.booking": "Booking",
