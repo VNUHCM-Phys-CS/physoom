@@ -17,6 +17,7 @@ import {
 import { CalendarDaysIcon, LogInIcon, LogOutIcon } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import LanguageToggle from "../LanguageToggle";
+import NotificationBell from "../NotificationBell";
 import { useI18n } from "@/i18n/I18nProvider";
 
 const Links = ({ session }) => {
@@ -90,6 +91,11 @@ const Links = ({ session }) => {
 
       {/* Actions */}
       <NavbarContent justify="end">
+        {user && (
+          <NavbarItem>
+            <NotificationBell />
+          </NavbarItem>
+        )}
         <NavbarItem>
           <LanguageToggle />
         </NavbarItem>

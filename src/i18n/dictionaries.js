@@ -7,6 +7,11 @@ export const dictionaries = {
     "lang.switchToEn": "English",
     "lang.switchToVi": "Tiếng Việt",
 
+    // Notifications
+    "notif.title": "Thông báo",
+    "notif.markAll": "Đánh dấu đã đọc",
+    "notif.empty": "Chưa có thông báo",
+
     // Navigation
     "nav.home": "Trang chủ",
     "nav.booking": "Đặt lịch",
@@ -215,6 +220,10 @@ export const dictionaries = {
   en: {
     "lang.switchToEn": "English",
     "lang.switchToVi": "Tiếng Việt",
+
+    "notif.title": "Notifications",
+    "notif.markAll": "Mark all read",
+    "notif.empty": "No notifications yet",
 
     "nav.home": "Home",
     "nav.booking": "Booking",

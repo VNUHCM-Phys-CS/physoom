@@ -3,7 +3,10 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 import Room from "@/models/room";
+import User from "@/models/user";
 import { auth } from "@/lib/auth";
+import { notify } from "@/lib/notify";
+import moment from "moment";
 
 export const GET = async (request) => {
   try {
@@ -135,6 +138,28 @@ export const POST = async (request) => {
     });
 
     await newEvent.save();
+
+    // Notify room managers + admins when a request needs approval.
+    if (!autoApprove) {
+      try {
+        const room = await Room.findById(roomId, "title managers").lean();
+        const admins = await User.find({ isAdmin: true }, "email").lean();
+        const recipients = [
+          ...(room?.managers ?? []),
+          ...admins.map((a) => a.email),
+        ].filter((e) => e && e !== session.user.email);
+        await notify(recipients, {
+          type: "approval",
+          title: "Yêu cầu mượn phòng cần duyệt",
+          message: `${session.user.email} yêu cầu mượn ${room?.title || "phòng"} — ${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}: "${title}"`,
+          link: "/room-manager",
+          event: newEvent._id,
+        });
+      } catch (e) {
+        console.error("notify(create) failed:", e);
+      }
+    }
+
     return NextResponse.json({ success: true, event: newEvent }, { status: 201 });
   } catch (err) {
     console.log(err);

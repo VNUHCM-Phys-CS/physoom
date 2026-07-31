@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 import Room from "@/models/room";
 import { auth } from "@/lib/auth";
+import { notify } from "@/lib/notify";
+import moment from "moment";
 
 async function checkAuthorized(session, eventId) {
   if (!session?.user) return { authorized: false, isPrivileged: false, event: null };
@@ -110,6 +112,21 @@ export const PATCH = async (request, { params }) => {
 
     if (!updated) {
       return NextResponse.json({ success: false, message: "Event not found" }, { status: 404 });
+    }
+
+    // Notify the requester of the decision.
+    try {
+      const recipients = [...(event.teacher_email ?? []), ...(event.host ?? [])];
+      const when = `${moment(updated.start).format("DD/MM HH:mm")}–${moment(updated.end).format("HH:mm")}`;
+      await notify(recipients, {
+        type: status === "approved" ? "approved" : "rejected",
+        title: status === "approved" ? "Yêu cầu mượn phòng đã được duyệt" : "Yêu cầu mượn phòng bị từ chối",
+        message: `"${updated.title}" · ${updated.room?.title || "phòng"} · ${when}`,
+        link: "/booking?tab=event_booking",
+        event: updated._id,
+      });
+    } catch (e) {
+      console.error("notify(decision) failed:", e);
     }
 
     return NextResponse.json({ success: true, event: updated }, { status: 200 });
