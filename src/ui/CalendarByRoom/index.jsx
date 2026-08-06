@@ -7,7 +7,7 @@ import {
 } from "@/lib/ulti";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Calendar from "../Calendar";
-import { Chip, Select, SelectItem } from "@heroui/react";
+import { Chip, Autocomplete, AutocompleteItem } from "@heroui/react";
 import LoadingWrapper from "../LoadingWrapper";
 import { StarIcon } from "../icons/StarIcon";
 import { toast } from "react-toastify";
@@ -28,10 +28,10 @@ export default function CalendarByRoom({
   const [selectedRoom, setSelectedRoom] = useState(initRoom);
   const [currentRoom, setCurrentRoom] = useState();
   const [snapResolution , setSnapResolution ] = useState(0.5);
-  const onSelectRoom = useCallback(
-    (e) => {
-      setSelectedRoom(e.target.value);
-      const _room = (rooms ?? []).find((d) => d._id === e.target.value);
+  const onSelectRoomKey = useCallback(
+    (key) => {
+      setSelectedRoom(key || undefined);
+      const _room = (rooms ?? []).find((d) => d._id === key);
       setCurrentRoom(_room);
     },
     [rooms]
@@ -255,15 +255,16 @@ export default function CalendarByRoom({
     <>
       <div className="flex gap-2">
         <div className="w-1/2">
-          <Select
+          <Autocomplete
             label="Room"
-            placeholder="Select an Room"
-            selectedKeys={[selectedRoom]}
-            onChange={onSelectRoom}
+            placeholder="Tìm phòng theo tên..."
+            selectedKey={selectedRoom || null}
+            onSelectionChange={onSelectRoomKey}
           >
             {roomsOptions.map((room) => (
-              <SelectItem
+              <AutocompleteItem
                 key={room._id}
+                textValue={room.title}
                 startContent={
                   room.recommend && (
                     <StarIcon className={"fill-yellow-400 stroke-white"} />
@@ -272,7 +273,7 @@ export default function CalendarByRoom({
                 endContent={room.chips.map((c) => (
                   <Chip
                     size="sm"
-                    key={`${room._ids}_${c}`}
+                    key={`${room._id}_${c}`}
                     variant="bordered"
                     color={
                       room.recommend && room.recommend[c] ? "primary" : null
@@ -283,9 +284,9 @@ export default function CalendarByRoom({
                 ))}
               >
                 {room.title}
-              </SelectItem>
+              </AutocompleteItem>
             ))}
-          </Select>
+          </Autocomplete>
         </div>
         <div className="w-1/2 prose">
           {currentRoom ? (

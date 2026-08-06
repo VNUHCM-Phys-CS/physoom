@@ -13,13 +13,17 @@ export const GET = async (request) => {
   try {
     if (user && user.isAdmin) {
       await connectToDb();
-      const emails = await Course.aggregate([
-        { $unwind: '$teacher_email' }, // Flatten the teacher_email array
-        { $group: { _id: '$teacher_email' } }, // Group by each email to get unique ones
-        { $project: { _id: 0, email: '$_id' } } // Project the result as 'email'
+      // Distinct teacher emails used across courses, joined to the User
+      // collection so the caller can show the teacher's name too.
+      const rows = await Course.aggregate([
+        { $unwind: '$teacher_email' },
+        { $group: { _id: '$teacher_email' } },
+        { $lookup: { from: 'users', localField: '_id', foreignField: 'email', as: 'u' } },
+        { $project: { _id: 0, email: '$_id', name: { $arrayElemAt: ['$u.name', 0] } } },
+        { $sort: { email: 1 } },
       ]);
       revalidateTag("user");
-      return NextResponse.json(emails.map(item => item.email));
+      return NextResponse.json(rows);
     } else {
       return NextResponse.json(
         [],

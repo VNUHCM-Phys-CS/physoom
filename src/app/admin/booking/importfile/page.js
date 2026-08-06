@@ -193,9 +193,15 @@ const Page = () => {
               const duration = +course[0].credit;
               const precision = getSnapFromDuration(duration, 1);
               const start_time = roundIndex(+_booking["Tiết bắt đầu"], precision, grid.data);
-              const end_time = Math.min(grid.data.length - 1, start_time + course[0].credit);
+              const end_time =
+                start_time == null
+                  ? null
+                  : Math.min(grid.data.length - 1, start_time + (+course[0].credit || 1));
 
-              if (start_time > -1 && end_time > -1) {
+              // roundIndex returns null when the "Tiết bắt đầu" doesn't map to a
+              // grid slot; guard against null (null > -1 is truthy) so such rows
+              // are reported as conflicts instead of placed at slot 0.
+              if (start_time != null && start_time >= 0 && end_time != null && end_time >= 0) {
                 let booking = {
                   teacher_email: _booking._teacher_emails?.map((e) => name2email[e])?.filter((d) => d),
                   room: { ...room[0], location },
@@ -222,6 +228,12 @@ const Page = () => {
                     conflicts: resData.conflicts
                   });
                 }
+              } else {
+                rowConflicts.push({
+                  row: index + 1,
+                  course: course[0].title || course[0].course_id,
+                  reason: `Không xác định được tiết trên lịch (Tiết bắt đầu = "${_booking["Tiết bắt đầu"]}").`,
+                });
               }
             }
           } catch (e) {

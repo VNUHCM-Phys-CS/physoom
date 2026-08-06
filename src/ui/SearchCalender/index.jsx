@@ -110,16 +110,30 @@ export default function ({onClickEvent, onDoubleClick, onDragStart}) {
             <Autocomplete
               label="Lecturer"
               variant="bordered"
-              placeholder="Search by email"
+              placeholder="Tìm theo tên hoặc email"
               className="max-w-xs"
               selectedKey={filter}
               onSelectionChange={setFilter}
             >
-              {(userList ?? []).map((u) => (
-                <AutocompleteItem key={u} value={u}>
-                  {u}
-                </AutocompleteItem>
-              ))}
+              {(userList ?? []).map((u) => {
+                const email = typeof u === "string" ? u : u.email;
+                const name = typeof u === "string" ? null : u.name;
+                return (
+                  <AutocompleteItem
+                    key={email}
+                    textValue={name ? `${name} ${email}` : email}
+                  >
+                    {name ? (
+                      <div className="flex flex-col">
+                        <span className="text-sm">{name}</span>
+                        <span className="text-xs text-default-400">{email}</span>
+                      </div>
+                    ) : (
+                      email
+                    )}
+                  </AutocompleteItem>
+                );
+              })}
             </Autocomplete>
           )}
           {searchKey === "room" && (

@@ -21,15 +21,40 @@ export const POST = async (request) => {
         );
       }
       revalidateTag("user");
-      // Query the User model for users with the specified names
-      const users = await User.find({ name: { $in: names } }).select(
-        "email name"
-      );
 
-      // If no users are found, return an empty array
-      if (!users.length) {
-        return NextResponse.json({ success: true, users: [] }, { status: 200 });
+      // Robust name→email matching. Exact `$in` matching drops teachers whenever
+      // the Excel name differs by case or spacing, so normalise (trim + collapse
+      // whitespace + lowercase, keep diacritics) and match against all users.
+      // Also pass through values that are already emails.
+      const norm = (s) =>
+        String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+
+      const all = await User.find({}, "email name").lean();
+      const byNorm = new Map();
+      all.forEach((u) => {
+        if (u.name) byNorm.set(norm(u.name), u);
+      });
+
+      const users = [];
+      const seen = new Set();
+      for (const raw of names) {
+        const value = String(raw ?? "").trim();
+        if (!value) continue;
+        // Already an email → use directly.
+        if (value.includes("@")) {
+          if (!seen.has(value.toLowerCase())) {
+            users.push({ name: raw, email: value });
+            seen.add(value.toLowerCase());
+          }
+          continue;
+        }
+        const u = byNorm.get(norm(value));
+        if (u?.email && !seen.has(u.email.toLowerCase())) {
+          users.push({ name: raw, email: u.email });
+          seen.add(u.email.toLowerCase());
+        }
       }
+
       return NextResponse.json({ success: true, users }, { status: 200 });
     } else {
       return NextResponse.json([], {

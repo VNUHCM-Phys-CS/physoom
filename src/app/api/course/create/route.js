@@ -23,22 +23,58 @@ export const POST = async (request) => {
           { status: 400 }
         );
       }
-      const bulkOps = data.map((d) => ({
-        updateOne: {
-          filter: {
-            course_id: d.course_id,
-            class_id: Array.isArray(d.class_id) ? d.class_id : [d.class_id],
-            course_id_extend: d.course_id_extend,
+      // Coerce numeric fields so a stray string ("2,5", "2.5 tiết", "") can't
+      // throw a CastError. credit allows one decimal (e.g. 2.5); duration and
+      // population are integers.
+      const toNum = (v) => {
+        if (v === undefined || v === null || v === "") return undefined;
+        const n = Number(String(v).replace(",", ".").replace(/[^\d.]/g, ""));
+        return Number.isFinite(n) ? n : undefined;
+      };
+      const clean = (d) => {
+        const out = { ...d };
+        const credit = toNum(d.credit);
+        const duration = toNum(d.duration);
+        const population = toNum(d.population);
+        if (credit !== undefined) out.credit = Math.round(credit * 10) / 10;
+        else delete out.credit;
+        if (duration !== undefined) out.duration = Math.round(duration);
+        else delete out.duration;
+        out.population = population !== undefined ? Math.round(population) : 0;
+        return out;
+      };
+
+      const bulkOps = data.map((d0) => {
+        const d = clean(d0);
+        return {
+          updateOne: {
+            filter: {
+              course_id: d.course_id,
+              class_id: Array.isArray(d.class_id) ? d.class_id : [d.class_id],
+              course_id_extend: d.course_id_extend,
+            },
+            update: { $set: d },
+            upsert: true,
           },
-          update: { $set: d },
-          upsert: true,
-        },
-      }));
-      const course = await Course.bulkWrite(bulkOps);
+        };
+      });
+
+      // ordered:false → a bad row is skipped and reported instead of aborting
+      // the whole import.
+      let course, writeErrors = [];
+      try {
+        course = await Course.bulkWrite(bulkOps, { ordered: false });
+      } catch (bulkErr) {
+        course = bulkErr?.result;
+        writeErrors = (bulkErr?.writeErrors || []).map((e) => ({
+          index: e.index,
+          message: e.errmsg || e.message,
+        }));
+      }
 
       revalidateTag("course");
       return NextResponse.json(
-        { success: true, course },
+        { success: true, course, failed: writeErrors.length, writeErrors },
         {
           status: 201,
         }
