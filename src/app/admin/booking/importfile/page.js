@@ -27,6 +27,7 @@ import {
   Button,
   RadioGroup,
   Radio,
+  Chip,
 } from "@heroui/react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
@@ -235,102 +236,124 @@ const Page = () => {
       setProgressCourse({ value: 100, isError: !courseResponse.ok });
 
       // --- Booking creation ---
-      const rowConflicts = [];
+      // Build a COMPLETE, categorised report of every row so nothing is hidden:
+      //   created   — new schedule placed
+      //   overwrite — replaced this course's OWN previous schedule (re-import)
+      //   conflict  — real clash with a DIFFERENT course (room/teacher/class)
+      //   skipped   — no teacher / bad tiết / missing room·thứ·tiết
+      //   error     — unexpected failure
+      const report = [];
+      const add = (index, _b, status, detail, courseTitle) =>
+        report.push({
+          row: index + 1,
+          status,
+          detail: detail || "",
+          course_id: (_b["Mã mh"] || "").toString().trim(),
+          course: courseTitle || _b["Tên môn học"] || _b["Mã mh"] || "",
+          class: _b["Lớp"] || "",
+          room: _b.cleanRoomTitle || _b["Tên phòng"] || "",
+          day: _b["Thứ"] ?? "",
+          tiet: _b["Tiết bắt đầu"] ?? "",
+        });
+
       for (const [index, _booking] of data.entries()) {
-        if (
-          _booking.cleanRoomTitle &&
-          +_booking["Tiết bắt đầu"] &&
-          +_booking["Thứ"]
-        ) {
-          try {
-            const location = _booking.cleanRoomTitle
-              ? rooms.find((r) => r.title === _booking.cleanRoomTitle)?.location
-              : locationList.default;
-            const room = await fetch("/api/room", {
-              method: "POST",
-              body: JSON.stringify({ filter: { title: _booking.cleanRoomTitle, location } }),
-            }).then((d) => d.json());
-            const course = await fetch("/api/course", {
-              method: "POST",
-              body: JSON.stringify({
-                filter: {
-                  course_id: _booking["Mã mh"].trim(),
-                  course_id_extend: _booking["mã lớp 2"],
-                  class_id: _booking["Lớp"].split(",").map((d) => d.trim()),
-                },
-              }),
-            }).then((d) => d.json());
+        // Rows without room/thứ/tiết carry no schedule (e.g. an extra-teacher
+        // row) — record them so the report is truly complete.
+        if (!(_booking.cleanRoomTitle && +_booking["Tiết bắt đầu"] && +_booking["Thứ"])) {
+          if (_booking["Mã mh"])
+            add(index, _booking, "skipped", "Thiếu thông tin phòng/thứ/tiết — không xếp lịch");
+          continue;
+        }
+        try {
+          const location = _booking.cleanRoomTitle
+            ? rooms.find((r) => r.title === _booking.cleanRoomTitle)?.location
+            : locationList.default;
+          const room = await fetch("/api/room", {
+            method: "POST",
+            body: JSON.stringify({ filter: { title: _booking.cleanRoomTitle, location } }),
+          }).then((d) => d.json());
+          const course = await fetch("/api/course", {
+            method: "POST",
+            body: JSON.stringify({
+              filter: {
+                course_id: _booking["Mã mh"].trim(),
+                course_id_extend: _booking["mã lớp 2"],
+                class_id: _booking["Lớp"].split(",").map((d) => d.trim()),
+              },
+            }),
+          }).then((d) => d.json());
 
-            if (room?.[0]?._id && course?.[0]?._id) {
-              // No teacher → keep the course but don't put it on the calendar;
-              // the course already carries a "Thiếu giảng viên" warning.
-              if (!(course[0].teacher_email?.length)) {
-                rowConflicts.push({
-                  row: index + 1,
-                  course: course[0].title || course[0].course_id,
-                  reason: "Thiếu giảng viên — môn được tạo nhưng chưa xếp lịch.",
-                });
-                setProgressBooking({ value: ((index + 1) / data.length) * 100 });
-                continue;
-              }
-              const grid = location === "NVC" ? defaultGridNVC : defaultGridLT;
-              const weekday = +_booking["Thứ"];
-              const duration = +course[0].credit;
-              const precision = getSnapFromDuration(duration, 1);
-              const start_time = roundIndex(+_booking["Tiết bắt đầu"], precision, grid.data);
-              const end_time =
-                start_time == null
-                  ? null
-                  : Math.min(grid.data.length - 1, start_time + (+course[0].credit || 1));
-
-              // roundIndex returns null when the "Tiết bắt đầu" doesn't map to a
-              // grid slot; guard against null (null > -1 is truthy) so such rows
-              // are reported as conflicts instead of placed at slot 0.
-              if (start_time != null && start_time >= 0 && end_time != null && end_time >= 0) {
-                let booking = {
-                  teacher_email: _booking._teacher_emails?.map((e) => name2email[e])?.filter((d) => d),
-                  room: { ...room[0], location },
-                  course: course[0],
-                  time_slot: {},
-                };
-                const time_slot = { weekday, start_time, end_time };
-                booking = grid.calendar2booking(time_slot, booking, precision);
-
-                // Always use selected term's dates
-                booking.time_slot.start_date = new Date(selectedTermObj.start);
-                booking.time_slot.end_date = new Date(selectedTermObj.end);
-
-                const res = await fetch("/api/booking/create", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", email: session?.user?.email },
-                  body: JSON.stringify([booking]),
-                });
-                const resData = await res.json();
-                if (resData.conflicts?.length > 0) {
-                  rowConflicts.push({
-                    row: index + 1,
-                    course: course[0].title || course[0].course_id,
-                    conflicts: resData.conflicts
-                  });
-                }
-              } else {
-                rowConflicts.push({
-                  row: index + 1,
-                  course: course[0].title || course[0].course_id,
-                  reason: `Không xác định được tiết trên lịch (Tiết bắt đầu = "${_booking["Tiết bắt đầu"]}").`,
-                });
-              }
-            }
-          } catch (e) {
-            console.log(`Fail to add row#`, index + 1, e);
-            rowConflicts.push({ row: index + 1, reason: String(e) });
+          const title = course?.[0]?.title || _booking["Tên môn học"];
+          if (!(room?.[0]?._id && course?.[0]?._id)) {
+            add(index, _booking, "error", "Không tìm thấy phòng hoặc môn sau khi tạo", title);
+            setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+            continue;
           }
 
-          setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+          // No teacher → keep the course but don't schedule it.
+          if (!(course[0].teacher_email?.length)) {
+            add(index, _booking, "skipped", "Thiếu giảng viên — môn được tạo nhưng chưa xếp lịch", title);
+            setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+            continue;
+          }
+
+          const grid = location === "NVC" ? defaultGridNVC : defaultGridLT;
+          const weekday = +_booking["Thứ"];
+          const duration = +course[0].credit;
+          const precision = getSnapFromDuration(duration, 1);
+          const start_time = roundIndex(+_booking["Tiết bắt đầu"], precision, grid.data);
+          const end_time =
+            start_time == null
+              ? null
+              : Math.min(grid.data.length - 1, start_time + (+course[0].credit || 1));
+
+          if (!(start_time != null && start_time >= 0 && end_time != null && end_time >= 0)) {
+            add(index, _booking, "skipped", `Không xác định được tiết trên lịch (Tiết bắt đầu = "${_booking["Tiết bắt đầu"]}")`, title);
+            setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+            continue;
+          }
+
+          let booking = {
+            teacher_email: _booking._teacher_emails?.map((e) => name2email[e])?.filter((d) => d),
+            room: { ...room[0], location },
+            course: course[0],
+            time_slot: {},
+          };
+          booking = grid.calendar2booking({ weekday, start_time, end_time }, booking, precision);
+          booking.time_slot.start_date = new Date(selectedTermObj.start);
+          booking.time_slot.end_date = new Date(selectedTermObj.end);
+
+          const res = await fetch("/api/booking/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", email: session?.user?.email },
+            body: JSON.stringify([booking]),
+          });
+          const resData = await res.json();
+          const madeCount = resData.created?.[0]?.created || 0;
+          const wasOverwrite = !!resData.created?.[0]?.overwritten;
+
+          if (resData.conflicts?.length > 0) {
+            const reason = resData.conflicts
+              .flatMap((c) => (c.examples?.map((e) => e.reason) || [c.reason]))
+              .filter(Boolean)
+              .join("; ");
+            // Some occurrences may still have been placed alongside the clash.
+            add(index, _booking, madeCount ? "conflict" : "conflict",
+              madeCount ? `Trùng lịch (xếp được ${madeCount} buổi): ${reason}` : `Trùng lịch: ${reason}`,
+              title);
+          } else if (wasOverwrite) {
+            add(index, _booking, "overwrite", `Ghi đè lịch cũ của môn (${madeCount} buổi)`, title);
+          } else {
+            add(index, _booking, "created", `Đã xếp ${madeCount} buổi`, title);
+          }
+        } catch (e) {
+          console.log(`Fail to add row#`, index + 1, e);
+          add(index, _booking, "error", String(e));
         }
+        setProgressBooking({ value: ((index + 1) / data.length) * 100 });
       }
 
-      setConflictLog(rowConflicts);
+      setConflictLog(report);
       console.log("All requests completed successfully");
     } catch (error) {
       console.error("Error occurred during the requests:", error);
@@ -338,6 +361,34 @@ const Page = () => {
       setProgressCourse({ value: 100, isError: true });
       setProgressBooking({ value: 100, isError: true });
     }
+  };
+
+  // Download the full import report as a UTF-8 CSV (opens cleanly in Excel).
+  const downloadReport = () => {
+    const statusVi = {
+      created: "Tạo mới",
+      overwrite: "Ghi đè",
+      conflict: "Trùng lịch",
+      skipped: "Bỏ qua",
+      error: "Lỗi",
+    };
+    const header = ["Dòng", "Mã mh", "Môn học", "Lớp", "Phòng", "Thứ", "Tiết bắt đầu", "Trạng thái", "Chi tiết"];
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = conflictLog.map((r) =>
+      [r.row, r.course_id, r.course, r.class, r.room, r.day, r.tiet, statusVi[r.status] || r.status, r.detail]
+        .map(esc)
+        .join(",")
+    );
+    const csv = "﻿" + [header.map(esc).join(","), ...rows].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bao-cao-import-${selectedTermObj?.title || "term"}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -427,45 +478,69 @@ const Page = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isOpen} hideCloseButton>
+      <Modal isOpen={isOpen} hideCloseButton size="2xl" scrollBehavior="inside">
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">IMPORTING...</ModalHeader>
           <ModalBody>
-            <div className="flex flex-col gap-6 w-full max-w-md">
-              {[
-                { label: "Room", prog: progressRoom },
-                { label: "Course", prog: progressCourse },
-                { label: "Booking", prog: progressBooking }
-              ].map(({ label, prog }) => (
-                <div key={label} className="flex items-center gap-2">
-                  {label}
-                  {prog.value < 100 && (
-                    <Progress color="primary" aria-label={`Loading ${label}...`} className="max-w-md" value={prog.value} />
-                  )}
-                  {prog.value === 100 && (
-                    <div>{prog.isError ? <CircleX className="text-red-800" /> : <CheckCircle className="text-success-600" />}</div>
-                  )}
-                </div>
-              ))}
-              {progressBooking.value >= 100 && conflictLog.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-warning-600 font-semibold text-sm mb-1">⚠️ {conflictLog.length} rows had conflicts:</p>
-                  <div className="max-h-32 overflow-y-auto text-xs text-gray-600 space-y-1">
-                    {conflictLog.map((c, i) => (
-                      <div key={i} className="bg-orange-50 p-1 rounded">
-                        <span className="font-medium">Row {c.row}: {c.course}</span>
-                        {c.conflicts?.map((cf, j) => (
-                          <div key={j} className="ml-2 text-orange-700">{cf.examples?.[0]?.reason || JSON.stringify(cf)}</div>
-                        ))}
-                      </div>
-                    ))}
+            <div className="flex flex-col gap-6 w-full">
+              <div className="flex flex-col gap-4 w-full max-w-md">
+                {[
+                  { label: "Room", prog: progressRoom },
+                  { label: "Course", prog: progressCourse },
+                  { label: "Booking", prog: progressBooking }
+                ].map(({ label, prog }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    {label}
+                    {prog.value < 100 && (
+                      <Progress color="primary" aria-label={`Loading ${label}...`} className="max-w-md" value={prog.value} />
+                    )}
+                    {prog.value === 100 && (
+                      <div>{prog.isError ? <CircleX className="text-red-800" /> : <CheckCircle className="text-success-600" />}</div>
+                    )}
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+
+              {progressBooking.value >= 100 && conflictLog.length > 0 && (() => {
+                const count = (s) => conflictLog.filter((r) => r.status === s).length;
+                const label = { created: "Tạo mới", overwrite: "Ghi đè", conflict: "Trùng lịch", skipped: "Bỏ qua", error: "Lỗi" };
+                const rowBg = { conflict: "bg-danger-50", error: "bg-danger-50", overwrite: "bg-primary-50", skipped: "bg-warning-50", created: "bg-success-50" };
+                const chipColor = { conflict: "danger", error: "danger", overwrite: "primary", skipped: "warning", created: "success" };
+                // Show problems first, then overwrites, then created.
+                const order = { conflict: 0, error: 1, skipped: 2, overwrite: 3, created: 4 };
+                const rows = [...conflictLog].sort((a, b) => (order[a.status] - order[b.status]) || (a.row - b.row));
+                return (
+                  <div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Chip size="sm" color="success" variant="flat">Tạo mới: {count("created")}</Chip>
+                      <Chip size="sm" color="primary" variant="flat">Ghi đè: {count("overwrite")}</Chip>
+                      <Chip size="sm" color="danger" variant="flat">Trùng lịch: {count("conflict")}</Chip>
+                      <Chip size="sm" color="warning" variant="flat">Bỏ qua: {count("skipped")}</Chip>
+                      {count("error") > 0 && <Chip size="sm" color="danger" variant="flat">Lỗi: {count("error")}</Chip>}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto text-xs space-y-1 pr-1">
+                      {rows.map((r, i) => (
+                        <div key={i} className={`p-1.5 rounded ${rowBg[r.status] || "bg-default-50"}`}>
+                          <div className="flex items-center gap-1 font-medium">
+                            <Chip size="sm" color={chipColor[r.status] || "default"} variant="flat" className="h-4 text-[10px]">
+                              {label[r.status] || r.status}
+                            </Chip>
+                            <span>Dòng {r.row} · {r.course}{r.class ? ` (${r.class})` : ""}</span>
+                          </div>
+                          {r.detail && <div className="text-default-500 ml-1">{r.detail}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </ModalBody>
           {progressBooking.value >= 100 && (
             <ModalFooter>
+              {conflictLog.length > 0 && (
+                <Button variant="flat" onPress={downloadReport}>Tải báo cáo (.csv)</Button>
+              )}
               <Button color="primary" onPress={() => { setIsOpen(false); router.back(); }}>Done</Button>
             </ModalFooter>
           )}

@@ -148,14 +148,24 @@ export const POST = async (request) => {
       const location = d.room?.location || d.location || "NVC";
       const grid = location === "LT" ? defaultGridLT : defaultGridNVC;
 
+      // Is this an overwrite? A course that already has a schedule on this
+      // weekday is being re-scheduled (e.g. a re-import), not newly booked —
+      // this must be reported as "ghi đè", NOT as a room/overlap conflict.
+      const prevCount = await CalendarEvent.countDocuments({
+        course: courseId,
+        type: 'class',
+        weekday,
+      });
+      const isOverwrite = prevCount > 0;
+
       // Delete old occurrences if we are replacing a series
       if (d.series_id) {
         await CalendarEvent.deleteMany({ series_id: d.series_id });
       } else {
-        // Fallback or new booking: delete existing classes for this course 
+        // Fallback or new booking: delete existing classes for this course
         // that overlap with the same weekday (to allow multi-day schedules)
-        await CalendarEvent.deleteMany({ 
-          course: courseId, 
+        await CalendarEvent.deleteMany({
+          course: courseId,
           type: 'class',
           weekday: weekday
         });
@@ -199,6 +209,7 @@ export const POST = async (request) => {
       for (const occ of occurrences) {
         const roomOverlap = await CalendarEvent.findOne({
           room: roomId,
+          course: { $ne: courseId }, // ignore the course's own events (overwrite, not conflict)
           status: BLOCKING,
           isCancelled: { $ne: true },
           start: { $lt: occ.end },
@@ -219,6 +230,7 @@ export const POST = async (request) => {
         if (d.teacher_email?.length) {
           const teacherOverlap = await CalendarEvent.findOne({
             teacher_email: { $in: d.teacher_email },
+            course: { $ne: courseId }, // ignore the course's own events (overwrite, not conflict)
             status: BLOCKING,
             isCancelled: { $ne: true },
             start: { $lt: occ.end },
@@ -296,7 +308,12 @@ export const POST = async (request) => {
       }));
 
       await CalendarEvent.insertMany(eventDocs);
-      allCreated.push({ course: courseId, series_id, created: validOccurrences.length });
+      allCreated.push({
+        course: courseId,
+        series_id,
+        created: validOccurrences.length,
+        overwritten: isOverwrite, // replaced this course's own previous schedule
+      });
     }
 
     revalidateTag("booking");
