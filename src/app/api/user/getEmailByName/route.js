@@ -22,40 +22,55 @@ export const POST = async (request) => {
       }
       revalidateTag("user");
 
-      // Robust name→email matching. Exact `$in` matching drops teachers whenever
-      // the Excel name differs by case or spacing, so normalise (trim + collapse
-      // whitespace + lowercase, keep diacritics) and match against all users.
+      // Robust name→email matching.
+      // 1) Normalise (trim + collapse whitespace + lowercase, keep diacritics).
+      // 2) Fallback: strip Vietnamese diacritics so tone-mark placement variants
+      //    match (e.g. "Thùy" vs "Thuỳ", "Thủy" vs "Thuỷ"). The strip fallback
+      //    is only applied when it maps to exactly ONE user, to avoid mixing up
+      //    genuinely different names (e.g. "Thủy" vs "Thúy").
       // Also pass through values that are already emails.
-      const norm = (s) =>
-        String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+      const norm = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+      const strip = (s) =>
+        norm(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
 
       const all = await User.find({}, "email name").lean();
       const byNorm = new Map();
+      const byStrip = new Map(); // strip(name) -> array of users
       all.forEach((u) => {
-        if (u.name) byNorm.set(norm(u.name), u);
+        if (!u.name) return;
+        byNorm.set(norm(u.name), u);
+        const k = strip(u.name);
+        if (!byStrip.has(k)) byStrip.set(k, []);
+        byStrip.get(k).push(u);
       });
 
       const users = [];
+      const unmatched = [];
       const seen = new Set();
+      const add = (raw, email) => {
+        if (email && !seen.has(email.toLowerCase())) {
+          users.push({ name: raw, email });
+          seen.add(email.toLowerCase());
+        }
+      };
+
       for (const raw of names) {
         const value = String(raw ?? "").trim();
         if (!value) continue;
-        // Already an email → use directly.
-        if (value.includes("@")) {
-          if (!seen.has(value.toLowerCase())) {
-            users.push({ name: raw, email: value });
-            seen.add(value.toLowerCase());
-          }
-          continue;
+        if (value.includes("@")) { add(raw, value); continue; }
+
+        let u = byNorm.get(norm(value));
+        if (!u) {
+          const group = byStrip.get(strip(value));
+          const emails = group ? new Set(group.map((g) => g.email)) : null;
+          if (emails && emails.size === 1) u = group[0]; // unambiguous
         }
-        const u = byNorm.get(norm(value));
-        if (u?.email && !seen.has(u.email.toLowerCase())) {
-          users.push({ name: raw, email: u.email });
-          seen.add(u.email.toLowerCase());
-        }
+        if (u?.email) add(raw, u.email);
+        else unmatched.push(raw);
       }
 
-      return NextResponse.json({ success: true, users }, { status: 200 });
+      // Return unmatched names too so the importer can flag those courses.
+      return NextResponse.json({ success: true, users, unmatched }, { status: 200 });
     } else {
       return NextResponse.json([], {
         status: 401,
