@@ -3,10 +3,11 @@ import useSWR from "swr";
 import { fetcheroptions, defaultLoc, getClass, customSubtitle } from "@/lib/ulti";
 import Card from "../Card";
 import _ from "lodash";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CalendarByRoom from "../CalendarByRoom";
-import { Input, ScrollShadow, Tab, Tabs, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip } from "@heroui/react";
+import { Input, ScrollShadow, Tab, Tabs, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Switch } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
+import CompactSchedule from "../CompactSchedule";
 import SearchCalender from "../SearchCalender";
 import CourseListSelect from "../CourseListSelect";
 import CourseModal from "../CourseModal";
@@ -178,6 +179,53 @@ export default function BookingMulti() {
       _.merge(_.keyBy(classEvents, "_id"), _.keyBy(userEvents, "_id"))
     );
   }, [classEvents, userEvents]);
+
+  // --- Lecturer/Class schedule view options (auto-jump + compact) ---
+  const [autoJump, setAutoJump] = useState(false);
+  const [compactMode, setCompactMode] = useState(false);
+  useEffect(() => {
+    try {
+      setAutoJump(localStorage.getItem("physoom.autoJump") === "1");
+      setCompactMode(localStorage.getItem("physoom.compactMode") === "1");
+    } catch { /* ignore */ }
+  }, []);
+  const toggleAutoJump = useCallback((v) => {
+    setAutoJump(v);
+    try { localStorage.setItem("physoom.autoJump", v ? "1" : "0"); } catch { /* ignore */ }
+  }, []);
+  const toggleCompact = useCallback((v) => {
+    setCompactMode(v);
+    try { localStorage.setItem("physoom.compactMode", v ? "1" : "0"); } catch { /* ignore */ }
+  }, []);
+
+  // Earliest occurrence of the selected course within an events list.
+  const jumpDateFor = useCallback((events, courseId) => {
+    if (!courseId) return undefined;
+    const times = (events ?? [])
+      .filter((e) => e.start && String(e.course?._id ?? e.course) === String(courseId))
+      .map((e) => new Date(e.start).valueOf());
+    return times.length ? Math.min(...times) : undefined;
+  }, []);
+  const courseStartTs = booking?.course?.start_date
+    ? new Date(booking.course.start_date).getTime()
+    : undefined;
+  const lecturerJump = useMemo(
+    () => (autoJump ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs) : undefined),
+    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor]
+  );
+  const classJump = useMemo(
+    () => (autoJump ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs) : undefined),
+    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor]
+  );
+
+  // Default compact range = span of the tab's events.
+  const rangeOf = useCallback((events) => {
+    const times = (events ?? []).filter((e) => e.start).map((e) => new Date(e.start).valueOf());
+    if (!times.length) return { from: undefined, to: undefined };
+    return { from: new Date(Math.min(...times)), to: new Date(Math.max(...times)) };
+  }, []);
+  const lecturerRange = useMemo(() => rangeOf(userEvents), [userEvents, rangeOf]);
+  const classRange = useMemo(() => rangeOf(classEvents), [classEvents, rangeOf]);
 
 
   const onClickEvent = useCallback((e) => {
@@ -352,32 +400,60 @@ export default function BookingMulti() {
               <div className="prose">
                 <h3>Lecturer: {booking?.teacher_email ?? "No info"}</h3>
               </div>
-              <CalendarByUser
-                _events={userEvents}
-                selectedID={booking?.course?._id}
-                onClickEvent={onClickEvent}
-                onDoubleClick={onDoubleClick}
-                onDragStart={handleDragStart}
-                customSubtitle={customSubtitle}
-                onDelete={handleDelete}
-                onEventUpdate={mutateUserEvent}
-              />
+              <div className="flex flex-wrap items-center gap-4 mb-2">
+                <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
+                <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
+              </div>
+              {compactMode ? (
+                <CompactSchedule
+                  events={userEvents}
+                  defaultFrom={lecturerRange.from}
+                  defaultTo={lecturerRange.to}
+                  onSelectEvent={onClickEvent}
+                />
+              ) : (
+                <CalendarByUser
+                  _events={userEvents}
+                  selectedID={booking?.course?._id}
+                  jumpTo={lecturerJump}
+                  onClickEvent={onClickEvent}
+                  onDoubleClick={onDoubleClick}
+                  onDragStart={handleDragStart}
+                  customSubtitle={customSubtitle}
+                  onDelete={handleDelete}
+                  onEventUpdate={mutateUserEvent}
+                />
+              )}
               {intructionText()}
             </Tab>
             <Tab key="class_sche" title={t("booking.classSchedule")}>
               <div className="prose">
                 <h3>Class: {booking?.course?.class_id ?? "No info"}</h3>
               </div>
-              <CalendarByUser
-                _events={classEvents}
-                selectedID={booking?.course?._id}
-                onClickEvent={onClickEvent}
-                onDoubleClick={onDoubleClick}
-                onDragStart={handleDragStart}
-                customSubtitle={customSubtitle}
-                onDelete={handleDelete}
-                onEventUpdate={mutateUserEvent}
-              />
+              <div className="flex flex-wrap items-center gap-4 mb-2">
+                <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
+                <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
+              </div>
+              {compactMode ? (
+                <CompactSchedule
+                  events={classEvents}
+                  defaultFrom={classRange.from}
+                  defaultTo={classRange.to}
+                  onSelectEvent={onClickEvent}
+                />
+              ) : (
+                <CalendarByUser
+                  _events={classEvents}
+                  selectedID={booking?.course?._id}
+                  jumpTo={classJump}
+                  onClickEvent={onClickEvent}
+                  onDoubleClick={onDoubleClick}
+                  onDragStart={handleDragStart}
+                  customSubtitle={customSubtitle}
+                  onDelete={handleDelete}
+                  onEventUpdate={mutateUserEvent}
+                />
+              )}
               {intructionText()}
             </Tab>
             <Tab key="searchEvent" title={t("booking.searchSchedule")}>

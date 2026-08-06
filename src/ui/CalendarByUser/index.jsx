@@ -72,10 +72,16 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
     );
 }
 
-export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week"}) {
+export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week", jumpTo}) {
     const { data: session } = useSession();
     const [date, setDate] = useState(new Date());
     const [view, setView] = useState(defaultView);
+
+    // Auto-jump: when the parent asks (jumpTo is a timestamp), navigate the
+    // calendar to that day. Keyed on the primitive so it fires once per change.
+    useEffect(() => {
+        if (jumpTo) setDate(new Date(jumpTo));
+    }, [jumpTo]);
     const [pendingDrop, setPendingDrop] = useState(null);
     const [dropLoading, setDropLoading] = useState(false);
     // Optimistic time overrides (id -> {start, end}) so a dragged event stays at

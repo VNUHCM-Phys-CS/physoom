@@ -21,7 +21,13 @@ import {
   roundIndex,
 } from "@/lib/ulti";
 import _, { groupBy, maxBy, reduce } from "lodash";
-import { Select, SelectItem, Button } from "@heroui/react";
+import {
+  Select,
+  SelectItem,
+  Button,
+  RadioGroup,
+  Radio,
+} from "@heroui/react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 
@@ -55,14 +61,94 @@ const Page = () => {
   const [conflictLog, setConflictLog] = useState([]);
   const { data: terms } = useSWR("/api/terms", fetcher);
 
-  const selectedTermObj = (terms || []).find(t => t._id === selectedTerm);
+  // --- Ambiguous teacher-name resolution ---
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const [ambiguous, setAmbiguous] = useState([]); // [{name, candidates:[{name,email,teacher_id}]}]
+  const [picks, setPicks] = useState({}); // rawName -> chosen email
+  const [pending, setPending] = useState(null); // { data, name2email }
 
+  const selectedTermObj = (terms || []).find((t) => t._id === selectedTerm);
+
+  // Entry point from CSVReader: look up teachers first; if any name maps to
+  // multiple people, ask the user to pick before importing anything.
   const onSubmit = async (data) => {
     if (!selectedTerm || !selectedTermObj) {
       alert("Please select a term before importing.");
       return;
     }
 
+    data = data.filter((d) =>
+      Object.entries(d).find((e) => e[1] !== null && String(e[1]).trim() !== "")
+    );
+
+    // Build teacher-name list from "Giảng viên"/"Trợ giảng".
+    data.forEach((item) => {
+      item["mã lớp 2"] = item["mã lớp 2"] ? `${item["mã lớp 2"]}`.trim() : null;
+      item._teacher_emails = [];
+      if (item["Giảng viên"])
+        item["Giảng viên"].split(",").forEach((d) => item._teacher_emails.push(d.trim()));
+      if (item["Trợ giảng"])
+        item["Trợ giảng"].split(",").forEach((d) => item._teacher_emails.push(d.trim()));
+      item._teacher_emails = item._teacher_emails.filter((d) => d && d !== "");
+    });
+    const names = [...new Set(data.flatMap((item) => item._teacher_emails))];
+
+    let name2email = {};
+    let ambig = [];
+    try {
+      const emailResponse = await fetch("/api/user/getEmailByName", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", email: session?.user?.email },
+        body: JSON.stringify({ names }),
+      });
+      if (emailResponse.ok) {
+        const emails = await emailResponse.json();
+        (emails?.users ?? []).forEach((e) => { name2email[e.name] = e.email; });
+        ambig = emails?.ambiguous ?? [];
+      }
+    } catch (e) {
+      console.log("teacher lookup failed", e);
+    }
+
+    if (ambig.length > 0) {
+      // Pause and ask the user which person each ambiguous name refers to.
+      setAmbiguous(ambig);
+      setPicks(
+        Object.fromEntries(ambig.map((a) => [a.name, a.candidates?.[0]?.email]))
+      );
+      setPending({ data, name2email });
+      setResolveOpen(true);
+      return;
+    }
+
+    await runImport(data, name2email);
+  };
+
+  // Apply the user's choices, remember them as aliases, then import.
+  const onConfirmResolve = async () => {
+    const mappings = ambiguous
+      .map((a) => ({ name: a.name, email: picks[a.name] }))
+      .filter((m) => m.email);
+    const merged = { ...(pending?.name2email ?? {}) };
+    mappings.forEach((m) => { merged[m.name] = m.email; });
+    const data = pending?.data ?? [];
+
+    setResolveOpen(false);
+    // Persist so future imports skip the prompt.
+    try {
+      await fetch("/api/user/aliases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", email: session?.user?.email },
+        body: JSON.stringify({ mappings }),
+      });
+    } catch (e) {
+      console.log("save aliases failed", e);
+    }
+    await runImport(data, merged);
+  };
+
+  // Rooms → Courses → Bookings using an already-resolved name→email map.
+  const runImport = async (data, name2email) => {
     setIsOpen(true);
     setConflictLog([]);
     setProgressCourse({ value: 0 });
@@ -70,8 +156,6 @@ const Page = () => {
     setProgressBooking({ value: 0 });
 
     try {
-      data = data.filter(d => Object.entries(d).find(d => d[1] !== null && String(d[1]).trim() !== ""));
-
       // --- Room creation ---
       const roomGroup = groupBy(data, (item) => {
         let title = (item["Tên phòng"] ?? "").trim();
@@ -111,28 +195,6 @@ const Page = () => {
         body: JSON.stringify(rooms),
       });
       setProgressRoom({ value: 100, isError: !roomResponse.ok });
-
-      // --- Teacher email lookup ---
-      data.forEach((item) => {
-        item["mã lớp 2"] = item["mã lớp 2"] ? `${item["mã lớp 2"]}`.trim() : null;
-        item._teacher_emails = [];
-        if (item["Giảng viên"])
-          item["Giảng viên"].split(",").forEach((d) => item._teacher_emails.push(d.trim()));
-        if (item["Trợ giảng"])
-          item["Trợ giảng"].split(",").forEach((d) => item._teacher_emails.push(d.trim()));
-        item._teacher_emails = item._teacher_emails.filter((d) => d && d !== "");
-      });
-      const names = [...new Set(data.flatMap((item) => item._teacher_emails))];
-      const emailResponse = await fetch("/api/user/getEmailByName", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", email: session?.user?.email },
-        body: JSON.stringify({ names }),
-      });
-      let name2email = {};
-      if (emailResponse.ok) {
-        const emails = await emailResponse.json();
-        (emails?.users ?? []).forEach((e) => { name2email[e.name] = e.email; });
-      }
 
       // --- Course creation ---
       const courses = _.uniqBy(data, (item) =>
@@ -302,12 +364,75 @@ const Page = () => {
         collums={BOOKiNG_FIELDS}
         INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}
       />
+
+      {/* Pick-the-person dialog for ambiguous teacher names */}
+      <Modal
+        isOpen={resolveOpen}
+        onOpenChange={setResolveOpen}
+        scrollBehavior="inside"
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            <span>Chọn giảng viên cho các tên trùng</span>
+            <span className="text-xs font-normal text-default-500">
+              Có {ambiguous.length} tên khớp với nhiều người (do trùng tên hoặc
+              lệch dấu). Hãy chọn đúng người cho mỗi tên trước khi import.
+            </span>
+          </ModalHeader>
+          <ModalBody>
+            <div className="flex flex-col gap-5">
+              {ambiguous.map((a) => (
+                <div key={a.name} className="border-b border-default-100 pb-3">
+                  <p className="text-sm font-semibold mb-2">
+                    Tên trong file:{" "}
+                    <span className="text-primary">“{a.name}”</span>
+                  </p>
+                  <RadioGroup
+                    value={picks[a.name] ?? ""}
+                    onValueChange={(v) =>
+                      setPicks((p) => ({ ...p, [a.name]: v }))
+                    }
+                  >
+                    {a.candidates.map((c) => (
+                      <Radio
+                        key={c.email}
+                        value={c.email}
+                        description={`${c.email}${
+                          c.teacher_id ? " • MSCB: " + c.teacher_id : ""
+                        }`}
+                      >
+                        {c.name || c.email}
+                      </Radio>
+                    ))}
+                  </RadioGroup>
+                </div>
+              ))}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="light"
+              onPress={() => {
+                setResolveOpen(false);
+                setPending(null);
+              }}
+            >
+              Huỷ import
+            </Button>
+            <Button color="primary" onPress={onConfirmResolve}>
+              Xác nhận & Import
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
       <Modal isOpen={isOpen} hideCloseButton>
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">IMPORTING...</ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-6 w-full max-w-md">
-              {[ 
+              {[
                 { label: "Room", prog: progressRoom },
                 { label: "Course", prog: progressCourse },
                 { label: "Booking", prog: progressBooking }

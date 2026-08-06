@@ -2,6 +2,7 @@
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import User from "@/models/user";
+import TeacherAlias from "@/models/teacherAlias";
 import { auth } from "@/lib/auth";
 
 async function requireAdmin() {
@@ -67,7 +68,13 @@ export const DELETE = async (request) => {
   try {
     await connectToDb();
     const { id } = await request.json();
-    await User.findByIdAndDelete(id);
+    const removed = await User.findByIdAndDelete(id);
+    // Drop any learned aliases that pointed at this user's email.
+    if (removed?.email) {
+      await TeacherAlias.deleteMany({
+        email: new RegExp(`^${removed.email}$`, "i"),
+      });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 400 });

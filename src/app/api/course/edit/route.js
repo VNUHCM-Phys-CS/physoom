@@ -41,15 +41,23 @@ export const POST = async (request) => {
       console.log(`Deleted CalendarEvents of courses: ${changedIds.join(", ")}`);
     }
 
-    // 4. Update đồng loạt
+    // 4. Update đồng loạt.
+    // `warnings` is a system-managed field — never let the edit form overwrite
+    // it. Instead, once a course has a teacher, auto-clear the teacher-related
+    // import warnings so the ⚠ flag disappears after the user fixes it.
     const bulkOps = data.map((d) => {
-      const { _id, ...u } = d;
-      return {
-        updateOne: {
-          filter: { _id },
-          update: { $set: u },
-        },
-      };
+      const { _id, warnings, ...u } = d;
+      const oldCourse = oldCourses.find((c) => c._id.toString() === _id);
+      const finalTeachers = Array.isArray(d.teacher_email)
+        ? d.teacher_email
+        : oldCourse?.teacher_email || [];
+      const update = { $set: u };
+      if (finalTeachers.filter(Boolean).length > 0) {
+        update.$pull = {
+          warnings: { $regex: /^(Thiếu giảng viên|GV chưa có)/ },
+        };
+      }
+      return { updateOne: { filter: { _id }, update } };
     });
 
     const result = await Course.bulkWrite(bulkOps);
