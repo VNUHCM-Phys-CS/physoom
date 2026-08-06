@@ -33,8 +33,10 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Switch,
 } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
+import CompactSchedule from "../CompactSchedule";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
 import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -524,6 +526,53 @@ export default function BookingSingle({ email }) {
     );
   }, [classEvents, userEvents]);
 
+  // --- Lecturer/Class schedule view options (auto-jump + compact) ---
+  const [autoJump, setAutoJump] = useState(false);
+  const [compactMode, setCompactMode] = useState(false);
+  useEffect(() => {
+    try {
+      setAutoJump(localStorage.getItem("physoom.autoJump") === "1");
+      setCompactMode(localStorage.getItem("physoom.compactMode") === "1");
+    } catch { /* ignore */ }
+  }, []);
+  const toggleAutoJump = useCallback((v) => {
+    setAutoJump(v);
+    try { localStorage.setItem("physoom.autoJump", v ? "1" : "0"); } catch { /* ignore */ }
+  }, []);
+  const toggleCompact = useCallback((v) => {
+    setCompactMode(v);
+    try { localStorage.setItem("physoom.compactMode", v ? "1" : "0"); } catch { /* ignore */ }
+  }, []);
+
+  // Earliest occurrence of the selected course within an events list.
+  const jumpDateFor = useCallback((events, courseId) => {
+    if (!courseId) return undefined;
+    const times = (events ?? [])
+      .filter((e) => e.start && String(e.course?._id ?? e.course) === String(courseId))
+      .map((e) => new Date(e.start).valueOf());
+    return times.length ? Math.min(...times) : undefined;
+  }, []);
+  const courseStartTs = booking?.course?.start_date
+    ? new Date(booking.course.start_date).getTime()
+    : undefined;
+  const lecturerJump = useMemo(
+    () => (autoJump ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs) : undefined),
+    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor]
+  );
+  const classJump = useMemo(
+    () => (autoJump ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs) : undefined),
+    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor]
+  );
+
+  // Default compact range = span of the tab's events.
+  const rangeOf = useCallback((events) => {
+    const times = (events ?? []).filter((e) => e.start).map((e) => new Date(e.start).valueOf());
+    if (!times.length) return { from: undefined, to: undefined };
+    return { from: new Date(Math.min(...times)), to: new Date(Math.max(...times)) };
+  }, []);
+  const lecturerRange = useMemo(() => rangeOf(userEvents), [userEvents, rangeOf]);
+  const classRange = useMemo(() => rangeOf(classEvents), [classEvents, rangeOf]);
+
   // ── Sidebar / event-click handlers ────────────────────────────────────────
   const handleSidebarEventClick = useCallback((ev) => {
     setInfoEvent(ev);
@@ -675,22 +724,48 @@ export default function BookingSingle({ email }) {
               )}
             </Tab>
             <Tab key="personal" title={t("booking.personalSchedule")}>
-              <div className="flex justify-end mb-2">
+              <div className="flex justify-between items-center gap-4 mb-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-4">
+                  <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
+                  <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
+                </div>
                 <ExportIcsButton email={email} />
               </div>
-              <CalendarByUser
-                _events={userEvents}
-                customSubtitle={customSubtitle}
-                selectedID={booking?.course?._id}
-                onEventUpdate={mutateUserEvent}
-              />
+              {compactMode ? (
+                <CompactSchedule
+                  events={userEvents}
+                  defaultFrom={lecturerRange.from}
+                  defaultTo={lecturerRange.to}
+                />
+              ) : (
+                <CalendarByUser
+                  _events={userEvents}
+                  customSubtitle={customSubtitle}
+                  selectedID={booking?.course?._id}
+                  jumpTo={lecturerJump}
+                  onEventUpdate={mutateUserEvent}
+                />
+              )}
             </Tab>
             <Tab key="class_sche" title={t("booking.classSchedule")}>
-              <CalendarByUser
-                _events={classEvents}
-                selectedID={booking?.course?._id}
-                onEventUpdate={mutateClassEvent}
-              />
+              <div className="flex flex-wrap items-center gap-4 mb-2">
+                <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
+                <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
+              </div>
+              {compactMode ? (
+                <CompactSchedule
+                  events={classEvents}
+                  defaultFrom={classRange.from}
+                  defaultTo={classRange.to}
+                />
+              ) : (
+                <CalendarByUser
+                  _events={classEvents}
+                  selectedID={booking?.course?._id}
+                  jumpTo={classJump}
+                  onEventUpdate={mutateClassEvent}
+                />
+              )}
             </Tab>
             <Tab key="event_booking" title={t("booking.eventBooking")}>
               <EventBookingTab
