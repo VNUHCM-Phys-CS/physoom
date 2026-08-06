@@ -62,12 +62,20 @@ export const POST = async (request) => {
       const users = [];
       const unmatched = [];
       const ambiguous = []; // [{ name, candidates: [{name,email,teacher_id}] }]
-      const seen = new Set();
+      const seen = new Set(); // dedup by REQUESTED name, not by email
       const seenAmbig = new Set();
+      // Return one entry per requested name (keyed on the raw name the caller
+      // sent) so the importer's name→email map covers EVERY spelling. Deduping
+      // by email here would drop tone-mark/case variants that resolve to the
+      // same person, silently leaving those courses without a teacher.
       const add = (raw, email) => {
-        if (email && !seen.has(email.toLowerCase())) {
+        // Key on the EXACT requested string — the importer looks names up
+        // verbatim, so case/whitespace variants that normalise equal must each
+        // keep their own entry.
+        const key = String(raw);
+        if (email && !seen.has(key)) {
           users.push({ name: raw, email });
-          seen.add(email.toLowerCase());
+          seen.add(key);
         }
       };
       const info = (u) => ({

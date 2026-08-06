@@ -8,13 +8,34 @@ import {
   Listbox,
   ListboxItem,
   ListboxSection,
+  Tooltip,
 } from "@heroui/react";
 import { ScrollShadow } from "@heroui/react";
 import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
 import { UnlockFill } from "../icons/UnlockFill";
-import { CalendarOffIcon } from "lucide-react";
+import { CalendarOffIcon, AlertTriangleIcon } from "lucide-react";
+
+// Small ⚠ badge (with a tooltip listing the reasons) shown on courses that
+// carry import/health warnings, so scheduling users can spot problem courses.
+function WarnBadge({ warnings }) {
+  if (!warnings?.length) return null;
+  return (
+    <Tooltip
+      color="warning"
+      content={
+        <div className="max-w-[220px] text-xs">
+          {warnings.map((w, i) => (
+            <div key={i}>• {w}</div>
+          ))}
+        </div>
+      }
+    >
+      <AlertTriangleIcon size={14} className="text-warning-500 shrink-0" />
+    </Tooltip>
+  );
+}
 import { useI18n } from "@/i18n/I18nProvider";
 
 export default function CourseList({ course, onSelectionChange, userEvents, onUnschedule }) {
@@ -57,9 +78,10 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
         {courseGroup.map((cg) => (
           <ListboxSection key={cg.key} title={cg.title} showDivider>
             {cg.data.map(
-              ({ title, location, teacher_email, credit, _id, isLock }) => (
+              ({ title, location, teacher_email, credit, _id, isLock, warnings }) => (
                 <ListboxItem
                   key={_id}
+                  classNames={{ base: warnings?.length ? "bg-warning-50/60 rounded-lg" : "" }}
                   description={
                     <div>
                       <div className="flex w-full">
@@ -105,7 +127,10 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                   className="stack-item py-3"
                   // startContent={<LockFill className={" w-3 h-3"}/>}
                 >
-                  {title}
+                  <span className="inline-flex items-center gap-1">
+                    <WarnBadge warnings={warnings} />
+                    {title}
+                  </span>
                 </ListboxItem>
               )
             )}

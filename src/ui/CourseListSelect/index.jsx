@@ -9,14 +9,34 @@ import {
   Listbox,
   ListboxItem,
   ListboxSection,
+  Tooltip,
 } from "@heroui/react";
 import { ScrollShadow } from "@heroui/react";
 import "./CourseList.scss";
 import { LockFill } from "../icons/LockFill";
 import StageButton from "../StageButton";
 import { UnlockFill } from "../icons/UnlockFill";
-import { CalendarOffIcon } from "lucide-react";
+import { CalendarOffIcon, AlertTriangleIcon } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
+
+// ⚠ badge + tooltip for courses carrying import/health warnings.
+function WarnBadge({ warnings }) {
+  if (!warnings?.length) return null;
+  return (
+    <Tooltip
+      color="warning"
+      content={
+        <div className="max-w-[220px] text-xs">
+          {warnings.map((w, i) => (
+            <div key={i}>• {w}</div>
+          ))}
+        </div>
+      }
+    >
+      <AlertTriangleIcon size={14} className="text-warning-500 shrink-0" />
+    </Tooltip>
+  );
+}
 
 export default function CourseListSelect({
   course,
@@ -172,13 +192,16 @@ export default function CourseListSelect({
           {courseGroup.map((cg) => (
             <ListboxSection key={cg.key} title={cg.title} showDivider>
               {cg.data.map(
-                ({ title, location, teacher_email, credit, _id, isLock }) => (
+                ({ title, location, teacher_email, credit, _id, isLock, warnings }) => (
                   <ListboxItem
                     key={_id?.toString()}
                     textValue={_id?.toString()}
                     onPress={(d) => setSelectedKeys(new Set().add(_id.toString()))}
                     classNames={{
-                      base: selectedKeys.has(_id?.toString()) ? ["selectedlist"] : null,
+                      base: [
+                        selectedKeys.has(_id?.toString()) ? "selectedlist" : "",
+                        warnings?.length ? "bg-warning-50/60" : "",
+                      ],
                     }}
                     description={
                       <div className="ml-6">
@@ -235,7 +258,10 @@ export default function CourseListSelect({
                       isSelected={selectedRelated.has(_id)}
                       onValueChange={(v) => handleRelatedSelection(_id, v)}
                     />
-                    {title}
+                    <span className="inline-flex items-center gap-1">
+                      <WarnBadge warnings={warnings} />
+                      {title}
+                    </span>
                   </ListboxItem>
                 )
               )}
