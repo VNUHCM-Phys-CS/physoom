@@ -70,6 +70,11 @@ const courseSchema = new Schema(
       type: Boolean,
     },
     note: String,
+    // Import/health warnings shown in the course list (e.g. "Thiếu giảng viên").
+    warnings: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

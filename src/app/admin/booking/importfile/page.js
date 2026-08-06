@@ -137,22 +137,34 @@ const Page = () => {
       // --- Course creation ---
       const courses = _.uniqBy(data, (item) =>
         `${item["Mã mh"].trim()}_${item["mã lớp 2"]}_${item["Lớp"].trim()}`
-      ).map((d) => ({
-        course_id: d["Mã mh"]?.trim(),
-        course_id_extend: d["mã lớp 2"],
-        class_id: d["Lớp"]?.split(",")?.map((d) => d.trim()),
-        title: d["Tên môn học"]?.trim(),
-        teacher_email: d._teacher_emails?.map((e) => name2email[e])?.filter((d) => d),
-        population: d["Số sv"] ?? 0,
-        start_date: d["Ngày đầu tuần"]
-          ? convertExcelDateToJSDate(d["Ngày đầu tuần"])
-          : new Date(selectedTermObj.start),
-        credit: d["Số tiết"] ?? 1,
-        duration: 15,
-        location: d.cleanRoomTitle
-          ? rooms.find((r) => r.title === d.cleanRoomTitle)?.location
-          : locationList.default,
-      }));
+      ).map((d) => {
+        const requested = d._teacher_emails ?? [];
+        const teacher_email = requested.map((e) => name2email[e]).filter(Boolean);
+        const missingNames = requested.filter((e) => !name2email[e]);
+        // Persisted health flags shown in the course list.
+        const warnings = [];
+        if (teacher_email.length === 0)
+          warnings.push("Thiếu giảng viên — chưa xếp lịch");
+        if (missingNames.length)
+          warnings.push("GV chưa có trong hệ thống: " + missingNames.join(", "));
+        return {
+          course_id: d["Mã mh"]?.trim(),
+          course_id_extend: d["mã lớp 2"],
+          class_id: d["Lớp"]?.split(",")?.map((d) => d.trim()),
+          title: d["Tên môn học"]?.trim(),
+          teacher_email,
+          population: d["Số sv"] ?? 0,
+          start_date: d["Ngày đầu tuần"]
+            ? convertExcelDateToJSDate(d["Ngày đầu tuần"])
+            : new Date(selectedTermObj.start),
+          credit: d["Số tiết"] ?? 1,
+          duration: 15,
+          location: d.cleanRoomTitle
+            ? rooms.find((r) => r.title === d.cleanRoomTitle)?.location
+            : locationList.default,
+          warnings, // always set so re-import clears stale warnings
+        };
+      });
       const courseResponse = await fetch("/api/course/create", {
         method: "POST",
         headers: { "Content-Type": "application/json", email: session?.user?.email },
@@ -188,6 +200,17 @@ const Page = () => {
             }).then((d) => d.json());
 
             if (room?.[0]?._id && course?.[0]?._id) {
+              // No teacher → keep the course but don't put it on the calendar;
+              // the course already carries a "Thiếu giảng viên" warning.
+              if (!(course[0].teacher_email?.length)) {
+                rowConflicts.push({
+                  row: index + 1,
+                  course: course[0].title || course[0].course_id,
+                  reason: "Thiếu giảng viên — môn được tạo nhưng chưa xếp lịch.",
+                });
+                setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+                continue;
+              }
               const grid = location === "NVC" ? defaultGridNVC : defaultGridLT;
               const weekday = +_booking["Thứ"];
               const duration = +course[0].credit;

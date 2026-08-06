@@ -25,6 +25,7 @@ const COURSE_FIELDS = [
     format: (d) => (Array.isArray(d) ? d : (d ?? "").split(";")),
   },
   { name: "Note", uid: "note", sortable: true },
+  { name: "⚠", uid: "warnings" },
   { name: "ACTIONS", uid: "actions" },
 ];
 const INITIAL_VISIBLE_COLUMNS = COURSE_FIELDS.map((d) => d.uid);

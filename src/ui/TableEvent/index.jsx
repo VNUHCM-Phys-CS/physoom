@@ -16,6 +16,7 @@ import {
   Chip,
   User,
   Pagination,
+  Tooltip,
 } from "@heroui/react";
 import Link from "next/link";
 import { PlusIcon } from "@/ui/icons/PlusIcon";
@@ -48,7 +49,12 @@ export default function TableEvent({
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const [warningOnly, setWarningOnly] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const hasWarnings = React.useMemo(
+    () => (data ?? []).some((d) => d?.warnings?.length),
+    [data]
+  );
   const [sortDescriptor, setSortDescriptor] = React.useState(undefined);
   const [page, setPage] = React.useState(1);
 
@@ -78,9 +84,12 @@ export default function TableEvent({
         Array.from(statusFilter).includes(user.status)
       );
     }
+    if (warningOnly) {
+      filtereddata = filtereddata.filter((d) => d?.warnings?.length);
+    }
 
     return filtereddata;
-  }, [data, filterValue, statusFilter]);
+  }, [data, filterValue, statusFilter, warningOnly]);
 
   const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -147,6 +156,28 @@ export default function TableEvent({
             {cellValue}
           </Chip>
         );
+      case "warnings": {
+        const w = _data.warnings;
+        if (!w || !w.length)
+          return <span className="text-success-500">✓</span>;
+        return (
+          <Tooltip
+            color="warning"
+            content={
+              <div className="max-w-xs text-xs flex flex-col gap-0.5">
+                {w.map((x, i) => (
+                  <div key={i}>• {x}</div>
+                ))}
+              </div>
+            }
+          >
+            <span className="inline-flex items-center gap-1 text-warning-600 cursor-help">
+              <WarningIcon />
+              <span className="text-xs">{w.length}</span>
+            </span>
+          </Tooltip>
+        );
+      }
       case "actions":
         return (
           <div className="relative flex justify-end items-center gap-2">
@@ -268,6 +299,16 @@ export default function TableEvent({
                 ))}
               </DropdownMenu>
             </Dropdown>
+            {hasWarnings && (
+              <Button
+                color={warningOnly ? "warning" : "default"}
+                variant={warningOnly ? "solid" : "flat"}
+                startContent={<WarningIcon />}
+                onPress={() => { setWarningOnly((v) => !v); setPage(1); }}
+              >
+                Có cảnh báo
+              </Button>
+            )}
             {isAddNew && (
               <Button
                 color="primary"
@@ -332,6 +373,8 @@ export default function TableEvent({
     selectedKeys,
     filterValue,
     statusFilter,
+    warningOnly,
+    hasWarnings,
     visibleColumns,
     onRowsPerPageChange,
     data.length,
@@ -408,7 +451,10 @@ export default function TableEvent({
       </TableHeader>
       <TableBody emptyContent={"No data found"} items={sortedItems}>
         {(item) => (
-          <TableRow key={item._id || item.id || 0}>
+          <TableRow
+            key={item._id || item.id || 0}
+            className={item?.warnings?.length ? "bg-warning-50/60" : ""}
+          >
             {(columnKey) => (
               <TableCell>{renderCell(item, columnKey)}</TableCell>
             )}
