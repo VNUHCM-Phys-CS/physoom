@@ -244,6 +244,9 @@ const Page = () => {
       //   skipped   — no teacher / bad tiết / missing room·thứ·tiết
       //   error     — unexpected failure
       const report = [];
+      // Collect conflict reasons per course so they persist on the course
+      // "track" (⚠) and can be reviewed after the import dialog is closed.
+      const conflictByCourse = {};
       const add = (index, _b, status, detail, courseTitle) =>
         report.push({
           row: index + 1,
@@ -339,9 +342,14 @@ const Page = () => {
               .filter(Boolean)
               .join("; ");
             // Some occurrences may still have been placed alongside the clash.
-            add(index, _booking, madeCount ? "conflict" : "conflict",
+            add(index, _booking, "conflict",
               madeCount ? `Trùng lịch (xếp được ${madeCount} buổi): ${reason}` : `Trùng lịch: ${reason}`,
               title);
+            // Persist onto the course track (⚠) so it's reviewable later.
+            const cid = course[0]._id;
+            (conflictByCourse[cid] ||= new Set()).add(
+              `Trùng lịch (${_booking["Thứ"] ? "Thứ " + _booking["Thứ"] : "?"}): ${reason}`
+            );
           } else if (wasOverwrite) {
             add(index, _booking, "overwrite", `Ghi đè lịch cũ của môn (${madeCount} buổi)`, title);
           } else {
@@ -352,6 +360,23 @@ const Page = () => {
           add(index, _booking, "error", String(e));
         }
         setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+      }
+
+      // Save conflict reasons onto the affected courses' track (⚠).
+      const warnItems = Object.entries(conflictByCourse).map(([id, set]) => ({
+        id,
+        add: [...set],
+      }));
+      if (warnItems.length) {
+        try {
+          await fetch("/api/course/warn", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", email: session?.user?.email },
+            body: JSON.stringify({ items: warnItems }),
+          });
+        } catch (e) {
+          console.log("save conflict warnings failed", e);
+        }
       }
 
       setConflictLog(report);
