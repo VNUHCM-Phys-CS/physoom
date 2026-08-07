@@ -701,7 +701,20 @@ export default function BookingSingle({ email }) {
         <Card className="w-full sm:w-3/4">
           <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab}>
             <Tab key="general" title={t("booking.classroomSchedule")}>
-              {booking && !isLoadingBook ? (
+              {!booking ? (
+                <div className="prose">
+                  <h4>{t("booking.pleaseChoose")}</h4>
+                </div>
+              ) : !(booking.course?.teacher_email?.length) ? (
+                // Hard block: a course with no lecturer must not be schedulable.
+                <div className="flex items-start gap-3 bg-warning-50 border border-warning-200 rounded-xl p-4 text-warning-800">
+                  <AlertTriangleIcon className="shrink-0 mt-0.5" size={20} />
+                  <div>
+                    <p className="font-semibold">{t("booking.noTeacherTitle")}</p>
+                    <p className="text-sm mt-1">{t("booking.noTeacherDesc")}</p>
+                  </div>
+                </div>
+              ) : !isLoadingBook ? (
                 <CalendarByRoom
                   initRoom={
                     currentbooking && currentbooking[0]
@@ -717,11 +730,7 @@ export default function BookingSingle({ email }) {
                   }}
                   isLock={booking?.course?.isLock}
                 />
-              ) : (
-                <div className="prose">
-                  <h4>{t("booking.pleaseChoose")}</h4>
-                </div>
-              )}
+              ) : null}
             </Tab>
             <Tab key="personal" title={t("booking.personalSchedule")}>
               <div className="flex justify-between items-center gap-4 mb-2 flex-wrap">

@@ -33,7 +33,11 @@ function WarnBadge({ warnings }) {
         </div>
       }
     >
-      <AlertTriangleIcon size={14} className="text-warning-500 shrink-0" />
+      {/* z-index + pointer-events + hit padding so the checkbox's tap area on
+          the same line doesn't swallow the hover. */}
+      <span className="relative z-20 inline-flex items-center shrink-0 cursor-help p-1 -m-1 pointer-events-auto">
+        <AlertTriangleIcon size={14} className="text-warning-500" />
+      </span>
     </Tooltip>
   );
 }
