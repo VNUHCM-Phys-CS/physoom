@@ -21,6 +21,7 @@ import {
   roundIndex,
 } from "@/lib/ulti";
 import _, { groupBy, maxBy, reduce } from "lodash";
+import * as XLSX from "xlsx";
 import {
   Select,
   SelectItem,
@@ -363,8 +364,8 @@ const Page = () => {
     }
   };
 
-  // Download the full import report as a UTF-8 CSV (opens cleanly in Excel).
-  const downloadReport = () => {
+  // Build the report as an array of row objects (shared by CSV + Excel export).
+  const reportRows = () => {
     const statusVi = {
       created: "Tạo mới",
       overwrite: "Ghi đè",
@@ -372,19 +373,46 @@ const Page = () => {
       skipped: "Bỏ qua",
       error: "Lỗi",
     };
-    const header = ["Dòng", "Mã mh", "Môn học", "Lớp", "Phòng", "Thứ", "Tiết bắt đầu", "Trạng thái", "Chi tiết"];
+    return conflictLog.map((r) => ({
+      "Dòng": r.row,
+      "Mã mh": r.course_id,
+      "Môn học": r.course,
+      "Lớp": r.class,
+      "Phòng": r.room,
+      "Thứ": r.day,
+      "Tiết bắt đầu": r.tiet,
+      "Trạng thái": statusVi[r.status] || r.status,
+      "Chi tiết": r.detail,
+    }));
+  };
+  const reportFilename = (ext) =>
+    `bao-cao-import-${selectedTermObj?.title || "term"}.${ext}`;
+
+  // Excel (.xlsx) — most convenient for the user, keeps Vietnamese correctly.
+  const downloadExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(reportRows());
+    ws["!cols"] = [
+      { wch: 6 }, { wch: 12 }, { wch: 34 }, { wch: 12 }, { wch: 14 },
+      { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 50 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Bao cao import");
+    XLSX.writeFile(wb, reportFilename("xlsx"));
+  };
+
+  // CSV (UTF-8 with BOM) — lightweight fallback, opens in Excel too.
+  const downloadCsv = () => {
+    const rows = reportRows();
+    const header = Object.keys(rows[0] || {});
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const rows = conflictLog.map((r) =>
-      [r.row, r.course_id, r.course, r.class, r.room, r.day, r.tiet, statusVi[r.status] || r.status, r.detail]
-        .map(esc)
-        .join(",")
-    );
-    const csv = "﻿" + [header.map(esc).join(","), ...rows].join("\r\n");
+    const csv =
+      "﻿" +
+      [header.map(esc).join(","), ...rows.map((r) => header.map((h) => esc(r[h])).join(","))].join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bao-cao-import-${selectedTermObj?.title || "term"}.csv`;
+    a.download = reportFilename("csv");
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -539,7 +567,10 @@ const Page = () => {
           {progressBooking.value >= 100 && (
             <ModalFooter>
               {conflictLog.length > 0 && (
-                <Button variant="flat" onPress={downloadReport}>Tải báo cáo (.csv)</Button>
+                <>
+                  <Button variant="flat" color="success" onPress={downloadExcel}>Tải Excel (.xlsx)</Button>
+                  <Button variant="flat" onPress={downloadCsv}>Tải CSV</Button>
+                </>
               )}
               <Button color="primary" onPress={() => { setIsOpen(false); router.back(); }}>Done</Button>
             </ModalFooter>
