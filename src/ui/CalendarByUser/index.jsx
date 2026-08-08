@@ -20,6 +20,7 @@ import {
     Button,
     Chip,
 } from "@heroui/react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
@@ -74,6 +75,7 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
 
 export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week", jumpTo}) {
     const { data: session } = useSession();
+    const { t } = useI18n();
     const [date, setDate] = useState(new Date());
     const [view, setView] = useState(defaultView);
 
@@ -82,6 +84,21 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
     useEffect(() => {
         if (jumpTo) setDate(new Date(jumpTo));
     }, [jumpTo]);
+
+    // App-wide rule: prefer a user's NAME over their email whenever we know it.
+    const isAdmin = !!session?.user?.isAdmin;
+    const myEmail = session?.user?.email;
+    const { data: _userList } = useSWR("/api/user/list", fetcher);
+    const nameByEmail = useMemo(() => {
+        const m = {};
+        (_userList ?? []).forEach((u) => { if (u.email) m[u.email.toLowerCase()] = u.name; });
+        return m;
+    }, [_userList]);
+    const nameOf = useCallback((addr) => nameByEmail[addr?.toLowerCase?.()] || addr, [nameByEmail]);
+    const nameList = useCallback((arr) => (arr ?? []).map(nameOf).filter(Boolean).join(", "), [nameOf]);
+    // Built-in info popup: cells are small and truncate the title, so a click
+    // opens the full details (respecting the admin/owner visibility rule).
+    const [info, setInfo] = useState(null);
     const [pendingDrop, setPendingDrop] = useState(null);
     const [dropLoading, setDropLoading] = useState(false);
     // Optimistic time overrides (id -> {start, end}) so a dragged event stays at
@@ -257,7 +274,11 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                           </div>
                         )
                     }}
-                    onSelectEvent={(e, ...rest) => { if (e?.resource?.isHoliday) return; onClickEvent?.(e, ...rest); }}
+                    onSelectEvent={(e, ...rest) => {
+                        if (e?.resource?.isHoliday) return;
+                        if (onClickEvent) { onClickEvent(e, ...rest); return; }
+                        setInfo(e.resource || e); // read-only view → built-in popup
+                    }}
                     onDoubleClickEvent={(e, ...rest) => { if (e?.resource?.isHoliday) return; onDoubleClick?.(e, ...rest); }}
                     onEventDrop={!readOnly ? onEventDrop : undefined}
                     onEventResize={!readOnly ? onEventDrop : undefined}
@@ -278,6 +299,65 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                 onCancel={handleCancelDrop}
                 loading={dropLoading}
             />
+
+            {/* Built-in event info popup (read-only views). Respects the
+                admin/owner visibility rule and prefers names over emails. */}
+            <Modal isOpen={!!info} onOpenChange={(o) => !o && setInfo(null)} size="md">
+                <ModalContent>
+                    {(onClose) => {
+                        const canSee =
+                            isAdmin ||
+                            (info?.teacher_email ?? []).includes(myEmail) ||
+                            (info?.host ?? []).includes(myEmail);
+                        const when = info?.start
+                            ? `${moment(info.start).format("DD/MM/YYYY HH:mm")} – ${moment(info.end).format("HH:mm")}`
+                            : "";
+                        const roomTitle = info?.room?.title || (typeof info?.room === "string" ? "" : "");
+                        return (
+                            <>
+                                <ModalHeader className="flex flex-col gap-1.5 pb-2">
+                                    <span className="text-base font-semibold">
+                                        {info?.title || info?.course?.title || t("event.details")}
+                                    </span>
+                                    {info?.status && (
+                                        <Chip size="sm" variant="flat" className="w-fit capitalize"
+                                            color={info.status === "approved" ? "success" : info.status === "rejected" ? "danger" : "warning"}>
+                                            {info.status}
+                                        </Chip>
+                                    )}
+                                </ModalHeader>
+                                <ModalBody className="text-sm">
+                                    <div className="flex flex-col gap-1.5">
+                                        {roomTitle && <p><span className="text-default-500">{t("event.room")}:</span> {roomTitle}</p>}
+                                        {when && <p><span className="text-default-500">{t("event.time")}:</span> {when}</p>}
+                                        {canSee ? (
+                                            <>
+                                                {(info?.teacher_email ?? []).length > 0 && (
+                                                    <p><span className="text-default-500">{t("event.teacher")}:</span> {nameList(info.teacher_email)}</p>
+                                                )}
+                                                {(info?.host ?? []).length > 0 && (
+                                                    <p><span className="text-default-500">{t("event.host")}:</span> {nameList(info.host)}</p>
+                                                )}
+                                                {(info?.attendees ?? []).length > 0 && (
+                                                    <p><span className="text-default-500">{t("event.attendees")}:</span> {nameList(info.attendees)}</p>
+                                                )}
+                                                {(info?.tags ?? []).length > 0 && (
+                                                    <p><span className="text-default-500">{t("event.note")}:</span> {info.tags.join(", ")}</p>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <p className="text-default-400 italic mt-1">{t("event.restricted")}</p>
+                                        )}
+                                    </div>
+                                </ModalBody>
+                                <ModalFooter>
+                                    <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
+                                </ModalFooter>
+                            </>
+                        );
+                    }}
+                </ModalContent>
+            </Modal>
         </LoadingWrapper>
     );
 }

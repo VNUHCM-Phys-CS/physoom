@@ -131,17 +131,7 @@ export default function ViewRoomPage() {
                 </p>
             </div>
 
-            {/* Code entry — visible to everyone */}
-            <Card className="mb-4 max-w-2xl mx-auto">
-                <QuickCodeEntry />
-                {session?.user && (
-                    <div className="border-t border-default-100 pt-4 mt-2 text-center text-xs text-default-400">
-                        {t("room.orMscb")}
-                    </div>
-                )}
-            </Card>
-
-            {/* Authenticated room view */}
+            {/* Logged-in staff → MSCB entry first; guests → share-code entry */}
             {session?.user ? (
                 isCheck ? (
                     <Card>
@@ -202,29 +192,44 @@ export default function ViewRoomPage() {
                         )}
                     </Card>
                 ) : (
-                    <Card className="max-w-2xl mx-auto">
-                        <form className="flex justify-center py-10 px-4 items-center flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-100 text-secondary">
-                                <CalendarSearchIcon size={24} />
-                            </div>
-                            <h4 className="text-lg text-center">{t("room.enterMscb")}</h4>
-                            <div className="flex gap-2 w-full max-w-sm">
-                                <Input
-                                    className="flex-1"
-                                    placeholder="MSCB"
-                                    {...register('teacher_id')}
-                                    isInvalid={!!errors.teacher_id}
-                                    errorMessage={errors.teacher_id?.message}
-                                />
-                                <Button type="submit" color="secondary">{t("room.submit")}</Button>
-                            </div>
-                        </form>
-                    </Card>
+                    <>
+                        {/* Logged in → enter staff code (MSCB) first */}
+                        <Card className="max-w-2xl mx-auto mb-4">
+                            <form className="flex justify-center py-10 px-4 items-center flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-100 text-secondary">
+                                    <CalendarSearchIcon size={24} />
+                                </div>
+                                <h4 className="text-lg text-center">{t("room.enterMscb")}</h4>
+                                <div className="flex gap-2 w-full max-w-sm">
+                                    <Input
+                                        className="flex-1"
+                                        placeholder="MSCB"
+                                        {...register('teacher_id')}
+                                        isInvalid={!!errors.teacher_id}
+                                        errorMessage={errors.teacher_id?.message}
+                                    />
+                                    <Button type="submit" color="secondary">{t("room.submit")}</Button>
+                                </div>
+                                {isCheck === false && (
+                                    <p className="text-danger text-sm text-center">{t("room.mscbMismatch")}</p>
+                                )}
+                            </form>
+                        </Card>
+                        {/* Or use a share code */}
+                        <Card className="max-w-2xl mx-auto">
+                            <QuickCodeEntry />
+                        </Card>
+                    </>
                 )
             ) : (
-                <p className="text-center text-default-400 text-sm py-6">
-                    {t("room.loginToView")}
-                </p>
+                <>
+                    <Card className="mb-4 max-w-2xl mx-auto">
+                        <QuickCodeEntry />
+                    </Card>
+                    <p className="text-center text-default-400 text-sm py-6">
+                        {t("room.loginToView")}
+                    </p>
+                </>
             )}
         </div>
     );

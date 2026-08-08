@@ -143,12 +143,32 @@ export const DELETE = async (request, { params }) => {
     const { id } = params;
     await connectToDb();
 
-    const { authorized } = await checkAuthorized(session, id);
+    const { authorized, event } = await checkAuthorized(session, id);
     if (!authorized) {
       return NextResponse.json({ success: false }, { status: 401 });
     }
 
     await CalendarEvent.findByIdAndDelete(id);
+
+    // Notify the owner/host when someone ELSE (admin/manager) deletes their
+    // event — so a booking never disappears silently.
+    try {
+      const owners = [...(event.teacher_email ?? []), ...(event.host ?? [])].filter(
+        (e) => e && e !== session.user.email
+      );
+      if (owners.length) {
+        const when = `${moment(event.start).format("DD/MM HH:mm")}–${moment(event.end).format("HH:mm")}`;
+        await notify(owners, {
+          type: "deleted",
+          title: "Sự kiện mượn phòng đã bị xoá",
+          message: `"${event.title}" · ${event.room?.title || "phòng"} · ${when} đã bị quản trị viên/quản lý phòng xoá.`,
+          link: "/booking?tab=event_booking",
+        });
+      }
+    } catch (e) {
+      console.error("notify(delete) failed:", e);
+    }
+
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     console.log(err);
