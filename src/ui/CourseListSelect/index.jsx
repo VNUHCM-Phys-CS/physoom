@@ -153,7 +153,7 @@ export default function CourseListSelect({
           isSelected={checkAllBtn.isSe}
           onChange={onClickCheckAllBtn}
         ></Checkbox>
-        <h4 className="font-bold">Booking info</h4>
+        <h4 className="font-bold">{t("common.bookingInfo")}</h4>
         <div>
           <Button
             size="md"
@@ -162,7 +162,7 @@ export default function CourseListSelect({
             className={`lock-btn px-0 min-w-10 ${selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
               }`}
             disabled={!selectedRelated.size}
-            title="Lock"
+            title={t("common.lock")}
             onClick={() => handleLockAll(selectedRelated)}
           >
             <LockFill />
@@ -174,7 +174,7 @@ export default function CourseListSelect({
             className={`lock-btn px-0 min-w-10 ${selectedRelated.size ? "" : "opacity-50 cursor-not-allowed"
               }`}
             disabled={!selectedRelated.size}
-            title="Unlock"
+            title={t("common.unlock")}
             onClick={() => handleUnlockAll(selectedRelated)}
           >
             <UnlockFill />
@@ -219,7 +219,7 @@ export default function CourseListSelect({
                             {location}
                           </Chip>
                           <Chip size="sm" variant="shadow">
-                            {credit} credits
+                            {credit} {t("common.credits")}
                           </Chip>
                         </div>
                         {cg.key === "planned" && onUnschedule && (

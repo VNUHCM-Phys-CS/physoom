@@ -111,7 +111,7 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                           {location}
                         </Chip>
                         <Chip size="sm" variant="shadow">
-                          {credit} credits
+                          {credit} {t("common.credits")}
                         </Chip>
                       </div>
                       {cg.key === "planned" && onUnschedule && (

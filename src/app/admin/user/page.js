@@ -13,6 +13,7 @@ import {
   SearchIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon,
 } from "lucide-react";
 import DragDropzone from "@/ui/CSVReader/DragDropzone";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ const IMPORT_COLUMNS = [
 // ── UserFormModal ─────────────────────────────────────────────────────────────
 
 function UserFormModal({ isOpen, onClose, initial, onSave }) {
+  const { t } = useI18n();
   const [form, setForm] = useState(initial ?? EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +55,7 @@ function UserFormModal({ isOpen, onClose, initial, onSave }) {
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (!form.email.trim()) { setError("Email is required"); return; }
+    if (!form.email.trim()) { setError(t("user.emailRequired")); return; }
     setSaving(true);
     setError("");
     try {
@@ -72,7 +74,7 @@ function UserFormModal({ isOpen, onClose, initial, onSave }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent>
-        <ModalHeader>{isEdit ? "Edit User" : "Add User"}</ModalHeader>
+        <ModalHeader>{isEdit ? t("user.editTitle") : t("user.addTitle")}</ModalHeader>
         <ModalBody className="flex flex-col gap-3">
           <Input
             label="Email"
@@ -83,18 +85,18 @@ function UserFormModal({ isOpen, onClose, initial, onSave }) {
             isRequired
             isInvalid={!!error && !form.email.trim()}
           />
-          <Input label="Name" placeholder="Full name" value={form.name} onValueChange={set("name")} />
-          <Input label="Teacher ID (MSCB)" placeholder="e.g. 12345" value={form.teacher_id} onValueChange={set("teacher_id")} />
+          <Input label={t("user.fName")} placeholder={t("user.fName")} value={form.name} onValueChange={set("name")} />
+          <Input label={t("user.fMscb")} placeholder="VD: 12345" value={form.teacher_id} onValueChange={set("teacher_id")} />
           <div className="flex items-center justify-between px-1">
-            <span className="text-sm">Admin privileges</span>
+            <span className="text-sm">{t("user.fAdmin")}</span>
             <Switch isSelected={form.isAdmin} onValueChange={set("isAdmin")} color="danger" size="sm" />
           </div>
           {error && <p className="text-danger text-xs">{error}</p>}
         </ModalBody>
         <ModalFooter>
-          <Button variant="flat" onPress={onClose}>Cancel</Button>
+          <Button variant="flat" onPress={onClose}>{t("common.cancel")}</Button>
           <Button color="primary" onPress={handleSave} isLoading={saving}>
-            {isEdit ? "Save changes" : "Add user"}
+            {isEdit ? t("user.saveChanges") : t("user.add")}
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -105,6 +107,7 @@ function UserFormModal({ isOpen, onClose, initial, onSave }) {
 // ── ImportModal ───────────────────────────────────────────────────────────────
 
 function ImportModal({ isOpen, onClose, onSuccess }) {
+  const { t } = useI18n();
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -134,32 +137,26 @@ function ImportModal({ isOpen, onClose, onSuccess }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="3xl">
       <ModalContent>
-        <ModalHeader>Import Users from CSV / Excel</ModalHeader>
+        <ModalHeader>{t("user.importTitle")}</ModalHeader>
         <ModalBody className="flex flex-col gap-3">
-          <p className="text-xs text-default-400">
-            Required column: <code className="bg-default-100 px-1 rounded">email</code>.
-            Optional: <code className="bg-default-100 px-1 rounded">name</code>,{" "}
-            <code className="bg-default-100 px-1 rounded">teacher_id</code>,{" "}
-            <code className="bg-default-100 px-1 rounded">isAdmin</code> (true/false).
-            Existing users are updated by email.
-          </p>
+          <p className="text-xs text-default-400">{t("user.importDesc")}</p>
           <DragDropzone
             collums={IMPORT_COLUMNS}
             INITIAL_VISIBLE_COLUMNS={["email", "name", "teacher_id", "isAdmin"]}
             onImport={handleImport}
           />
-          {importing && <p className="text-sm text-center text-default-400">Importing…</p>}
+          {importing && <p className="text-sm text-center text-default-400">{t("user.importing")}</p>}
           {result?.ok && (
             <p className="text-sm text-success text-center">
-              Done — {result.inserted} added, {result.updated} updated.
+              {t("user.importDone", { a: result.inserted, u: result.updated })}
             </p>
           )}
           {result && !result.ok && (
-            <p className="text-sm text-danger text-center">Error: {result.error}</p>
+            <p className="text-sm text-danger text-center">{t("common.error")}: {result.error}</p>
           )}
         </ModalBody>
         <ModalFooter>
-          <Button variant="flat" onPress={onClose}>Close</Button>
+          <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
@@ -169,6 +166,7 @@ function ImportModal({ isOpen, onClose, onSuccess }) {
 // ── DeleteConfirm ─────────────────────────────────────────────────────────────
 
 function DeleteConfirmModal({ isOpen, onClose, user, onConfirm }) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const handle = async () => {
     setLoading(true);
@@ -179,13 +177,13 @@ function DeleteConfirmModal({ isOpen, onClose, user, onConfirm }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm">
       <ModalContent>
-        <ModalHeader>Delete user?</ModalHeader>
+        <ModalHeader>{t("user.deleteTitle")}</ModalHeader>
         <ModalBody>
-          <p className="text-sm">Remove <strong>{user?.email}</strong>? This cannot be undone.</p>
+          <p className="text-sm">{t("user.deleteDesc", { email: user?.email })}</p>
         </ModalBody>
         <ModalFooter>
-          <Button variant="flat" onPress={onClose}>Cancel</Button>
-          <Button color="danger" onPress={handle} isLoading={loading}>Delete</Button>
+          <Button variant="flat" onPress={onClose}>{t("common.cancel")}</Button>
+          <Button color="danger" onPress={handle} isLoading={loading}>{t("common.delete")}</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
@@ -197,6 +195,7 @@ function DeleteConfirmModal({ isOpen, onClose, user, onConfirm }) {
 const PAGE_SIZE = 15;
 
 export default function UserManagementPage() {
+  const { t } = useI18n();
   const { data: users, mutate, isLoading } = useSWR("/api/admin/user", fetcher);
 
   const [search, setSearch] = useState("");
@@ -275,18 +274,18 @@ export default function UserManagementPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold">Users</h2>
-          <p className="text-sm text-default-400">{users?.length ?? "…"} total accounts</p>
+          <h2 className="text-xl font-bold">{t("user.title")}</h2>
+          <p className="text-sm text-default-400">{t("user.total", { n: users?.length ?? "…" })}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button size="sm" variant="flat" startContent={<DownloadIcon size={14} />} onPress={() => downloadCSV(users ?? [])}>
-            Export
+            {t("common.export")}
           </Button>
           <Button size="sm" variant="flat" startContent={<UploadIcon size={14} />} onPress={openImport}>
-            Import
+            {t("common.import")}
           </Button>
           <Button size="sm" color="primary" startContent={<PlusIcon size={14} />} onPress={handleAdd}>
-            Add User
+            {t("user.add")}
           </Button>
         </div>
       </div>
@@ -294,7 +293,7 @@ export default function UserManagementPage() {
       {/* Search */}
       <Input
         size="sm"
-        placeholder="Search by name, email or MSCB…"
+        placeholder={t("user.searchPh")}
         value={search}
         onValueChange={(v) => { setSearch(v); resetPage(); }}
         startContent={<SearchIcon size={15} className="text-default-400" />}
@@ -318,13 +317,13 @@ export default function UserManagementPage() {
         }
       >
         <TableHeader>
-          <TableColumn key="name" allowsSorting>NAME</TableColumn>
-          <TableColumn key="email" allowsSorting>EMAIL</TableColumn>
-          <TableColumn key="teacher_id" allowsSorting>MSCB</TableColumn>
-          <TableColumn key="isAdmin" allowsSorting>ADMIN</TableColumn>
-          <TableColumn>ACTIONS</TableColumn>
+          <TableColumn key="name" allowsSorting>{t("user.colName")}</TableColumn>
+          <TableColumn key="email" allowsSorting>{t("user.colEmail")}</TableColumn>
+          <TableColumn key="teacher_id" allowsSorting>{t("user.colMscb")}</TableColumn>
+          <TableColumn key="isAdmin" allowsSorting>{t("user.colAdmin")}</TableColumn>
+          <TableColumn>{t("user.colActions")}</TableColumn>
         </TableHeader>
-        <TableBody items={pageRows} isLoading={isLoading} emptyContent="No users found.">
+        <TableBody items={pageRows} isLoading={isLoading} emptyContent={t("user.none")}>
           {(u) => (
             <TableRow key={u._id}>
               <TableCell>
@@ -340,17 +339,17 @@ export default function UserManagementPage() {
               </TableCell>
               <TableCell>
                 {u.isAdmin
-                  ? <Chip size="sm" color="danger" variant="flat" startContent={<CheckIcon size={11} />}>Admin</Chip>
-                  : <Chip size="sm" color="default" variant="flat" startContent={<XIcon size={11} />}>User</Chip>}
+                  ? <Chip size="sm" color="danger" variant="flat" startContent={<CheckIcon size={11} />}>{t("user.roleAdmin")}</Chip>
+                  : <Chip size="sm" color="default" variant="flat" startContent={<XIcon size={11} />}>{t("user.roleUser")}</Chip>}
               </TableCell>
               <TableCell>
                 <div className="flex gap-1">
-                  <Tooltip content="Edit">
+                  <Tooltip content={t("common.edit")}>
                     <Button isIconOnly size="sm" variant="light" onPress={() => handleEdit(u)}>
                       <PencilIcon size={14} />
                     </Button>
                   </Tooltip>
-                  <Tooltip content="Delete" color="danger">
+                  <Tooltip content={t("common.delete")} color="danger">
                     <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleDeleteClick(u)}>
                       <Trash2Icon size={14} />
                     </Button>

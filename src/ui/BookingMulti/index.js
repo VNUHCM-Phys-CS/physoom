@@ -350,10 +350,10 @@ export default function BookingMulti() {
       {confirmDialog}
       <Card className="w-1/3 md:w-1/4  max-h-dvh flex flex-col">
         <Input
-          label="Search"
+          label={t("common.search")}
           isClearable
           radius="lg"
-          placeholder="Type to search..."
+          placeholder={t("common.typeToSearch")}
           value={searhCourse}
           onValueChange={setSearhCourse}
         />
@@ -372,7 +372,7 @@ export default function BookingMulti() {
             <Tab key="general" title={t("booking.classroomSchedule")}>
               {!booking ? (
                 <div className="prose">
-                  <h4>Please choose course</h4>
+                  <h4>{t("booking.pleaseChoose")}</h4>
                 </div>
               ) : !(booking.course?.teacher_email?.length) ? (
                 // Hard block: a course with no lecturer must not be schedulable.
@@ -407,7 +407,7 @@ export default function BookingMulti() {
             </Tab>
             <Tab key="personal" title={t("booking.lecturerSchedule")}>
               <div className="prose">
-                <h3>Lecturer: {booking?.teacher_email ?? "No info"}</h3>
+                <h3>{t("event.teacher")}: {booking?.teacher_email ?? t("common.noInfo")}</h3>
               </div>
               <div className="flex flex-wrap items-center gap-4 mb-2">
                 <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
@@ -437,7 +437,7 @@ export default function BookingMulti() {
             </Tab>
             <Tab key="class_sche" title={t("booking.classSchedule")}>
               <div className="prose">
-                <h3>Class: {booking?.course?.class_id ?? "No info"}</h3>
+                <h3>{t("common.class")}: {booking?.course?.class_id ?? t("common.noInfo")}</h3>
               </div>
               <div className="flex flex-wrap items-center gap-4 mb-2">
                 <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
