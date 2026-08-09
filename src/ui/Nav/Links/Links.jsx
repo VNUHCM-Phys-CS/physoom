@@ -14,7 +14,7 @@ import {
   NavbarMenuToggle,
   Button,
 } from "@heroui/react";
-import { CalendarDaysIcon, LogInIcon, LogOutIcon } from "lucide-react";
+import { CalendarDaysIcon, LogInIcon, LogOutIcon, HelpCircleIcon } from "lucide-react";
 import ThemeToggle from "../ThemeToggle";
 import LanguageToggle from "../LanguageToggle";
 import NotificationBell from "../NotificationBell";
@@ -72,7 +72,7 @@ const Links = ({ session }) => {
       </NavbarContent>
 
       {/* Desktop links */}
-      <NavbarContent className="hidden sm:flex gap-1" justify="center">
+      <NavbarContent className="hidden sm:flex gap-1" justify="center" data-tour="nav">
         {navItems.map((item) => (
           <NavbarItem key={item.path} isActive={isActive(item.path)}>
             <Link
@@ -92,11 +92,22 @@ const Links = ({ session }) => {
       {/* Actions */}
       <NavbarContent justify="end">
         {user && (
-          <NavbarItem>
+          <NavbarItem data-tour="bell">
             <NotificationBell />
           </NavbarItem>
         )}
-        <NavbarItem>
+        <NavbarItem className="hidden sm:flex">
+          <Link
+            href="/guide"
+            data-tour="help"
+            aria-label={t("nav.help")}
+            title={t("nav.help")}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-default-600 hover:bg-default-100 hover:text-secondary transition-colors"
+          >
+            <HelpCircleIcon size={20} />
+          </Link>
+        </NavbarItem>
+        <NavbarItem data-tour="lang">
           <LanguageToggle />
         </NavbarItem>
         <NavbarItem>
@@ -144,6 +155,15 @@ const Links = ({ session }) => {
             </Link>
           </NavbarMenuItem>
         ))}
+        <NavbarMenuItem>
+          <Link
+            href="/guide"
+            onClick={() => setIsMenuOpen(false)}
+            className="w-full flex items-center gap-2 px-3 py-3 rounded-lg text-base font-medium text-default-700 hover:bg-default-100"
+          >
+            <HelpCircleIcon size={18} /> {t("nav.help")}
+          </Link>
+        </NavbarMenuItem>
       </NavbarMenu>
     </Navbar>
   );

@@ -6,14 +6,20 @@ import Calendar from "@/ui/Calendar";
 import { Button, Tabs, Tab, Card, CardBody, Select, SelectItem } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { booking2calendar, defaultGridNVC, defaultGridLT } from "@/lib/ulti";
-import { LayoutGridIcon, CalendarIcon, DoorOpenIcon } from "lucide-react";
+import { LayoutGridIcon, CalendarIcon, DoorOpenIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
+import moment from "moment";
 
 export default function SharedSchedulePage({ params }) {
     const token = params.token;
     const router = useRouter();
+    const { t } = useI18n();
     const [viewType, setViewType] = useState("standard");
     const [roomFilter, setRoomFilter] = useState("all");
     const [isMobile, setIsMobile] = useState(false);
+    // Tiết Grid week picker: the grid collapses by weekday, so restrict it to a
+    // single week's occurrences (schedules vary week-to-week: holidays, etc.).
+    const [weekAnchor, setWeekAnchor] = useState(null);
 
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 640);
@@ -55,6 +61,34 @@ export default function SharedSchedulePage({ params }) {
         return (events ?? []).filter((e) => String(e.room?._id) === roomFilter);
     }, [events, roomFilter]);
 
+    // Default the Tiết-Grid week to the earliest event once data arrives.
+    useEffect(() => {
+        if (!weekAnchor && (events?.length)) {
+            const min = events.reduce(
+                (m, e) => (e.start && (!m || new Date(e.start) < m) ? new Date(e.start) : m),
+                null
+            );
+            setWeekAnchor(min || new Date());
+        }
+    }, [events, weekAnchor]);
+
+    const weekStart = useMemo(
+        () => moment(weekAnchor || undefined).startOf("isoWeek"),
+        [weekAnchor]
+    );
+    const weekEnd = useMemo(() => weekStart.clone().add(7, "days"), [weekStart]);
+
+    // For the grid, restrict to the chosen week (once an anchor is set).
+    const weekEvents = useMemo(() => {
+        if (!weekAnchor) return filteredEvents;
+        const s = weekStart.valueOf();
+        const en = weekEnd.valueOf();
+        return filteredEvents.filter((e) => {
+            const ts = e.start ? new Date(e.start).valueOf() : null;
+            return ts == null || (ts >= s && ts < en);
+        });
+    }, [filteredEvents, weekAnchor, weekStart, weekEnd]);
+
     // Determine grid based on room locations
     const gridData = useMemo(() => {
         if (!events || events.length === 0) return defaultGridNVC;
@@ -67,9 +101,9 @@ export default function SharedSchedulePage({ params }) {
 
     // Map events for the custom Grid (Tiết)
     const gridEvents = useMemo(() => {
-        if (!filteredEvents) return [];
+        if (!weekEvents) return [];
         // Map CalendarEvent documents to the shape booking2calendar expects
-        const mockBookings = filteredEvents.map(e => ({
+        const mockBookings = weekEvents.map(e => ({
             _id: e._id,
             weekday: e.weekday,
             time_slot: {
@@ -84,7 +118,7 @@ export default function SharedSchedulePage({ params }) {
         })).filter(b => b.weekday !== undefined && b.time_slot?.start_time !== undefined);
 
         return mockBookings.map(b => booking2calendar(b, gridData.data));
-    }, [filteredEvents, gridData]);
+    }, [weekEvents, gridData]);
 
     const customColorEvent = (event) => {
         const type = event.raw?.type || 'class';
@@ -95,9 +129,9 @@ export default function SharedSchedulePage({ params }) {
     if (error && error.status === 401) {
         return (
             <div className="flex flex-col items-center justify-center h-screen gap-4">
-                <h1 className="text-2xl font-bold">Login Required</h1>
-                <p>This room schedule requires you to be logged into your account.</p>
-                <Button color="primary" onPress={() => router.push('/api/auth/signin')}>Login to View</Button>
+                <h1 className="text-2xl font-bold">{t("share.loginRequired")}</h1>
+                <p>{t("share.loginRequiredDesc")}</p>
+                <Button color="primary" onPress={() => router.push('/api/auth/signin')}>{t("share.loginToView")}</Button>
             </div>
         );
     }
@@ -105,8 +139,8 @@ export default function SharedSchedulePage({ params }) {
     if (error) {
         return (
             <div className="flex flex-col items-center justify-center h-screen gap-4">
-                <h1 className="text-2xl font-bold text-red-500">Error Loading Schedule</h1>
-                <p>This link may be invalid, deleted, or expired.</p>
+                <h1 className="text-2xl font-bold text-red-500">{t("share.errorTitle")}</h1>
+                <p>{t("share.errorDesc")}</p>
             </div>
         );
     }
@@ -114,7 +148,7 @@ export default function SharedSchedulePage({ params }) {
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Live Room Schedule</h1>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">{t("share.liveTitle")}</h1>
                 <Tabs 
                     aria-label="View Toggle" 
                     color="primary" 
@@ -132,7 +166,7 @@ export default function SharedSchedulePage({ params }) {
                        title={
                         <div className="flex items-center space-x-2">
                            <CalendarIcon size={18}/>
-                           <span>Standard View</span>
+                           <span>{t("share.standardView")}</span>
                         </div>
                        }
                     />
@@ -141,7 +175,7 @@ export default function SharedSchedulePage({ params }) {
                        title={
                         <div className="flex items-center space-x-2">
                            <LayoutGridIcon size={18}/>
-                           <span>Tiết Grid (Slot)</span>
+                           <span>{t("share.slotView")}</span>
                         </div>
                        }
                     />
@@ -159,11 +193,31 @@ export default function SharedSchedulePage({ params }) {
                         onSelectionChange={(keys) => setRoomFilter(Array.from(keys)[0] || "all")}
                         className="max-w-[220px]"
                     >
-                        <SelectItem key="all">Tất cả phòng ({rooms.length})</SelectItem>
+                        <SelectItem key="all">{t("share.allRooms", { n: rooms.length })}</SelectItem>
                         {rooms.map((r) => (
                             <SelectItem key={String(r._id)}>{r.title}</SelectItem>
                         ))}
                     </Select>
+                </div>
+            )}
+
+            {/* Week picker — Tiết Grid only (Standard View has its own nav) */}
+            {viewType === "slot" && (
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <Button size="sm" variant="flat" startContent={<ChevronLeftIcon size={16} />}
+                        onPress={() => setWeekAnchor(weekStart.clone().subtract(7, "days").toDate())}>
+                        {t("share.weekPrev")}
+                    </Button>
+                    <span className="text-sm font-semibold min-w-[170px] text-center">
+                        {t("share.week")}: {weekStart.format("DD/MM")} – {weekEnd.clone().subtract(1, "day").format("DD/MM/YYYY")}
+                    </span>
+                    <Button size="sm" variant="flat" endContent={<ChevronRightIcon size={16} />}
+                        onPress={() => setWeekAnchor(weekStart.clone().add(7, "days").toDate())}>
+                        {t("share.weekNext")}
+                    </Button>
+                    <Button size="sm" variant="light" onPress={() => setWeekAnchor(new Date())}>
+                        {t("share.thisWeek")}
+                    </Button>
                 </div>
             )}
 
