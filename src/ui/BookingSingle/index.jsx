@@ -97,6 +97,7 @@ function EventListSidebar({ events, email, selectedId, onSelect }) {
 // ─── EventInfoModal ────────────────────────────────────────────────────────────
 
 function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRooms, rooms, onSuccess }) {
+  const { t } = useI18n();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure();
   const { data: users } = useSWR("/api/user/list", fetcher);
 
@@ -138,41 +139,41 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-1.5 text-sm">
-                  <p><span className="text-default-500">Room:</span> {event.room?.title || "-"}</p>
+                  <p><span className="text-default-500">{t("event.room")}:</span> {event.room?.title || "-"}</p>
                   <p>
-                    <span className="text-default-500">Time:</span>{" "}
+                    <span className="text-default-500">{t("event.time")}:</span>{" "}
                     {moment(event.start).format("DD/MM/YYYY HH:mm")} – {moment(event.end).format("HH:mm")}
                   </p>
                   {(event.teacher_email ?? []).length > 0 && (
-                    <p><span className="text-default-500">Created by:</span> {labelList(event.teacher_email)}</p>
+                    <p><span className="text-default-500">{t("re.createdByLabel")}:</span> {labelList(event.teacher_email)}</p>
                   )}
                   {(event.host ?? []).length > 0 && (
-                    <p><span className="text-default-500">Host:</span> {labelList(event.host)}</p>
+                    <p><span className="text-default-500">{t("event.host")}:</span> {labelList(event.host)}</p>
                   )}
                   {(event.attendees ?? []).length > 0 && (
-                    <p><span className="text-default-500">Attendees:</span> {labelList(event.attendees)}</p>
+                    <p><span className="text-default-500">{t("event.attendees")}:</span> {labelList(event.attendees)}</p>
                   )}
                   {(event.tags ?? []).length > 0 && (
-                    <p><span className="text-default-500">Note:</span> {event.tags.join(", ")}</p>
+                    <p><span className="text-default-500">{t("event.note")}:</span> {event.tags.join(", ")}</p>
                   )}
                 </div>
 
                 {canEdit ? (
                   <div className="mt-3 flex items-start gap-2 bg-warning-50 text-warning-700 rounded-lg px-3 py-2 text-xs">
                     <AlertTriangleIcon size={14} className="shrink-0 mt-0.5" />
-                    <span>Changing <strong>time or room</strong> will require re-approval. Title and attendee changes apply immediately.</span>
+                    <span>{t("re.editWarn")}</span>
                   </div>
                 ) : (
                   <div className="mt-3 flex flex-col gap-1 bg-default-50 border border-default-200 rounded-lg px-3 py-2 text-sm">
-                    <span className="font-medium text-default-700">You don't have permission to edit this event.</span>
+                    <span className="font-medium text-default-700">{t("re.noEditPerm")}</span>
                     {contacts.length > 0 && (
-                      <span className="text-default-400 text-xs">Contact the creator or host: {labelList(contacts)}</span>
+                      <span className="text-default-400 text-xs">{t("re.contactHost")} {labelList(contacts)}</span>
                     )}
                   </div>
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button variant="flat" onPress={onClose}>Close</Button>
+                <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
                 {canEdit && (
                   <Button
                     color="warning"
@@ -180,7 +181,7 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
                     startContent={<AlertTriangleIcon size={14} />}
                     onPress={() => { onClose(); onEditOpen(); }}
                   >
-                    Edit
+                    {t("common.edit")}
                   </Button>
                 )}
               </ModalFooter>
@@ -802,5 +803,5 @@ export default function BookingSingle({ email }) {
         />
       </div>
     );
-  else return <div>Please login first</div>;
+  else return <div>{t("common.loginFirst")}</div>;
 }

@@ -12,6 +12,7 @@ import {
   cn,
 } from "@heroui/react";
 import { Trash2Icon, AlertTriangleIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function DeleteConfirmationModal({
   isOpen,
@@ -19,6 +20,7 @@ export default function DeleteConfirmationModal({
   onConfirm,
   eventData,
 }) {
+  const { t } = useI18n();
   const [deleteMode, setDeleteMode] = useState("single");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,15 +44,15 @@ export default function DeleteConfirmationModal({
             <ModalHeader className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-danger">
                 <Trash2Icon size={20} />
-                <span>Confirm Deletion</span>
+                <span>{t("del.title")}</span>
               </div>
             </ModalHeader>
             <ModalBody>
               <div className="flex flex-col gap-4">
                 <p className="text-default-500">
-                  How would you like to delete this schedule?
+                  {t("del.how")}
                 </p>
-                
+
                 <RadioGroup
                   value={deleteMode}
                   onValueChange={setDeleteMode}
@@ -58,48 +60,48 @@ export default function DeleteConfirmationModal({
                 >
                   <CustomRadio
                     value="single"
-                    description="Delete only this specific occurrence."
+                    description={t("del.thisOnly")}
                   >
-                    This occurrence only
+                    {t("del.thisOccurrence")}
                   </CustomRadio>
                   <CustomRadio
                     value="future"
-                    description="Delete this and all future occurrences in this series."
+                    description={t("del.thisFuture")}
                   >
-                    From this point forward
+                    {t("del.fromForward")}
                   </CustomRadio>
                   <CustomRadio
                     value="series"
-                    description="Delete the entire recurring series."
+                    description={t("del.series")}
                   >
-                    All occurrences
+                    {t("del.allOccurrences")}
                   </CustomRadio>
                   <CustomRadio
                     value="course"
-                    description="Remove all scheduled sessions for this course across all weekdays and rooms."
+                    description={t("del.course")}
                   >
-                    All schedules for this course
+                    {t("del.allCourse")}
                   </CustomRadio>
                 </RadioGroup>
 
                 <div className="p-3 bg-danger-50 rounded-lg flex gap-3 border border-danger-100">
                   <AlertTriangleIcon className="text-danger flex-shrink-0" size={20} />
                   <p className="text-tiny text-danger-600">
-                    This action is permanent and cannot be undone. All related data for the selected mode will be removed.
+                    {t("del.permanentDetail")}
                   </p>
                 </div>
               </div>
             </ModalBody>
             <ModalFooter>
               <Button variant="light" onPress={onClose}>
-                Cancel
+                {t("common.cancel")}
               </Button>
-              <Button 
-                color="danger" 
+              <Button
+                color="danger"
                 onPress={handleConfirm}
                 isLoading={isLoading}
               >
-                Confirm Delete
+                {t("del.confirmDelete")}
               </Button>
             </ModalFooter>
           </>

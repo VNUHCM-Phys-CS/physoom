@@ -32,6 +32,7 @@ import {
 } from "@heroui/react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const BOOKiNG_FIELDS = [
   { name: "Mã mh", uid: "Mã mh", sortable: true, isRequired: true },
@@ -55,6 +56,7 @@ const INITIAL_VISIBLE_COLUMNS = BOOKiNG_FIELDS.map((d) => d.uid);
 const Page = () => {
   const { data: session } = useSession();
   const router = useRouter();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [progressCourse, setProgressCourse] = useState({ value: 0 });
   const [progressRoom, setProgressRoom] = useState({ value: 0 });
@@ -75,7 +77,7 @@ const Page = () => {
   // multiple people, ask the user to pick before importing anything.
   const onSubmit = async (data) => {
     if (!selectedTerm || !selectedTermObj) {
-      alert("Please select a term before importing.");
+      alert(t("import.selectFirst"));
       return;
     }
 
@@ -448,13 +450,13 @@ const Page = () => {
     <div>
       <div className="flex flex-col gap-4 mb-4">
         <Select
-          label="Select Term (Required)"
-          placeholder="Choose a term to set dates and avoid holidays"
+          label={t("import.selectTerm")}
+          placeholder={t("import.termPlaceholder")}
           selectedKeys={selectedTerm ? [selectedTerm] : []}
           onChange={(e) => setSelectedTerm(e.target.value)}
           isRequired
           color={selectedTerm ? "default" : "danger"}
-          description={!selectedTerm ? "⚠️ A term must be selected before importing" : `Term: ${selectedTermObj?.title}`}
+          description={!selectedTerm ? t("import.termHint") : `${t("import.termPrefix")}: ${selectedTermObj?.title}`}
         >
           {(terms || []).map(term => (
             <SelectItem key={term._id} value={term._id}>{term.title}</SelectItem>
@@ -533,14 +535,14 @@ const Page = () => {
 
       <Modal isOpen={isOpen} hideCloseButton size="2xl" scrollBehavior="inside">
         <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">IMPORTING...</ModalHeader>
+          <ModalHeader className="flex flex-col gap-1">{t("import.importing")}</ModalHeader>
           <ModalBody>
             <div className="flex flex-col gap-6 w-full">
               <div className="flex flex-col gap-4 w-full max-w-md">
                 {[
-                  { label: "Room", prog: progressRoom },
-                  { label: "Course", prog: progressCourse },
-                  { label: "Booking", prog: progressBooking }
+                  { label: t("import.stepRoom"), prog: progressRoom },
+                  { label: t("import.stepCourse"), prog: progressCourse },
+                  { label: t("import.stepBooking"), prog: progressBooking }
                 ].map(({ label, prog }) => (
                   <div key={label} className="flex items-center gap-2">
                     {label}
@@ -597,7 +599,7 @@ const Page = () => {
                   <Button variant="flat" onPress={downloadCsv}>Tải CSV</Button>
                 </>
               )}
-              <Button color="primary" onPress={() => { setIsOpen(false); router.back(); }}>Done</Button>
+              <Button color="primary" onPress={() => { setIsOpen(false); router.back(); }}>{t("common.done")}</Button>
             </ModalFooter>
           )}
         </ModalContent>

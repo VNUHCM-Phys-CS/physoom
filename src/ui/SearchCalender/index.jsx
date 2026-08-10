@@ -10,8 +10,10 @@ import { useEffect, useMemo, useState } from "react";
 import { customSubtitle, fetcheroptions, getClass } from "@/lib/ulti";
 import { Select, SelectItem } from "@heroui/react";
 import ExportBookingButton from "../ExportBookingButton";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function ({onClickEvent, onDoubleClick, onDragStart}) {
+  const { t } = useI18n();
   const [searchKey, setSearchKey] = useState("teacher");
   const _searchKey = useMemo(() => new Set([searchKey]), [searchKey]);
   const [filter, setFilter] = useState();
@@ -88,7 +90,7 @@ export default function ({onClickEvent, onDoubleClick, onDragStart}) {
       <div className="flex justify-between items-center">
         <div className="flex grow gap-2">
           <Select
-            label="Search by"
+            label={t("search.by")}
             selectedKeys={_searchKey}
             onSelectionChange={(v) => {
               setFilter(undefined);
@@ -97,18 +99,18 @@ export default function ({onClickEvent, onDoubleClick, onDragStart}) {
             className="max-w-[200px]"
           >
             <SelectItem value="teacher" key="teacher">
-              Teacher
+              {t("search.teacher")}
             </SelectItem>
             <SelectItem value="room" key="room">
-              Room
+              {t("search.room")}
             </SelectItem>
             <SelectItem value="class" key="class">
-              Class
+              {t("search.class")}
             </SelectItem>
           </Select>
           {searchKey === "teacher" && (
             <Autocomplete
-              label="Lecturer"
+              label={t("search.teacher")}
               variant="bordered"
               placeholder="Tìm theo tên hoặc email"
               className="max-w-xs"
@@ -138,9 +140,9 @@ export default function ({onClickEvent, onDoubleClick, onDragStart}) {
           )}
           {searchKey === "room" && (
             <Autocomplete
-              label="Room"
+              label={t("search.room")}
               variant="bordered"
-              placeholder="Search by Room"
+              placeholder={t("search.byRoom")}
               className="max-w-xs"
               selectedKey={filter}
               onSelectionChange={setFilter}
@@ -154,9 +156,9 @@ export default function ({onClickEvent, onDoubleClick, onDragStart}) {
           )}
           {searchKey === "class" && (
             <Autocomplete
-              label="Class"
+              label={t("search.class")}
               variant="bordered"
-              placeholder="Search by Class id"
+              placeholder={t("search.byClass")}
               className="max-w-xs"
               selectedKey={filter}
               onSelectionChange={setFilter}

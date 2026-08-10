@@ -31,6 +31,7 @@ import {
 } from "@heroui/react";
 import { fetcher } from "@/lib/ulti";
 import { useConfirm } from "@/ui/ConfirmDialog";
+import { useI18n } from "@/i18n/I18nProvider";
 import moment from "moment";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -47,6 +48,7 @@ const statusColorMap = {
 
 // ---- Edit Managers Modal ----
 function EditManagersModal({ isOpen, onOpenChange, room, onSuccess }) {
+  const { t } = useI18n();
   const { data: users } = useSWR("/api/user/list", fetcher);
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -87,11 +89,11 @@ function EditManagersModal({ isOpen, onOpenChange, room, onSuccess }) {
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader>Edit Managers — {room?.title}</ModalHeader>
+            <ModalHeader>{t("rb.colManagers")} — {room?.title}</ModalHeader>
             <ModalBody>
               {error && <p className="text-danger text-sm">{error}</p>}
               <UserPicker
-                label="Managers"
+                label={t("rb.colManagers")}
                 users={users}
                 selectedEmails={managers}
                 onChange={setManagers}
@@ -99,9 +101,9 @@ function EditManagersModal({ isOpen, onOpenChange, room, onSuccess }) {
               />
             </ModalBody>
             <ModalFooter>
-              <Button variant="light" onPress={onClose}>Cancel</Button>
+              <Button variant="light" onPress={onClose}>{t("common.cancel")}</Button>
               <Button color="primary" isLoading={loading} onPress={() => handleSave(onClose)}>
-                Save
+                {t("common.save")}
               </Button>
             </ModalFooter>
           </>
@@ -113,6 +115,7 @@ function EditManagersModal({ isOpen, onOpenChange, room, onSuccess }) {
 
 // ---- Events Table (shared between Pending and All Events tabs) ----
 function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter, rooms }) {
+  const { t } = useI18n();
   const [roomFilter, setRoomFilter] = useState("");
   const [roomInput, setRoomInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -152,13 +155,13 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
   }, [events, roomFilter, statusFilter, search, sortDescriptor]);
 
   const columns = [
-    { key: "title", label: "Title", sortable: true },
-    { key: "room", label: "Room", sortable: true },
-    { key: "teacher_email", label: "Requested By", sortable: true },
-    { key: "start", label: "Start", sortable: true },
-    { key: "end", label: "End", sortable: true },
-    { key: "status", label: "Status", sortable: true },
-    { key: "actions", label: "Actions" },
+    { key: "title", label: t("rb.colTitle"), sortable: true },
+    { key: "room", label: t("rb.colRoom"), sortable: true },
+    { key: "teacher_email", label: t("rb.colRequestedBy"), sortable: true },
+    { key: "start", label: t("rb.colStart"), sortable: true },
+    { key: "end", label: t("rb.colEnd"), sortable: true },
+    { key: "status", label: t("common.status"), sortable: true },
+    { key: "actions", label: t("common.actions") },
   ];
 
   const renderCell = (event, key) => {
@@ -187,7 +190,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
               isDisabled={event.status === "approved"}
               onPress={() => onAction(event._id, "approved")}
             >
-              Approve
+              {t("rb.approve")}
             </Button>
             <Button
               size="sm"
@@ -197,7 +200,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
               isDisabled={event.status === "rejected"}
               onPress={() => onAction(event._id, "rejected")}
             >
-              Reject
+              {t("rb.reject")}
             </Button>
             <Button
               size="sm"
@@ -206,7 +209,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
               isLoading={actionLoading[event._id]}
               onPress={() => onDelete(event._id)}
             >
-              Delete
+              {t("common.delete")}
             </Button>
           </div>
         );
@@ -221,7 +224,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
         isClearable
         size="sm"
         className="max-w-xs mb-3"
-        placeholder="Search by title, room or requester..."
+        placeholder={t("rb.searchEvents")}
         value={search}
         onValueChange={setSearch}
         onClear={() => setSearch("")}
@@ -229,7 +232,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
       {showRoomFilter && (
         <div className="flex gap-3 mb-4">
           <Autocomplete
-            label="Filter by room"
+            label={t("rb.filterRoom")}
             items={filteredRooms}
             inputValue={roomInput}
             onInputChange={(v) => { setRoomInput(v); if (!v) setRoomFilter(""); }}
@@ -243,16 +246,16 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
             {(r) => <AutocompleteItem key={r.title} textValue={r.title}>{r.title}</AutocompleteItem>}
           </Autocomplete>
           <Select
-            label="Filter by status"
+            label={t("rb.filterStatus")}
             selectedKeys={statusFilter ? [statusFilter] : []}
             onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] || "")}
             className="max-w-xs"
           >
             {[
-              { key: "", label: "All statuses" },
-              { key: "pending", label: "Pending" },
-              { key: "approved", label: "Approved" },
-              { key: "rejected", label: "Rejected" },
+              { key: "", label: t("rb.allStatuses") },
+              { key: "pending", label: t("rb.tabPending") },
+              { key: "approved", label: t("rb.approved") },
+              { key: "rejected", label: t("rb.rejected") },
             ].map((s) => (
               <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
             ))}
@@ -273,7 +276,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
             </TableColumn>
           )}
         </TableHeader>
-        <TableBody items={filtered} emptyContent="No events found">
+        <TableBody items={filtered} emptyContent={t("rb.noEvents")}>
           {(event) => (
             <TableRow key={event._id}>
               {(columnKey) => <TableCell>{renderCell(event, columnKey)}</TableCell>}
@@ -287,6 +290,7 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
 
 // ---- Rooms Tab with Managers ----
 function RoomsTab({ rooms, mutateRooms }) {
+  const { t } = useI18n();
   const [editingRoom, setEditingRoom] = useState(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [search, setSearch] = useState("");
@@ -329,12 +333,12 @@ function RoomsTab({ rooms, mutateRooms }) {
   }, [mutateRooms]);
 
   const columns = [
-    { key: "title", label: "Room" },
-    { key: "location", label: "Location" },
-    { key: "limit", label: "Limit" },
-    { key: "isBookable", label: "Public booking" },
-    { key: "managers", label: "Managers" },
-    { key: "actions", label: "Actions" },
+    { key: "title", label: t("rb.colRoom") },
+    { key: "location", label: t("rb.location") },
+    { key: "limit", label: t("rb.colLimit") },
+    { key: "isBookable", label: t("rb.publicBooking") },
+    { key: "managers", label: t("rb.colManagers") },
+    { key: "actions", label: t("common.actions") },
   ];
 
   const renderCell = (room, key) => {
@@ -350,7 +354,7 @@ function RoomsTab({ rooms, mutateRooms }) {
         );
       case "managers":
         if (!(room.managers ?? []).length)
-          return <span className="text-default-400 text-sm italic">None</span>;
+          return <span className="text-default-400 text-sm italic">{t("common.noInfo")}</span>;
         return (
           <div className="flex flex-wrap gap-1">
             {room.managers.map((email) => {
@@ -387,11 +391,11 @@ function RoomsTab({ rooms, mutateRooms }) {
                 startContent={copiedRoomId === room._id ? <CheckIcon size={13} /> : <Link2Icon size={13} />}
                 onPress={() => handleCopyLink(room)}
               >
-                {copiedRoomId === room._id ? "Copied!" : "Share"}
+                {copiedRoomId === room._id ? t("rb.copied") : t("rb.share")}
               </Button>
             )}
             <Button size="sm" variant="flat" onPress={() => openEditManagers(room)}>
-              Edit Managers
+              {t("rb.colManagers")}
             </Button>
           </div>
         );
@@ -420,7 +424,7 @@ function RoomsTab({ rooms, mutateRooms }) {
     <>
       <div className="flex gap-3 mb-4 flex-wrap items-end">
         <Input
-          placeholder="Search by name, location or manager..."
+          placeholder={t("rb.searchRooms")}
           value={search}
           onValueChange={setSearch}
           className="max-w-xs"
@@ -429,25 +433,25 @@ function RoomsTab({ rooms, mutateRooms }) {
           onClear={() => setSearch("")}
         />
         <Select
-          label="Public booking"
+          label={t("rb.publicBooking")}
           selectedKeys={[bookableFilter]}
           onSelectionChange={(keys) => setBookableFilter(Array.from(keys)[0] || "all")}
           className="max-w-[160px]"
           size="sm"
         >
-          <SelectItem key="all">All</SelectItem>
-          <SelectItem key="public">Public</SelectItem>
-          <SelectItem key="private">Private</SelectItem>
+          <SelectItem key="all">{t("rb.allStatuses")}</SelectItem>
+          <SelectItem key="public">{t("rb.public")}</SelectItem>
+          <SelectItem key="private">{t("rb.private")}</SelectItem>
         </Select>
         {locations.length > 0 && (
           <Select
-            label="Location"
+            label={t("rb.location")}
             selectedKeys={locationFilter ? [locationFilter] : [""]}
             onSelectionChange={(keys) => setLocationFilter(Array.from(keys)[0] === "" ? "" : Array.from(keys)[0] || "")}
             className="max-w-[160px]"
             size="sm"
           >
-            <SelectItem key="">All locations</SelectItem>
+            <SelectItem key="">{t("rb.allLocations")}</SelectItem>
             {locations.map((loc) => (
               <SelectItem key={loc}>{loc}</SelectItem>
             ))}
@@ -459,7 +463,7 @@ function RoomsTab({ rooms, mutateRooms }) {
         <TableHeader columns={columns}>
           {(col) => <TableColumn key={col.key}>{col.label}</TableColumn>}
         </TableHeader>
-        <TableBody items={filteredRooms} emptyContent="No rooms found">
+        <TableBody items={filteredRooms} emptyContent={t("rb.noRooms")}>
           {(room) => (
             <TableRow key={room._id}>
               {(columnKey) => <TableCell>{renderCell(room, columnKey)}</TableCell>}
@@ -481,6 +485,7 @@ function RoomsTab({ rooms, mutateRooms }) {
 
 // ---- Calendar Tab ----
 function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCourse, rooms, onEventsChanged, initialRoom = null, initialEventId = null }) {
+  const { t } = useI18n();
   const { data: session } = useSession();
   const isAdmin = session?.user?.isAdmin;
 
@@ -582,7 +587,7 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
       <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <Autocomplete
-            label="Filter by room"
+            label={t("rb.filterRoom")}
             items={filteredRooms}
             inputValue={roomInput}
             onInputChange={(v) => { setRoomInput(v); if (!v) setRoomFilter(null); }}
@@ -606,32 +611,32 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
                   {room.location && <span className="text-default-400 text-xs">{room.location}</span>}
                 </div>
                 {room.limit > 0 && (
-                  <span className="text-default-500 text-xs">Capacity: <strong>{room.limit}</strong></span>
+                  <span className="text-default-500 text-xs">{t("rb.capacity")}: <strong>{room.limit}</strong></span>
                 )}
                 <Chip size="sm" variant="flat" color={room.isBookable ? "success" : "default"}>
-                  {room.isBookable ? "Public" : "Private"}
+                  {room.isBookable ? t("rb.public") : t("rb.private")}
                 </Chip>
                 {(room.managers ?? []).length > 0 && (
                   <span className="text-default-400 text-xs hidden sm:block">
-                    Managers: {room.managers.join(", ")}
+                    {t("rb.colManagers")}: {room.managers.join(", ")}
                   </span>
                 )}
               </div>
             );
           })()}
           <div className="flex gap-3 text-sm flex-wrap">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" /> Class</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> Approved</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" /> Pending</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-400 inline-block" /> Rejected</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" /> {t("rb.legendClass")}</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /> {t("rb.legendApproved")}</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" /> {t("rb.legendPending")}</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-400 inline-block" /> {t("rb.legendRejected")}</span>
           </div>
         </div>
-        <Button color="primary" size="sm" onPress={handleAddButton}>+ Add Event</Button>
+        <Button color="primary" size="sm" onPress={handleAddButton}>{t("rb.addEvent")}</Button>
       </div>
       <div className="h-[620px] bg-white dark:bg-zinc-900 p-4 rounded-xl shadow">
         {!roomFilter ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-default-400 text-sm">Select a room to view its schedule</p>
+            <p className="text-default-400 text-sm">{t("rb.selectRoomView")}</p>
           </div>
         ) : (
           <Calendar
@@ -665,37 +670,37 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
                     </Chip>
                   )}
                   {selectedType === "class" && (
-                    <Chip color="primary" size="sm" variant="flat" className="w-fit">Class</Chip>
+                    <Chip color="primary" size="sm" variant="flat" className="w-fit">{t("rb.classChip")}</Chip>
                   )}
                 </ModalHeader>
                 <ModalBody>
                   <div className="flex flex-col gap-1 text-sm">
-                    <p><span className="text-default-500">Room:</span> {ev.room?.title || "-"}</p>
-                    <p><span className="text-default-500">Start:</span> {moment(ev.start).format("DD/MM/YYYY HH:mm")}</p>
-                    <p><span className="text-default-500">End:</span> {moment(ev.end).format("DD/MM/YYYY HH:mm")}</p>
-                    <p><span className="text-default-500">Created by:</span> {(ev.teacher_email ?? []).join(", ") || "-"}</p>
+                    <p><span className="text-default-500">{t("event.room")}:</span> {ev.room?.title || "-"}</p>
+                    <p><span className="text-default-500">{t("rb.colStart")}:</span> {moment(ev.start).format("DD/MM/YYYY HH:mm")}</p>
+                    <p><span className="text-default-500">{t("rb.colEnd")}:</span> {moment(ev.end).format("DD/MM/YYYY HH:mm")}</p>
+                    <p><span className="text-default-500">{t("rb.createdBy")}:</span> {(ev.teacher_email ?? []).join(", ") || "-"}</p>
                     {selectedType === "class" && ev.course && (
-                      <p><span className="text-default-500">Course:</span> {typeof ev.course === "object" ? ev.course.title : ev.course}</p>
+                      <p><span className="text-default-500">{t("rb.course")}:</span> {typeof ev.course === "object" ? ev.course.title : ev.course}</p>
                     )}
                     {selectedType === "custom" && (ev.host ?? []).length > 0 && (
-                      <p><span className="text-default-500">Host:</span> {ev.host.join(", ")}</p>
+                      <p><span className="text-default-500">{t("event.host")}:</span> {ev.host.join(", ")}</p>
                     )}
                     {selectedType === "custom" && (ev.attendees ?? []).length > 0 && (
-                      <p><span className="text-default-500">Attendees:</span> {ev.attendees.join(", ")}</p>
+                      <p><span className="text-default-500">{t("event.attendees")}:</span> {ev.attendees.join(", ")}</p>
                     )}
                     {selectedType === "custom" && (ev.tags ?? []).length > 0 && (
-                      <p><span className="text-default-500">Note:</span> {ev.tags.join(", ")}</p>
+                      <p><span className="text-default-500">{t("event.note")}:</span> {ev.tags.join(", ")}</p>
                     )}
                   </div>
                   {selectedType === "class" && !isAdmin && (
-                    <p className="text-tiny text-default-400 mt-2">Only admins can manage course bookings.</p>
+                    <p className="text-tiny text-default-400 mt-2">{t("rb.classOnlyAdmin")}</p>
                   )}
                 </ModalBody>
                 <ModalFooter>
-                  <Button variant="flat" onPress={onClose}>Close</Button>
+                  <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
                   {selectedType === "class" && isAdmin && (
                     <Button color="primary" onPress={() => { onClose(); onGoToCourse(ev); }}>
-                      Manage Course Booking
+                      {t("rb.manageCourse")}
                     </Button>
                   )}
                   {selectedType === "custom" && (() => {
@@ -709,20 +714,20 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
                         {canEdit && (
                           <Button size="sm" variant="flat" color="secondary"
                             onPress={() => { onClose(); onEditOpen(); }}>
-                            Edit
+                            {t("common.edit")}
                           </Button>
                         )}
                         {(isAdmin) && (
                           <>
                             <Button size="sm" color="warning" variant="flat"
                               isDisabled={ev.status === "rejected"} isLoading={actionLoading[ev._id]}
-                              onPress={() => { onAction(ev._id, "rejected"); onClose(); }}>Reject</Button>
+                              onPress={() => { onAction(ev._id, "rejected"); onClose(); }}>{t("rb.reject")}</Button>
                             <Button size="sm" color="success"
                               isDisabled={ev.status === "approved"} isLoading={actionLoading[ev._id]}
-                              onPress={() => { onAction(ev._id, "approved"); onClose(); }}>Approve</Button>
+                              onPress={() => { onAction(ev._id, "approved"); onClose(); }}>{t("rb.approve")}</Button>
                             <Button size="sm" color="danger" variant="light"
                               isLoading={actionLoading[ev._id]}
-                              onPress={() => { onDelete(ev._id); onClose(); }}>Delete</Button>
+                              onPress={() => { onDelete(ev._id); onClose(); }}>{t("common.delete")}</Button>
                           </>
                         )}
                       </>
@@ -761,6 +766,7 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
 
 // ---- Main Page ----
 export default function RoomBookingPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: events, mutate: mutateEvents, isLoading: eventsLoading } = useSWR(
@@ -847,9 +853,9 @@ export default function RoomBookingPage() {
   return (
     <div>
       {confirmDialog}
-      <h1 className="text-2xl font-bold mb-4">Room Booking Management</h1>
+      <h1 className="text-2xl font-bold mb-4">{t("rb.title")}</h1>
       <Tabs aria-label="Room booking tabs" selectedKey={selectedTab} onSelectionChange={setSelectedTab}>
-        <Tab key="pending" title={`Pending (${pendingEvents.length})`}>
+        <Tab key="pending" title={`${t("rb.tabPending")} (${pendingEvents.length})`}>
           <div className="mt-4">
             {eventsLoading ? (
               <p className="text-default-400">Loading...</p>
@@ -864,10 +870,10 @@ export default function RoomBookingPage() {
             )}
           </div>
         </Tab>
-        <Tab key="all" title="All Events">
+        <Tab key="all" title={t("rb.tabAll")}>
           <div className="mt-4">
             <div className="flex justify-end mb-4">
-              <Button color="primary" onPress={onAddOpen}>Add Booking</Button>
+              <Button color="primary" onPress={onAddOpen}>{t("rb.addBooking")}</Button>
             </div>
             {eventsLoading ? (
               <p className="text-default-400">Loading...</p>
@@ -890,7 +896,7 @@ export default function RoomBookingPage() {
             onSuccess={handleEventSaved}
           />
         </Tab>
-        <Tab key="calendar" title="Calendar">
+        <Tab key="calendar" title={t("rb.tabCalendar")}>
           <div className="mt-4">
             <CalendarTab
               customEvents={events ?? []}
@@ -905,7 +911,7 @@ export default function RoomBookingPage() {
             />
           </div>
         </Tab>
-        <Tab key="rooms" title="Rooms">
+        <Tab key="rooms" title={t("rb.tabRooms")}>
           <div className="mt-4">
             <RoomsTab rooms={rooms} mutateRooms={mutateRooms} />
           </div>

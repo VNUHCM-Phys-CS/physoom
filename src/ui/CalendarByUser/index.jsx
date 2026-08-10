@@ -26,16 +26,17 @@ const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
 function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel, loading }) {
+    const { t } = useI18n();
     return (
         <Modal isOpen={isOpen} onClose={onCancel} isDismissable={!loading}>
             <ModalContent>
-                <ModalHeader>Confirm Time Change</ModalHeader>
+                <ModalHeader>{t("dnd.title")}</ModalHeader>
                 <ModalBody>
                     <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1">
                             <p className="text-sm font-semibold">{event?.title}</p>
                             <div className="flex items-center gap-2 text-sm">
-                                <span className="text-default-500">Current:</span>
+                                <span className="text-default-500">{t("dnd.current")}:</span>
                                 <Chip size="sm" variant="flat" color="default">
                                     {event?.start ? moment(event.start).format("DD/MM/YYYY HH:mm") : "—"}
                                 </Chip>
@@ -45,7 +46,7 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
                                 </Chip>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
-                                <span className="text-default-500">End:</span>
+                                <span className="text-default-500">{t("rb.colEnd")}:</span>
                                 <Chip size="sm" variant="flat" color="default">
                                     {event?.end ? moment(event.end).format("DD/MM/YYYY HH:mm") : "—"}
                                 </Chip>
@@ -56,16 +57,16 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
                             </div>
                         </div>
                         <p className="text-sm text-warning-600 bg-warning-50 rounded-lg p-2">
-                            Changing the time will require re-approval if you are not an admin or room manager.
+                            {t("dnd.reapprove")}
                         </p>
                     </div>
                 </ModalBody>
                 <ModalFooter>
                     <Button variant="flat" onPress={onCancel} isDisabled={loading}>
-                        Cancel
+                        {t("common.cancel")}
                     </Button>
                     <Button color="primary" onPress={onConfirm} isLoading={loading}>
-                        Confirm
+                        {t("common.done")}
                     </Button>
                 </ModalFooter>
             </ModalContent>
@@ -341,8 +342,11 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                                                 {(info?.attendees ?? []).length > 0 && (
                                                     <p><span className="text-default-500">{t("event.attendees")}:</span> {nameList(info.attendees)}</p>
                                                 )}
-                                                {(info?.tags ?? []).length > 0 && (
-                                                    <p><span className="text-default-500">{t("event.note")}:</span> {info.tags.join(", ")}</p>
+                                                {(info?.course?.note || (info?.tags ?? []).length > 0) && (
+                                                    <p><span className="text-default-500">{t("event.note")}:</span> {info?.course?.note || info.tags.join(", ")}</p>
+                                                )}
+                                                {(info?.course?.warnings ?? []).length > 0 && (
+                                                    <p className="text-warning-600"><span className="text-default-500">⚠</span> {info.course.warnings.join("; ")}</p>
                                                 )}
                                             </>
                                         ) : (

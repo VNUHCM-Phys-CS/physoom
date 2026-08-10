@@ -501,24 +501,30 @@ export default function BookingMulti() {
               <ModalBody>
                 <div className="flex flex-col gap-1.5 text-sm">
                   {infoEvent?.room?.title && (
-                    <p><span className="text-default-500">Room:</span> {infoEvent.room.title}</p>
+                    <p><span className="text-default-500">{t("event.room")}:</span> {infoEvent.room.title}</p>
                   )}
                   {infoEvent?.start && (
                     <p>
-                      <span className="text-default-500">Time:</span>{" "}
+                      <span className="text-default-500">{t("event.time")}:</span>{" "}
                       {moment(infoEvent.start).format("DD/MM/YYYY HH:mm")} – {moment(infoEvent.end).format("HH:mm")}
                     </p>
                   )}
                   {infoEvent?.course?.title && (
-                    <p><span className="text-default-500">Course:</span> {infoEvent.course.title}</p>
+                    <p><span className="text-default-500">{t("rb.course")}:</span> {infoEvent.course.title}</p>
                   )}
                   {(infoEvent?.teacher_email ?? []).length > 0 && (
-                    <p><span className="text-default-500">Teacher:</span> {infoEvent.teacher_email.join(", ")}</p>
+                    <p><span className="text-default-500">{t("event.teacher")}:</span> {infoEvent.teacher_email.join(", ")}</p>
+                  )}
+                  {(infoEvent?.course?.note || (infoEvent?.tags ?? []).length > 0) && (
+                    <p><span className="text-default-500">{t("event.note")}:</span> {infoEvent?.course?.note || infoEvent.tags.join(", ")}</p>
+                  )}
+                  {(infoEvent?.course?.warnings ?? []).length > 0 && (
+                    <p className="text-warning-600"><span className="text-default-500">⚠</span> {infoEvent.course.warnings.join("; ")}</p>
                   )}
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant="flat" onPress={onClose}>Close</Button>
+                <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
                 {infoEvent?.room?.title && infoEvent?._id && (
                   <Button
                     color="primary"
@@ -529,7 +535,7 @@ export default function BookingMulti() {
                       router.push(`/admin/room-booking?tab=calendar&room=${encodeURIComponent(infoEvent.room.title)}&eventId=${infoEvent._id}`);
                     }}
                   >
-                    View in Room Booking
+                    {t("rb.viewInBooking")}
                   </Button>
                 )}
               </ModalFooter>

@@ -3,6 +3,7 @@
 import { Card, Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import DragDropzone from "./DragDropzone";
+import { useI18n } from "@/i18n/I18nProvider";
 const CSVReader = ({
   path,
   onSubmit,
@@ -11,6 +12,7 @@ const CSVReader = ({
   INITIAL_VISIBLE_COLUMNS,
 }) => {
   const router = useRouter();
+  const { t } = useI18n();
   const _onSubmit = async (data) => {
     try {
       // formatdata
@@ -34,9 +36,9 @@ const CSVReader = ({
   return (
     <>
       <Button className="mt-3" onClick={() => router.back()}>
-        Back
+        {t("common.back")}
       </Button>
-      <h2 className={"text-center mt-10"}>Import CSV file</h2>
+      <h2 className={"text-center mt-10"}>{t("import.csvHeader")}</h2>
       <DragDropzone
         collums={collums}
         INITIAL_VISIBLE_COLUMNS={INITIAL_VISIBLE_COLUMNS}

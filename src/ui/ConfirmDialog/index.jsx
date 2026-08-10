@@ -10,6 +10,7 @@ import {
   Button,
 } from "@heroui/react";
 import { AlertTriangleIcon } from "lucide-react";
+import { useI18n } from "@/i18n/I18nProvider";
 
 /**
  * Promise-based confirmation dialog.
@@ -26,6 +27,7 @@ import { AlertTriangleIcon } from "lucide-react";
  *   return (<>{confirmDialog} ...</>);
  */
 export function useConfirm() {
+  const { t } = useI18n();
   const [state, setState] = useState({ isOpen: false, options: {} });
   const resolver = useRef(null);
 
@@ -45,10 +47,10 @@ export function useConfirm() {
   }, []);
 
   const {
-    title = "Confirm Deletion",
-    message = "This action is permanent and cannot be undone.",
-    confirmLabel = "Delete",
-    cancelLabel = "Cancel",
+    title = t("del.title"),
+    message = t("del.permanent"),
+    confirmLabel = t("common.delete"),
+    cancelLabel = t("common.cancel"),
     confirmColor = "danger",
   } = state.options;
 

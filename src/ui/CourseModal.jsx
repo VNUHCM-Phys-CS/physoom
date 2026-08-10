@@ -244,7 +244,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   </div>
                 ))}
                 <Button auto flat onPress={() => append("")}>
-                  <Plus /> Add Email
+                  <Plus /> {t("cm.addEmail")}
                 </Button>
               </div>
               <Controller
@@ -254,8 +254,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     type="number"
-                    label="Population"
-                    placeholder="Enter population"
+                    label={t("cm.population")}
+                    placeholder={t("cm.enterPopulation")}
                     errorMessage={errors.population?.message}
                     isInvalid={!!errors.population}
                     onChange={(e) => {
@@ -272,7 +272,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     type="date"
-                    label="Start Date"
+                    label={t("cm.startDate")}
                     errorMessage={errors.start_date?.message}
                     isInvalid={!!errors.start_date}
                     required
@@ -286,8 +286,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     type="number"
-                    label="Credit"
-                    placeholder="Enter credits"
+                    label={t("cm.credit")}
+                    placeholder={t("cm.enterCredit")}
                     errorMessage={errors.credit?.message}
                     isInvalid={!!errors.credit}
                     required
@@ -307,8 +307,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     type="number"
-                    label="Duration"
-                    placeholder="Enter duration in weeks"
+                    label={t("cm.duration")}
+                    placeholder={t("cm.enterDuration")}
                     errorMessage={errors.duration?.message}
                     isInvalid={!!errors.duration}
                     required
@@ -325,8 +325,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                 render={({ field }) => (
                   <Select
                     {...field}
-                    label="Location"
-                    placeholder="Select a location"
+                    label={t("cm.location")}
+                    placeholder={t("cm.selectLocation")}
                     selectedKeys={[field.value]}
                     onChange={(val) => field.onChange(val)}
                   >
@@ -341,8 +341,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                 control={control}
                 render={({ field }) => (
                   <Select
-                    label="Category"
-                    placeholder="Select a category"
+                    label={t("cm.category")}
+                    placeholder={t("cm.selectCategory")}
                     selectedKeys={field.value}
                     onChange={(val) => {
                       field.onChange(val.target.value.split(","));
@@ -362,8 +362,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                   <Input
                     {...field}
                     clearable
-                    label="Note"
-                    placeholder="Enter Note"
+                    label={t("cm.note")}
+                    placeholder={t("cm.enterNote")}
                     errorMessage={errors.note?.message}
                     isInvalid={!!errors.note}
                     required
@@ -373,14 +373,14 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
             </ModalBody>
             <ModalFooter>
               <Button auto flat color="error" onPress={onClose}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 auto
                 onPress={handleSubmit(onSubmit)}
                 disabled={isSubmitting}
               >
-                Save
+                {t("common.save")}
               </Button>
             </ModalFooter>
           </>

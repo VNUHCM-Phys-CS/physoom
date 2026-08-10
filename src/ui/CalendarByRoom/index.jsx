@@ -12,6 +12,7 @@ import LoadingWrapper from "../LoadingWrapper";
 import { StarIcon } from "../icons/StarIcon";
 import { toast } from "react-toastify";
 import _ from "lodash";
+import { useI18n } from "@/i18n/I18nProvider";
 
 export default function CalendarByRoom({
   initRoom,
@@ -25,6 +26,7 @@ export default function CalendarByRoom({
   onDelete,
   isLock,
 }) {
+  const { t } = useI18n();
   const [selectedRoom, setSelectedRoom] = useState(initRoom);
   const [currentRoom, setCurrentRoom] = useState();
   const [snapResolution , setSnapResolution ] = useState(0.5);
@@ -213,7 +215,7 @@ export default function CalendarByRoom({
             });
             const result = await res.json().catch(() => ({}));
             if (res.status !== 201 || result?.success === false) {
-              toast.error(result?.message || "Could not schedule this slot.");
+              toast.error(result?.message || t("cbr.couldNotSchedule"));
             } else if (result?.conflicts?.length) {
               // The API returns 201 with a conflicts array even when nothing was
               // created (e.g. missing term dates, holiday overlap, room/teacher
@@ -222,7 +224,7 @@ export default function CalendarByRoom({
               const reason =
                 c.reason ||
                 c.examples?.[0]?.reason ||
-                "Scheduling conflict — check the term dates and existing bookings.";
+                t("cbr.conflictReason");
               toast.warning(reason);
               // Some occurrences may still have been created — refresh anyway.
               mutate();
@@ -230,11 +232,11 @@ export default function CalendarByRoom({
             } else {
               mutate();
               if (onBooking) onBooking();
-              toast.success("Course scheduled.");
+              toast.success(t("cbr.scheduled"));
             }
           } catch (error) {
             console.log(error);
-            toast.error("Something went wrong while scheduling.");
+            toast.error(t("cbr.scheduleErr"));
           }
         }
       }
@@ -256,7 +258,7 @@ export default function CalendarByRoom({
       <div className="flex gap-2">
         <div className="w-1/2">
           <Autocomplete
-            label="Room"
+            label={t("rb.colRoom")}
             placeholder="Tìm phòng theo tên..."
             selectedKey={selectedRoom || null}
             onSelectionChange={onSelectRoomKey}
@@ -297,16 +299,16 @@ export default function CalendarByRoom({
                   <Chip key={`room-detail-${c}`}>{c}</Chip>
                 ))}
               </h4>
-              <p>Max student: {currentRoom.limit}</p>
+              <p>{t("cbr.maxStudent")}: {currentRoom.limit}</p>
             </>
           ) : (
-            <h4>No room selected</h4>
+            <h4>{t("cbr.noRoom")}</h4>
           )}
         </div>
       </div>
       {!currentRoom && (
         <h3 className="prose prose-heading:h3 pt-5">
-          Please choose room to view schedule
+          {t("cbr.chooseRoom")}
         </h3>
       )}
       {selectedRoom && (

@@ -102,20 +102,32 @@ export default function SharedSchedulePage({ params }) {
     // Map events for the custom Grid (Tiết)
     const gridEvents = useMemo(() => {
         if (!weekEvents) return [];
-        // Map CalendarEvent documents to the shape booking2calendar expects
-        const mockBookings = weekEvents.map(e => ({
-            _id: e._id,
-            weekday: e.weekday,
-            time_slot: {
-                ...e.time_slot,
-                weekday: e.weekday // booking2calendar expects it here
-            },
-            course: e.course || { title: e.title },
-            room: e.room,
-            type: e.type,
-            title: e.title,
-            teacher_email: e.teacher_email
-        })).filter(b => b.weekday !== undefined && b.time_slot?.start_time !== undefined);
+        // Map CalendarEvent documents to the shape booking2calendar expects.
+        const mockBookings = weekEvents.map(e => {
+            let weekday = e.weekday;
+            let start_time = e.time_slot?.start_time;
+            let end_time = e.time_slot?.end_time;
+            // Custom room events store only start/end (no tiết) — derive weekday
+            // + minutes-from-midnight so events show on the Tiết Grid too.
+            if ((weekday === undefined || start_time === undefined) && e.start) {
+                const s = new Date(e.start);
+                const en = e.end ? new Date(e.end) : s;
+                const jsDay = s.getDay();
+                weekday = jsDay === 0 ? 8 : jsDay + 1; // 2=Mon … 7=Sat, 8=Sun
+                start_time = s.getHours() * 60 + s.getMinutes();
+                end_time = en.getHours() * 60 + en.getMinutes();
+            }
+            return {
+                _id: e._id,
+                weekday,
+                time_slot: { start_time, end_time, weekday },
+                course: e.course || { title: e.title },
+                room: e.room,
+                type: e.type,
+                title: e.title,
+                teacher_email: e.teacher_email
+            };
+        }).filter(b => b.weekday !== undefined && b.time_slot?.start_time !== undefined);
 
         return mockBookings.map(b => booking2calendar(b, gridData.data));
     }, [weekEvents, gridData]);

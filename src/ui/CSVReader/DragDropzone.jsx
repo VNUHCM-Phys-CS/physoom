@@ -1,8 +1,10 @@
+"use client";
 import React, { useState } from "react";
 import { Card, CardBody, CardFooter, Button, Spacer } from "@heroui/react";
 import Papa from "papaparse";
 import TableEvent from "../TableEvent";
 import { read, readFile, utils } from "xlsx";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const validMimeTypes = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -11,6 +13,7 @@ const validMimeTypes = [
 ];
 
 const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
+  const { t } = useI18n();
   const [csvData, setCsvData] = useState([]);
 
   const handleFileDrop = (event) => {
@@ -100,8 +103,8 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
           onDragLeave={handleDragOver}
           onClick={() => document.getElementById("hiddenFileInput").click()}
         >
-          <h4 className="p-4 text-center font-semibold text-lg">Drag & Drop your Excel / CSV file here</h4>
-          <p className="text-sm text-gray-500 pb-4">or click to browse</p>
+          <h4 className="p-4 text-center font-semibold text-lg">{t("dz.title")}</h4>
+          <p className="text-sm text-gray-500 pb-4">{t("dz.browse")}</p>
           <input
             type="file"
             id="hiddenFileInput"
@@ -123,7 +126,7 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
       {csvData.length > 0 && (
         <CardFooter className="justify-center border-t bg-gray-50/50 dark:bg-zinc-900/50">
           <Button color="primary" onClick={() => onImport(csvData)}>
-            Import Data
+            {t("import.importData")}
           </Button>
         </CardFooter>
       )}

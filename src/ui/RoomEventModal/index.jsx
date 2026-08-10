@@ -15,9 +15,11 @@ import {
 } from "@heroui/react";
 import { fetcher } from "@/lib/ulti";
 import moment from "moment";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // ─── UserPicker ────────────────────────────────────────────────────────────────
 export function UserPicker({ label, users, selectedEmails, onChange, multiple = true }) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
@@ -67,7 +69,7 @@ export function UserPicker({ label, users, selectedEmails, onChange, multiple = 
       <div ref={inputRef}>
         <Input
           label={label}
-          placeholder="Search by name or email"
+          placeholder={t("re.searchNameEmail")}
           value={query}
           onValueChange={(v) => { setQuery(v); openDropdown(); }}
           onFocus={openDropdown}
@@ -130,6 +132,7 @@ export function RoomEventModal({
   initialEnd,
   initialRoomId,
 }) {
+  const { t } = useI18n();
   const isEdit = !!event;
   const { data: users } = useSWR("/api/user/list", fetcher);
 
@@ -271,28 +274,24 @@ export function RoomEventModal({
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader>{isEdit ? `Edit — ${event?.title || "Booking"}` : "Add Booking"}</ModalHeader>
+            <ModalHeader>{isEdit ? `${t("re.editPrefix")} — ${event?.title || t("re.booking")}` : t("re.addBooking")}</ModalHeader>
             <ModalBody>
               {error && <p className="text-danger text-sm bg-danger-50 rounded-lg px-3 py-2">{error}</p>}
 
               {/* Re-approval warning (edit mode, non-privileged only) */}
               {isEdit && !isPrivileged && (
                 <div className="text-sm bg-warning-50 text-warning-700 rounded-lg px-3 py-2 flex flex-col gap-0.5">
-                  <span className="font-medium">Note on re-approval</span>
-                  <span>
-                    Changing <strong>time or room</strong> will reset this booking to{" "}
-                    <strong>pending</strong> and require re-approval.
-                    {" "}Updating <strong>title, host, or attendees</strong> only will be applied immediately.
-                  </span>
+                  <span className="font-medium">{t("re.reapprovalTitle")}</span>
+                  <span>{t("re.reapprovalBody")}</span>
                   {timeOrRoomChanged && (
-                    <span className="mt-1 text-warning-800 font-semibold">⚠ Time or room has changed — re-approval will be required.</span>
+                    <span className="mt-1 text-warning-800 font-semibold">{t("re.timeRoomChanged")}</span>
                   )}
                 </div>
               )}
 
               {/* Room autocomplete */}
               <Autocomplete
-                label="Room"
+                label={t("rb.colRoom")}
                 isRequired
                 items={filteredRooms}
                 inputValue={roomInput}
@@ -306,43 +305,43 @@ export function RoomEventModal({
               >
                 {(r) => (
                   <AutocompleteItem key={String(r._id)} textValue={r.title}>
-                    {r.title}{r.isBookable ? "" : " (not public)"}
+                    {r.title}{r.isBookable ? "" : t("re.notPublic")}
                   </AutocompleteItem>
                 )}
               </Autocomplete>
 
-              <Input label="Title" isRequired value={form.title} onValueChange={(v) => setForm((f) => ({ ...f, title: v }))} />
-              <Input label="Start" type="datetime-local" isRequired value={form.start} onValueChange={handleStartChange} />
+              <Input label={t("re.title")} isRequired value={form.title} onValueChange={(v) => setForm((f) => ({ ...f, title: v }))} />
+              <Input label={t("re.start")} type="datetime-local" isRequired value={form.start} onValueChange={handleStartChange} />
               <Input
-                label="Duration (minutes)"
+                label={t("re.durationMin")}
                 type="number"
                 min={1}
                 value={form.duration}
                 onValueChange={handleDurationChange}
                 description={formatDuration(form.duration) || undefined}
-                placeholder="e.g. 90"
+                placeholder={t("re.durationEg")}
               />
-              <Input label="End" type="datetime-local" isRequired value={form.end} onValueChange={handleEndChange} />
-              <UserPicker label="Host by (optional)" users={users} selectedEmails={host} onChange={setHost} multiple />
-              <UserPicker label="Members attending (optional)" users={users} selectedEmails={attendees} onChange={setAttendees} multiple />
-              <Input label="Note" value={form.note} onValueChange={(v) => setForm((f) => ({ ...f, note: v }))} />
+              <Input label={t("re.end")} type="datetime-local" isRequired value={form.end} onValueChange={handleEndChange} />
+              <UserPicker label={t("re.hostBy")} users={users} selectedEmails={host} onChange={setHost} multiple />
+              <UserPicker label={t("re.members")} users={users} selectedEmails={attendees} onChange={setAttendees} multiple />
+              <Input label={t("event.note")} value={form.note} onValueChange={(v) => setForm((f) => ({ ...f, note: v }))} />
 
               {/* Created by (create mode only) */}
               {!isEdit && createdBy && (
-                <Input label="Created by" value={createdBy} isReadOnly classNames={{ input: "text-default-400" }} />
+                <Input label={t("rb.createdBy")} value={createdBy} isReadOnly classNames={{ input: "text-default-400" }} />
               )}
 
               {/* Approval note for create mode when not privileged */}
               {!isEdit && !isPrivileged && (
                 <p className="text-xs text-warning-600 bg-warning-50 rounded-lg p-2">
-                  Your request will be reviewed by a manager or admin before approval.
+                  {t("re.willReview")}
                 </p>
               )}
             </ModalBody>
             <ModalFooter>
-              <Button variant="light" onPress={onClose}>Cancel</Button>
+              <Button variant="light" onPress={onClose}>{t("common.cancel")}</Button>
               <Button color="primary" isLoading={loading} onPress={() => handleSubmit(onClose)}>
-                {isEdit ? "Save" : "Create"}
+                {isEdit ? t("common.save") : t("re.create")}
               </Button>
             </ModalFooter>
           </>
