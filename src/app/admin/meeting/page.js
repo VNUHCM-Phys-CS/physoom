@@ -16,14 +16,13 @@ const shortName = (n) => (n || "").split(" ").slice(-2).join(" ");
 const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const overlap = (a1, b1, a2, b2) => a1 < b2 && a2 < b1;
 
-// Red → green sequential scale for the "% free" heatmap.
-function heatColor(r) {
-  const stops = [[224, 49, 49], [240, 140, 0], [245, 192, 0], [64, 192, 87], [18, 184, 134]];
-  const x = Math.max(0, Math.min(1, r)) * (stops.length - 1);
-  const i = Math.floor(x), f = x - i;
-  const A = stops[i], B = stops[Math.min(i + 1, stops.length - 1)];
-  const c = (k) => Math.round(A[k] + (B[k] - A[k]) * f);
-  return `rgb(${c(0)},${c(1)},${c(2)})`;
+const C_FREE = "var(--free,#12b886)", C_TEACH = "#3b6fd6", C_TRAVEL = "#f08c00";
+
+// Conic-gradient donut: free (green) → teaching (blue) → travel (orange).
+function donut(nf, nt, nv, total) {
+  const t = total || nf + nt + nv || 1;
+  const df = (nf / t) * 360, dt = (nt / t) * 360;
+  return `conic-gradient(${C_FREE} 0deg ${df}deg, ${C_TEACH} ${df}deg ${df + dt}deg, ${C_TRAVEL} ${df + dt}deg 360deg)`;
 }
 
 export default function MeetingPlannerPage() {
@@ -200,21 +199,18 @@ export default function MeetingPlannerPage() {
                       {DAYS.map((_, d) => {
                         const g = agg(d, ri);
                         const nf = g.free.length, nt = g.teach.length, nv = g.travel.length;
-                        const pct = (n) => total ? (n / total) * 100 : 0;
                         const isSel = sel.d === d && sel.t === ri;
                         return (
                           <td key={d} className="p-[2px]">
                             <button onClick={() => setSel({ d, t: ri })}
                               title={`${nf} rảnh · ${nt} bận dạy · ${nv} di chuyển`}
-                              className="w-full h-11 rounded-md relative flex overflow-hidden transition"
-                              style={{ outline: isSel ? "2px solid var(--heroui-primary,#4256d0)" : "1px solid var(--heroui-default-200,#e4e8f0)", outlineOffset: isSel ? 2 : -1 }}>
-                              {/* Stacked composition — matches the legend */}
-                              <div style={{ width: pct(nf) + "%", background: "var(--free,#12b886)" }} />
-                              <div style={{ width: pct(nt) + "%", background: "#3b6fd6" }} />
-                              <div style={{ width: pct(nv) + "%", background: "#f08c00" }} />
-                              <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold"
-                                style={{ color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.45)" }}>
-                                {nf}<span className="text-[9px] opacity-80 ml-0.5">/{total}</span>
+                              className="w-full h-12 rounded-lg relative flex items-center justify-center transition hover:bg-default-100"
+                              style={{ outline: isSel ? "2px solid var(--heroui-primary,#4256d0)" : "none", outlineOffset: 1 }}>
+                              <span className="relative block" style={{ width: 34, height: 34, borderRadius: "50%", background: donut(nf, nt, nv, total) }}>
+                                <span className="absolute rounded-full bg-content1 flex items-center justify-center"
+                                  style={{ inset: 6 }}>
+                                  <span className="text-[11px] font-bold tabular-nums" style={{ color: nf === total ? "var(--free,#12b886)" : "inherit" }}>{nf}</span>
+                                </span>
                               </span>
                             </button>
                           </td>
@@ -238,13 +234,22 @@ export default function MeetingPlannerPage() {
               {DAYS[sel.d]} · {t("meet.tiet")} {TIET[sel.t]?.label}{dur > 1 ? `–${TIET[Math.min(sel.t + dur - 1, TIET.length - 1)]?.label}` : ""}
               <span className="text-default-400 font-medium"> · {hhmm(S)}–{hhmm(E)} · {campus === "NVC" ? "cs1 NVC" : "cs2 LT"}</span>
             </div>
-            <div className="flex gap-2">
-              {[["free", cur.free.length, "var(--free,#12b886)"], ["teach", cur.teach.length, "#3b6fd6"], ["travel", cur.travel.length, "#f08c00"]].map(([k, n, c]) => (
-                <div key={k} className="flex-1 border border-default-200 rounded-lg p-2 text-center">
-                  <div className="text-xl font-extrabold" style={{ color: c }}>{n}</div>
-                  <div className="text-[10px] uppercase tracking-wide text-default-400">{t("meet." + k)}</div>
+            <div className="flex items-center gap-4">
+              <div className="relative shrink-0" style={{ width: 116, height: 116, borderRadius: "50%", background: donut(cur.free.length, cur.teach.length, cur.travel.length, total) }}>
+                <div className="absolute rounded-full bg-content1 flex flex-col items-center justify-center" style={{ inset: 15 }}>
+                  <span className="text-2xl font-extrabold tabular-nums leading-none" style={{ color: C_FREE }}>{cur.free.length}</span>
+                  <span className="text-[10px] text-default-400 mt-0.5">/ {total} {t("meet.free").toLowerCase()}</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex flex-col gap-2 text-sm grow">
+                {[["free", cur.free.length, C_FREE], ["teach", cur.teach.length, C_TEACH], ["travel", cur.travel.length, C_TRAVEL]].map(([k, n, c]) => (
+                  <div key={k} className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: c }} />
+                    <span className="text-default-500">{t("meet." + k)}</span>
+                    <b className="tabular-nums ml-auto">{n}</b>
+                  </div>
+                ))}
+              </div>
             </div>
             {/* Actionable groups first (who's blocked), then the free roster. */}
             <div>
