@@ -50,7 +50,7 @@ function StatCard({ icon: Icon, label, value, sub }) {
   );
 }
 
-function ChartCard({ title, count, label, description, isEmpty, emptyText = "No data yet", children }) {
+function ChartCard({ title, count, label, description, isEmpty, emptyText = "", children }) {
   return (
     <motion.div variants={fadeUp} className={`${glassCard} flex flex-col gap-2 h-full`}>
       <div className="flex items-start justify-between">
@@ -130,7 +130,7 @@ export default function Admindashboard() {
           icon={BookOpenIcon}
           label={t("dash.totalCourses")}
           value={course?.count}
-          sub={course?.labels?.length ? `${course.labels.length} credit group${course.labels.length > 1 ? "s" : ""}` : undefined}
+          sub={course?.labels?.length ? `${course.labels.length} ${t("dash.creditGroups")}` : undefined}
         />
         <StatCard
           icon={CalendarCheckIcon}

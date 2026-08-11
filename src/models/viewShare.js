@@ -5,7 +5,8 @@ const viewShareSchema = new Schema(
     title: { type: String, required: true },
     token: { type: String, required: true, unique: true },
     shortCode: { type: String, unique: true, sparse: true, maxlength: 6 },
-    rooms: [{ type: Schema.Types.ObjectId, ref: "Room", required: true }],
+    rooms: [{ type: Schema.Types.ObjectId, ref: "Room" }],
+    classes: [{ type: String }], // class_id list — share a class's whole timetable
     settings: {
         requireLogin: { type: Boolean, default: false },
         displayTeacherInfo: { type: Boolean, default: true },

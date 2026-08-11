@@ -36,6 +36,9 @@ export const POST = async (request) => {
         const credit = toNum(d.credit);
         const duration = toNum(d.duration);
         const population = toNum(d.population);
+        // Do NOT fabricate credit/duration — a row with an invalid "Số tiết"
+        // must fail to create so the importer reports it (and the admin fixes
+        // the Excel) rather than silently scheduling a made-up duration.
         if (credit !== undefined) out.credit = Math.round(credit * 10) / 10;
         else delete out.credit;
         if (duration !== undefined) out.duration = Math.round(duration);

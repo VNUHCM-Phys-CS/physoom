@@ -53,6 +53,12 @@ const BOOKiNG_FIELDS = [
 ];
 const INITIAL_VISIBLE_COLUMNS = BOOKiNG_FIELDS.map((d) => d.uid);
 
+// A valid "Số tiết" is a positive number (accepts "2,5" / "2.5 tiết").
+const validCredit = (v) => {
+  const n = Number(String(v ?? "").replace(",", ".").replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) && n > 0;
+};
+
 const Page = () => {
   const { data: session } = useSession();
   const router = useRouter();
@@ -291,7 +297,16 @@ const Page = () => {
 
           const title = course?.[0]?.title || _booking["Tên môn học"];
           if (!(room?.[0]?._id && course?.[0]?._id)) {
-            add(index, _booking, "error", "Không tìm thấy phòng hoặc môn sau khi tạo", title);
+            let missing;
+            if (!room?.[0]?._id) {
+              missing = `Không tìm thấy phòng "${_booking.cleanRoomTitle}" (tên/địa điểm không khớp)`;
+            } else if (!validCredit(_booking["Số tiết"])) {
+              // Most common cause a course fails to create — surface it exactly.
+              missing = `Số tiết không hợp lệ ("${_booking["Số tiết"] ?? ""}") — môn KHÔNG được tạo. Hãy sửa "Số tiết" trong Excel rồi import lại.`;
+            } else {
+              missing = `Không tạo/tìm được môn (kiểm tra Mã mh / Lớp của dòng)`;
+            }
+            add(index, _booking, "error", missing, title);
             setProgressBooking({ value: ((index + 1) / data.length) * 100 });
             continue;
           }

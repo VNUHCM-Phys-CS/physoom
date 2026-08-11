@@ -8,6 +8,7 @@ import CalendarByRoom from "../CalendarByRoom";
 import { Input, ScrollShadow, Tab, Tabs, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Switch } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import CompactSchedule from "../CompactSchedule";
+import EditScheduleModal from "../EditScheduleModal";
 import SearchCalender from "../SearchCalender";
 import CourseListSelect from "../CourseListSelect";
 import CourseModal from "../CourseModal";
@@ -31,6 +32,7 @@ export default function BookingMulti() {
   const [selectedCourseId, setSelectedCourseId] = useState();
   const [selectedEventForDelete, setSelectedEventForDelete] = useState(null);
   const [infoEvent, setInfoEvent] = useState(null);
+  const [editSchedOpen, setEditSchedOpen] = useState(false);
   const {
     isOpen: isDeleteModalOpen,
     onOpen: onDeleteModalOpen,
@@ -102,6 +104,18 @@ export default function BookingMulti() {
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
+
+  // The room list is filtered by the course's location + capacity, so a course
+  // already scheduled in a room that no longer matches (e.g. capacity < #SV)
+  // would show no room. Always include the currently-booked room so it displays.
+  const roomsForCal = useMemo(() => {
+    const list = rooms ?? [];
+    const booked = currentbooking?.[0]?.room;
+    if (booked?._id && !list.some((r) => String(r._id) === String(booked._id))) {
+      return [booked, ...list];
+    }
+    return list;
+  }, [rooms, currentbooking]);
 
   const onSelectCourse = useCallback((course) => {
     // create new booking
@@ -390,7 +404,7 @@ export default function BookingMulti() {
                       ? currentbooking[0]?.room?._id
                       : undefined
                   }
-                  rooms={rooms}
+                  rooms={roomsForCal}
                   extraEvents={extraEvents}
                   booking={booking}
                   onBooking={() => {
@@ -525,6 +539,15 @@ export default function BookingMulti() {
               </ModalBody>
               <ModalFooter>
                 <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
+                {infoEvent?.course && infoEvent?.type !== "custom" && infoEvent?.time_slot?.start_time != null && (
+                  <Button
+                    color="secondary"
+                    variant="flat"
+                    onPress={() => { onClose(); setEditSchedOpen(true); }}
+                  >
+                    {t("sched.editDates")}
+                  </Button>
+                )}
                 {infoEvent?.room?.title && infoEvent?._id && (
                   <Button
                     color="primary"
@@ -543,6 +566,18 @@ export default function BookingMulti() {
           )}
         </ModalContent>
       </Modal>
+
+      <EditScheduleModal
+        isOpen={editSchedOpen}
+        onClose={() => setEditSchedOpen(false)}
+        event={infoEvent}
+        onSuccess={() => {
+          mutateCourse();
+          mutateUserEvent();
+          mutateBooking();
+          mutateCurrentBooking();
+        }}
+      />
     </div>
   );
 }

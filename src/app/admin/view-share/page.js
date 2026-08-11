@@ -33,6 +33,8 @@ export default function ViewShareAdminPage() {
   
   // Fetch Rooms to allow selection
   const { data: rooms } = useSWR(["/api/room", { method: "POST", body: JSON.stringify({}) }], fetcheroptions);
+  // Fetch Classes (class_id list) for class-based sharing
+  const { data: classList } = useSWR("/api/class", fetcher);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isQRModalOpen, onOpen: onQRModalOpen, onClose: onQRModalClose } = useDisclosure();
@@ -43,6 +45,7 @@ export default function ViewShareAdminPage() {
     id: null,
     title: "",
     rooms: new Set(),
+    classes: new Set(),
     settings: {
       requireLogin: false,
       displayTeacherInfo: true,
@@ -65,7 +68,8 @@ export default function ViewShareAdminPage() {
         !q ||
         has(s.title) ||
         has(s.shortCode) ||
-        (s.rooms ?? []).some((r) => has(r.title))
+        (s.rooms ?? []).some((r) => has(r.title)) ||
+        (s.classes ?? []).some((c) => has(c))
     );
     const { column, direction } = sortDescriptor;
     const val = (s) => {
@@ -81,11 +85,12 @@ export default function ViewShareAdminPage() {
   }, [shares, search, sortDescriptor]);
 
   const handleOpenCreate = () => {
-    setFormData({ 
-      id: null, 
-      title: "", 
-      rooms: new Set(), 
-      settings: { requireLogin: false, displayTeacherInfo: true, displayClassInfo: true, displayEventDetail: true } 
+    setFormData({
+      id: null,
+      title: "",
+      rooms: new Set(),
+      classes: new Set(),
+      settings: { requireLogin: false, displayTeacherInfo: true, displayClassInfo: true, displayEventDetail: true }
     });
     onOpen();
   };
@@ -95,6 +100,7 @@ export default function ViewShareAdminPage() {
       id: share._id,
       title: share.title,
       rooms: new Set(share.rooms?.map(r => r._id) || []),
+      classes: new Set(share.classes || []),
       settings: { ...share.settings }
     });
     onOpen();
@@ -117,9 +123,26 @@ export default function ViewShareAdminPage() {
     });
   };
 
+  const handleAddClass = (key) => {
+    if (!key) return;
+    setFormData(prev => {
+      const next = new Set(prev.classes);
+      next.add(key);
+      return { ...prev, classes: next };
+    });
+  };
+
+  const handleRemoveClass = (id) => {
+    setFormData(prev => {
+      const next = new Set(prev.classes);
+      next.delete(id);
+      return { ...prev, classes: next };
+    });
+  };
+
   const onSubmit = async () => {
-    if (formData.rooms.size === 0) {
-      alert(t("share.selectAtLeastOne"));
+    if (formData.rooms.size === 0 && formData.classes.size === 0) {
+      alert(t("share.needRoomOrClass"));
       return;
     }
     setIsSubmitting(true);
@@ -132,6 +155,7 @@ export default function ViewShareAdminPage() {
             id: formData.id,
             title: formData.title,
             rooms: Array.from(formData.rooms),
+            classes: Array.from(formData.classes),
             settings: formData.settings
         })
       });
@@ -212,7 +236,15 @@ export default function ViewShareAdminPage() {
           {(item) => (
             <TableRow key={item._id}>
               <TableCell className="font-semibold">{item.title}</TableCell>
-              <TableCell>{item.rooms?.map(r => r.title).join(", ")}</TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1 items-center">
+                  {item.rooms?.map(r => r.title).join(", ")}
+                  {(item.classes ?? []).map((c) => (
+                    <Chip key={c} size="sm" variant="flat" color="secondary">{c}</Chip>
+                  ))}
+                  {!(item.rooms?.length) && !(item.classes?.length) && <span className="text-default-300">—</span>}
+                </div>
+              </TableCell>
               <TableCell>
                 {item.shortCode ? (
                   <div className="flex items-center gap-1">
@@ -308,6 +340,35 @@ export default function ViewShareAdminPage() {
                     className="capitalize"
                   >
                     {getRoomTitle(id)}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            {/* Classes picker — share a whole class's timetable */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">{t("share.classesLabel")}</label>
+              <Autocomplete
+                defaultItems={classList || []}
+                placeholder={t("share.classesPh")}
+                variant="bordered"
+                onSelectionChange={handleAddClass}
+                startContent={<SearchIcon size={18} className="text-default-400" />}
+                clearOnBlur={true}
+              >
+                {(item) => (
+                  <AutocompleteItem key={item.class_id} textValue={item.class_id}>
+                    {item.class_id}
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+              <div className="flex flex-wrap gap-2 mt-2 p-2 border-2 border-dashed border-default-200 rounded-xl min-h-[50px] items-center">
+                {formData.classes.size === 0 && (
+                  <p className="text-xs text-default-400 w-full text-center">{t("share.noClasses")}</p>
+                )}
+                {Array.from(formData.classes).map((cid) => (
+                  <Chip key={cid} onClose={() => handleRemoveClass(cid)} variant="flat" color="secondary">
+                    {cid}
                   </Chip>
                 ))}
               </div>

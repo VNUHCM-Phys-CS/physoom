@@ -74,7 +74,7 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
     );
 }
 
-export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week", jumpTo}) {
+export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week", jumpTo, onEditDates}) {
     const { data: session } = useSession();
     const { t } = useI18n();
     const [date, setDate] = useState(new Date());
@@ -356,6 +356,11 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                                 </ModalBody>
                                 <ModalFooter>
                                     <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
+                                    {onEditDates && canSee && info?.course && info?.type !== "custom" && info?.time_slot?.start_time != null && (
+                                        <Button color="secondary" variant="flat" onPress={() => { onClose(); onEditDates(info); }}>
+                                            {t("sched.editDates")}
+                                        </Button>
+                                    )}
                                 </ModalFooter>
                             </>
                         );

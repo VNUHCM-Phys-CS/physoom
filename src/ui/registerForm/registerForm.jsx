@@ -6,9 +6,11 @@ import { useFormState } from "react-dom";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const RegisterForm = () => {
   const [state, formAction] = useFormState(register, undefined);
+  const { t } = useI18n();
 
   const router = useRouter();
 
@@ -18,18 +20,18 @@ const RegisterForm = () => {
 
   return (
     <form className={styles.form} action={formAction}>
-      <input type="text" placeholder="username" name="username" />
-      <input type="email" placeholder="email" name="email" />
-      <input type="password" placeholder="password" name="password" />
+      <input type="text" placeholder={t("auth.username")} name="username" />
+      <input type="email" placeholder={t("auth.email")} name="email" />
+      <input type="password" placeholder={t("auth.password")} name="password" />
       <input
         type="password"
-        placeholder="password again"
+        placeholder={t("auth.passwordAgain")}
         name="passwordRepeat"
       />
-      <button>Register</button>
+      <button>{t("auth.register")}</button>
       {state?.error}
       <Link href="/login">
-        Have an account? <b>Login</b>
+        {t("auth.haveAccount")} <b>{t("auth.login")}</b>
       </Link>
     </form>
   );

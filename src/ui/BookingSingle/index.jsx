@@ -37,6 +37,7 @@ import {
 } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import CompactSchedule from "../CompactSchedule";
+import EditScheduleModal from "../EditScheduleModal";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
 import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -347,6 +348,7 @@ export default function BookingSingle({ email }) {
   const [sidebarTab, setSidebarTab] = useState("courses");
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [infoEvent, setInfoEvent] = useState(null);
+  const [editSchedEvent, setEditSchedEvent] = useState(null);
   const { isOpen: isInfoOpen, onOpen: onInfoOpen, onOpenChange: onInfoOpenChange } = useDisclosure();
 
   const { data: course, mutate: mutateCourse } = useSWR(
@@ -432,6 +434,17 @@ export default function BookingSingle({ email }) {
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
+
+  // Always include the currently-booked room so an already-scheduled course
+  // still shows its room even if it no longer matches the location/capacity filter.
+  const roomsForCal = useMemo(() => {
+    const list = rooms ?? [];
+    const booked = currentbooking?.[0]?.room;
+    if (booked?._id && !list.some((r) => String(r._id) === String(booked._id))) {
+      return [booked, ...list];
+    }
+    return list;
+  }, [rooms, currentbooking]);
 
   // ── URL sync ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -722,7 +735,7 @@ export default function BookingSingle({ email }) {
                       ? currentbooking[0]?.room?._id
                       : undefined
                   }
-                  rooms={rooms}
+                  rooms={roomsForCal}
                   extraEvents={extraEvents}
                   booking={booking}
                   onBooking={() => {
@@ -754,6 +767,7 @@ export default function BookingSingle({ email }) {
                   selectedID={booking?.course?._id}
                   jumpTo={lecturerJump}
                   onEventUpdate={mutateUserEvent}
+                  onEditDates={setEditSchedEvent}
                 />
               )}
             </Tab>
@@ -774,6 +788,7 @@ export default function BookingSingle({ email }) {
                   selectedID={booking?.course?._id}
                   jumpTo={classJump}
                   onEventUpdate={mutateClassEvent}
+                  onEditDates={setEditSchedEvent}
                 />
               )}
             </Tab>
@@ -800,6 +815,17 @@ export default function BookingSingle({ email }) {
           managedRooms={managedRooms}
           rooms={allRooms}
           onSuccess={refreshRoomEvents}
+        />
+
+        <EditScheduleModal
+          isOpen={!!editSchedEvent}
+          onClose={() => setEditSchedEvent(null)}
+          event={editSchedEvent}
+          onSuccess={() => {
+            mutateUserEvent?.();
+            mutateClassEvent();
+            mutateCourse();
+          }}
         />
       </div>
     );

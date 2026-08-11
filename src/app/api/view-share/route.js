@@ -44,7 +44,8 @@ export const POST = async (request) => {
     const shortCode = await generateUniqueShortCode();
     const newShare = new ViewShare({
        title: data.title,
-       rooms: data.rooms,
+       rooms: data.rooms || [],
+       classes: data.classes || [],
        token: uuidv4(),
        shortCode,
        settings: {
@@ -90,7 +91,8 @@ export const PUT = async (request) => {
       id,
       {
         title: updateData.title,
-        rooms: updateData.rooms,
+        rooms: updateData.rooms || [],
+        classes: updateData.classes || [],
         settings: {
           requireLogin: updateData.settings?.requireLogin,
           displayTeacherInfo: updateData.settings?.displayTeacherInfo,

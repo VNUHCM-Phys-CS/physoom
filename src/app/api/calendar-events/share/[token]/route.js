@@ -3,7 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 import ViewShare from "@/models/viewShare";
-import "@/models/course"; // register schemas for .populate("course"/"room"/"rooms")
+import Course from "@/models/course"; // used for class-based shares
 import "@/models/room";
 import { auth } from "@/lib/auth";
 
@@ -25,10 +25,22 @@ export const GET = async (request, { params }) => {
        }
     }
 
-    // Fetch the events for these rooms
-    const roomIds = share.rooms.map(r => r._id);
-    const events = await CalendarEvent.find({ 
-        room: { $in: roomIds },
+    // A share can cover rooms and/or whole classes (by class_id).
+    const roomIds = (share.rooms || []).map(r => r._id);
+    const classes = share.classes || [];
+    let courseIds = [];
+    if (classes.length) {
+        const courses = await Course.find({ class_id: { $in: classes } }, "_id").lean();
+        courseIds = courses.map(c => c._id);
+    }
+
+    const orClauses = [];
+    if (roomIds.length) orClauses.push({ room: { $in: roomIds } });
+    if (courseIds.length) orClauses.push({ course: { $in: courseIds } });
+    if (!orClauses.length) return NextResponse.json([]);
+
+    const events = await CalendarEvent.find({
+        $or: orClauses,
         status: 'approved',
         isCancelled: false
     })
