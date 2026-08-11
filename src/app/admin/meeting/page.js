@@ -199,15 +199,23 @@ export default function MeetingPlannerPage() {
                       </td>
                       {DAYS.map((_, d) => {
                         const g = agg(d, ri);
-                        const r = total ? g.free.length / total : 1;
+                        const nf = g.free.length, nt = g.teach.length, nv = g.travel.length;
+                        const pct = (n) => total ? (n / total) * 100 : 0;
                         const isSel = sel.d === d && sel.t === ri;
                         return (
                           <td key={d} className="p-[2px]">
                             <button onClick={() => setSel({ d, t: ri })}
-                              className="w-full h-11 rounded-md text-[12px] font-bold relative flex items-center justify-center transition"
-                              style={{ background: heatColor(r), color: "#0b1220", outline: isSel ? "2px solid var(--heroui-primary,#4256d0)" : "none", outlineOffset: 2 }}>
-                              {g.free.length}
-                              <span className="absolute bottom-0.5 right-1 text-[9px] opacity-70">/{total}</span>
+                              title={`${nf} rảnh · ${nt} bận dạy · ${nv} di chuyển`}
+                              className="w-full h-11 rounded-md relative flex overflow-hidden transition"
+                              style={{ outline: isSel ? "2px solid var(--heroui-primary,#4256d0)" : "1px solid var(--heroui-default-200,#e4e8f0)", outlineOffset: isSel ? 2 : -1 }}>
+                              {/* Stacked composition — matches the legend */}
+                              <div style={{ width: pct(nf) + "%", background: "var(--free,#12b886)" }} />
+                              <div style={{ width: pct(nt) + "%", background: "#3b6fd6" }} />
+                              <div style={{ width: pct(nv) + "%", background: "#f08c00" }} />
+                              <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold"
+                                style={{ color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,.45)" }}>
+                                {nf}<span className="text-[9px] opacity-80 ml-0.5">/{total}</span>
+                              </span>
                             </button>
                           </td>
                         );
