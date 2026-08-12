@@ -275,18 +275,23 @@ const Page = () => {
             .filter(Boolean)
         ),
       ];
+      // NOTE: no date scope on purpose. Leftover events from old buggy imports
+      // can carry a corrupted `start`/`time_slot` (e.g. a period in the "Break"
+      // slot, or a date that evades a term-range filter) yet still overlap the
+      // new occurrences enough to be flagged as a clash. Deleting strictly by
+      // class code — every event of every course that shares the code — is the
+      // only way to guarantee those corrupted leftovers are gone. These codes
+      // are term-specific (year-prefixed), so this can't touch another term.
+      let wipedClassEvents = null;
       if (importClassIds.length) {
         try {
-          await fetch("/api/booking/delete", {
+          const wipeRes = await fetch("/api/booking/delete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              mode: "class",
-              classIds: importClassIds,
-              start: new Date(selectedTermObj.start),
-              end: new Date(selectedTermObj.end),
-            }),
+            body: JSON.stringify({ mode: "class", classIds: importClassIds }),
           });
+          const wipeData = await wipeRes.json().catch(() => ({}));
+          wipedClassEvents = wipeData?.count ?? null;
         } catch {
           /* fall through — per-course clear below still runs as a fallback */
         }
