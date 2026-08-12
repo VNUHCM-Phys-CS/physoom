@@ -45,10 +45,14 @@ export const POST = async (request) => {
         ops.push({ updateOne: { filter: { email }, update: { $set }, upsert: true } });
       } else if (mscb) {
         // No email → update a user already identified by this MSCB. teacher_id is
-        // stored inconsistently (mostly Number, some String), so match both types.
-        const tidVals = [mscb];
+        // stored inconsistently across environments — as a String with leading
+        // zeros ("0365"), as the trimmed String ("365"), or as a Number (365) —
+        // so match every plausible form.
         const n = Number(mscb);
-        if (!Number.isNaN(n) && String(n) === mscb) tidVals.push(n);
+        const tidVals = [...new Set([
+          mscb,
+          ...(Number.isNaN(n) ? [] : [n, String(n)]),
+        ])];
         ops.push({ updateOne: { filter: { teacher_id: { $in: tidVals } }, update: { $set }, upsert: false } });
       } else {
         skipped++;
