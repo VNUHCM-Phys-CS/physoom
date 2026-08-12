@@ -257,11 +257,44 @@ const Page = () => {
       // Collect conflict reasons per course so they persist on the course
       // "track" (⚠) and can be reviewed after the import dialog is closed.
       const conflictByCourse = {};
-      // Courses whose OLD bookings have already been wiped this run. On the first
-      // (valid) row of a course we clear all its previous bookings, so a
-      // re-import that moved a session to another day/tiết can't leave a stale
-      // booking behind (which used to cause phantom class/room conflicts). Later
-      // rows of the SAME course then just add their session.
+
+      // Import must REPLACE the schedule of every class in the file, and must NOT
+      // depend on those classes' OLD schedule data. Before placing anything, wipe
+      // all class events for every class code in the file (within the selected
+      // term), across EVERY course document that shares those codes — including
+      // duplicate/old course docs from earlier imports. Without this, a row for
+      // class A would clash against stale leftovers of class B (not cleared yet,
+      // or hidden under a duplicate course _id) → phantom "trùng lịch".
+      // After this wipe the only conflicts that can be reported are REAL ones:
+      // between two rows of the file, or against classes NOT in the file.
+      const importClassIds = [
+        ...new Set(
+          data
+            .flatMap((d) => String(d["Lớp"] || "").split(","))
+            .map((s) => s.trim())
+            .filter(Boolean)
+        ),
+      ];
+      if (importClassIds.length) {
+        try {
+          await fetch("/api/booking/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mode: "class",
+              classIds: importClassIds,
+              start: new Date(selectedTermObj.start),
+              end: new Date(selectedTermObj.end),
+            }),
+          });
+        } catch {
+          /* fall through — per-course clear below still runs as a fallback */
+        }
+      }
+
+      // Courses already wiped this run. The up-front class wipe above normally
+      // covers everything; this per-course clear stays only as a fallback (e.g.
+      // if the class wipe request failed) so a moved session never lingers.
       const clearedCourses = new Set();
       const add = (index, _b, status, detail, courseTitle) =>
         report.push({

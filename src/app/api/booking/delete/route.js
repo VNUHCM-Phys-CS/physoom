@@ -3,6 +3,7 @@ import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
+import Course from "@/models/course";
 import { auth } from "@/lib/auth";
 
 export const POST = async (request) => {
@@ -14,7 +15,7 @@ export const POST = async (request) => {
 
   try {
     await connectToDb();
-    const { id, series_id, start, mode } = await request.json();
+    const { id, series_id, start, end, classIds, mode } = await request.json();
 
     if (!mode) {
       return NextResponse.json({ success: false, message: "Missing deletion mode" }, { status: 400 });
@@ -45,6 +46,25 @@ export const POST = async (request) => {
         return NextResponse.json({ success: false, message: "Missing course id for course deletion" }, { status: 400 });
       }
       result = await CalendarEvent.deleteMany({ course: id, type: 'class' });
+    } else if (mode === 'class') {
+      // Delete ALL class schedules for the given class code(s), across EVERY
+      // course document that shares those class ids — including duplicate/old
+      // course docs left behind by earlier imports. This lets a re-import fully
+      // REPLACE the schedule of the classes it contains, independent of any
+      // stale leftover data (which used to cause phantom "trùng lịch").
+      // Optionally scoped to a term window [start, end] so importing one term
+      // does not wipe another term's schedule for the same class code.
+      const ids = Array.isArray(classIds) ? classIds : classIds ? [classIds] : [];
+      if (!ids.length) {
+        return NextResponse.json({ success: false, message: "Missing classIds for class deletion" }, { status: 400 });
+      }
+      const courses = await Course.find({ class_id: { $in: ids } }, "_id").lean();
+      const courseIds = courses.map((c) => c._id);
+      const q = { course: { $in: courseIds }, type: 'class' };
+      if (start && end) {
+        q.start = { $gte: new Date(start), $lte: new Date(end) };
+      }
+      result = await CalendarEvent.deleteMany(q);
     } else {
       return NextResponse.json({ success: false, message: "Invalid deletion mode" }, { status: 400 });
     }
