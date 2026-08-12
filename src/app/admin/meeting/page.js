@@ -18,6 +18,7 @@ const overlap = (a1, b1, a2, b2) => a1 < b2 && a2 < b1;
 
 const C_FREE = "var(--free,#12b886)", C_TEACH = "#3b6fd6", C_TRAVEL = "#f08c00";
 const SEC_DASH = "2px dashed hsl(var(--heroui-secondary, 270 67% 47%))";
+const PRI_SOLID = "2px solid hsl(var(--heroui-primary, 212 100% 47%))";
 
 // Conic-gradient donut: free (green) → teaching (blue) → travel (orange).
 function donut(nf, nt, nv, total) {
@@ -290,7 +291,9 @@ export default function MeetingPlannerPage() {
                         const nf = g.free.length, nt = g.teach.length, nv = g.travel.length;
                         // Highlight the whole meeting window (start tiết … +duration).
                         const inSel = d === sel.d && ri >= sel.t && ri < sel.t + dur;
-                        const isSelStart = d === sel.d && ri === sel.t;
+                        const selBottomIdx = Math.min(sel.t + dur - 1, TIET.length - 1);
+                        const isSelTop = inSel && ri === sel.t;
+                        const isSelBottom = inSel && ri === selBottomIdx;
                         const inPref = pref.has(key(d, ri));
                         const dimmed = pref.size > 0 && !inPref && !inSel;
                         return (
@@ -304,9 +307,8 @@ export default function MeetingPlannerPage() {
                               style={{
                                 opacity: dimmed ? 0.4 : 1,
                                 zIndex: inSel ? 2 : 1,
-                                // Selected meeting window → solid tinted background + ring.
-                                boxShadow: inSel ? "0 0 0 2px hsl(var(--heroui-primary, 212 100% 47%))" : "none",
-                                background: inSel ? "hsl(var(--heroui-primary-200, 212 92% 79%))" : undefined,
+                                // Selected-window fill + outline are drawn by an overlay that
+                                // sits behind the donut and bridges the inter-cell gap.
                                 cursor: pickMode ? "crosshair" : "pointer",
                               }}>
                               {/* Preferred region: dashed border only on edges facing
@@ -321,7 +323,25 @@ export default function MeetingPlannerPage() {
                                   borderRight: pref.has(key(d + 1, ri)) ? "2px solid transparent" : SEC_DASH,
                                 }} />
                               )}
-                              <span className="relative block" style={{ width: 34, height: 34, borderRadius: "50%", background: donut(nf, nt, nv, total) }}>
+                              {/* Selected meeting window: one connected solid outline.
+                                  Only the outer edges get a border and only the outer
+                                  corners are rounded, so a multi-tiết window reads as a
+                                  single pill (no seams between the cells). */}
+                              {inSel && (
+                                <span aria-hidden className="absolute pointer-events-none" style={{
+                                  inset: -2, zIndex: 1,
+                                  background: "hsl(var(--heroui-primary-100, 212 100% 92%))",
+                                  borderLeft: PRI_SOLID,
+                                  borderRight: PRI_SOLID,
+                                  borderTop: isSelTop ? PRI_SOLID : "2px solid transparent",
+                                  borderBottom: isSelBottom ? PRI_SOLID : "2px solid transparent",
+                                  borderTopLeftRadius: isSelTop ? 9 : 0,
+                                  borderTopRightRadius: isSelTop ? 9 : 0,
+                                  borderBottomLeftRadius: isSelBottom ? 9 : 0,
+                                  borderBottomRightRadius: isSelBottom ? 9 : 0,
+                                }} />
+                              )}
+                              <span className="relative block" style={{ width: 34, height: 34, borderRadius: "50%", background: donut(nf, nt, nv, total), zIndex: 2 }}>
                                 <span className="absolute rounded-full bg-content1 flex items-center justify-center"
                                   style={{ inset: 6 }}>
                                   <span className="text-[11px] font-bold tabular-nums" style={{ color: nf === total ? "var(--free,#12b886)" : "inherit" }}>{nf}</span>
