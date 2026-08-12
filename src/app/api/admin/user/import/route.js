@@ -44,15 +44,22 @@ export const POST = async (request) => {
       if (email) {
         ops.push({ updateOne: { filter: { email }, update: { $set }, upsert: true } });
       } else if (mscb) {
-        // No email → can only update a user already identified by this MSCB.
-        ops.push({ updateOne: { filter: { teacher_id: mscb }, update: { $set }, upsert: false } });
+        // No email → update a user already identified by this MSCB. teacher_id is
+        // stored inconsistently (mostly Number, some String), so match both types.
+        const tidVals = [mscb];
+        const n = Number(mscb);
+        if (!Number.isNaN(n) && String(n) === mscb) tidVals.push(n);
+        ops.push({ updateOne: { filter: { teacher_id: { $in: tidVals } }, update: { $set }, upsert: false } });
       } else {
         skipped++;
       }
     }
     if (!ops.length) return NextResponse.json({ success: false, error: "No email or MSCB in any row" }, { status: 400 });
 
-    const result = await User.bulkWrite(ops);
+    // Use the raw driver: teacher_id is declared String in the schema but stored
+    // mostly as Number, and Mongoose would cast our $in values to String, so a
+    // Number-stored id would never match. The raw collection skips that casting.
+    const result = await User.collection.bulkWrite(ops);
     return NextResponse.json({
       success: true,
       inserted: result.upsertedCount,

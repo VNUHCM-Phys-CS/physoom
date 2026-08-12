@@ -50,33 +50,33 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
     if (isExcel) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const binaryStr = e.target.result;
-        const workbook = read(binaryStr, { type: "array" });
-        const data = [];
-        workbook.SheetNames.find((sheet) => {
-          const worksheet = workbook.Sheets[sheet];
+        const workbook = read(e.target.result, { type: "array" });
+        // Pick the sheet whose header row matches the MOST expected columns and
+        // map whatever columns are present. A partial file (only some columns) is
+        // fine — the importer validates required fields. Previously this required
+        // EVERY column, so a file missing any column was silently ignored.
+        let best = { matches: 0, header: null, rows: null };
+        for (const sheet of workbook.SheetNames) {
           const sheetData = utils
-            .sheet_to_json(worksheet, {
-              header: 1,
-            })
-            .filter(
-              (row) =>
-                row.some(
-                  (cell) => cell !== null && cell !== undefined && cell !== ""
-                ) // Keep rows with at least one non-empty value
-            );
-          const headerRow = (sheetData[0] || []).map((d) => d?.trim ? d.trim() : String(d));
-          if (collums.every((col) => headerRow.includes(col.name))) {
-            for (let i = 1; i < sheetData.length; i++)
-              data.push(
-                sheetData[i].reduce((acc, value, index) => {
-                  if (headerRow[index]) acc[headerRow[index]] = value; // Map headers to row values
-                  return acc;
-                }, {})
-              );
-            return true;
-          }
-        });
+            .sheet_to_json(workbook.Sheets[sheet], { header: 1 })
+            .filter((row) => row.some((cell) => cell !== null && cell !== undefined && cell !== ""));
+          if (!sheetData.length) continue;
+          const headerRow = (sheetData[0] || []).map((d) => (d?.trim ? d.trim() : String(d)));
+          const matches = collums.filter((col) => headerRow.includes(col.name)).length;
+          if (matches > best.matches) best = { matches, header: headerRow, rows: sheetData };
+        }
+        if (best.matches === 0) {
+          alert("Không nhận được cột nào khớp. File cần có dòng tiêu đề, ví dụ các cột: " + collums.map((c) => c.name).join(", "));
+          return;
+        }
+        const data = [];
+        for (let i = 1; i < best.rows.length; i++)
+          data.push(
+            best.rows[i].reduce((acc, value, index) => {
+              if (best.header[index]) acc[best.header[index]] = value;
+              return acc;
+            }, {})
+          );
         setCsvData(data);
       };
       reader.onerror = function () {
@@ -84,7 +84,7 @@ const DragDropzone = ({ collums, INITIAL_VISIBLE_COLUMNS, onImport }) => {
       };
       reader.readAsArrayBuffer(file);
     } else {
-      alert("Unsupported file format. Please upload a .csv or .xlsx file");
+      alert("Định dạng không hỗ trợ. Vui lòng tải lên .csv hoặc .xlsx");
     }
   };
 
