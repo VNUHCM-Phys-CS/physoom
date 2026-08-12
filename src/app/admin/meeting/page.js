@@ -112,8 +112,27 @@ export default function MeetingPlannerPage() {
   );
   const { data: allRooms } = useSWR("/api/room", fetcher, { revalidateOnFocus: false });
 
-  const teachers = data?.teachers ?? [];
+  const allTeachers = data?.teachers ?? [];
   const busy = data?.busy ?? {};
+
+  // ── Department filter ─────────────────────────────────────────────────────
+  const NO_DEPT = "__none__";
+  const deptList = useMemo(
+    () => [...new Set(allTeachers.map((x) => x.department).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [allTeachers]
+  );
+  const hasNoDept = useMemo(() => allTeachers.some((x) => !x.department), [allTeachers]);
+  // null until initialised; default = every real department (NOT "no department").
+  const [selDepts, setSelDepts] = useState(null);
+  useEffect(() => {
+    if (selDepts === null && deptList.length) setSelDepts(new Set(deptList));
+  }, [deptList, selDepts]);
+  const selKeys = selDepts ?? new Set(deptList);
+  const teachers = useMemo(
+    () => allTeachers.filter((x) => (x.department ? selKeys.has(x.department) : selKeys.has(NO_DEPT))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allTeachers, selDepts, deptList]
+  );
   const total = teachers.length;
 
   // meeting window [S,E] for a starting period index t
@@ -249,6 +268,22 @@ export default function MeetingPlannerPage() {
         </Select>
         <Input type="date" size="sm" label={t("meet.week")} className="max-w-[180px]"
           value={weekDate} onChange={(e) => setWeekDate(e.target.value)} />
+        {deptList.length > 0 && (
+          <Select
+            label={t("meet.deptFilter")}
+            size="sm"
+            selectionMode="multiple"
+            className="max-w-[240px]"
+            selectedKeys={selKeys}
+            onSelectionChange={(keys) => setSelDepts(new Set(Array.from(keys).map(String)))}
+            renderValue={(items) => `${items.length} ${t("meet.deptUnit")}`}
+          >
+            {[
+              ...deptList.map((d) => <SelectItem key={d} textValue={d}>{d}</SelectItem>),
+              ...(hasNoDept ? [<SelectItem key={NO_DEPT} textValue="Không có bộ môn">({t("meet.noDept")})</SelectItem>] : []),
+            ]}
+          </Select>
+        )}
         <div className="grow" />
         <div className="flex gap-4 text-xs text-default-500 items-center flex-wrap self-center">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded" style={{ background: "var(--free,#12b886)" }} />{t("meet.free")}</span>

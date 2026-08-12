@@ -36,10 +36,10 @@ export const POST = async (request) => {
     if (Array.isArray(teacherEmails) && teacherEmails.length) {
       teacherFilter.email = { $in: teacherEmails };
     }
-    let teachers = await User.find(teacherFilter, "email name teacher_id").lean();
+    let teachers = await User.find(teacherFilter, "email name teacher_id department").lean();
     if (!teachers.length) {
       // fall back to everyone with an email (some deployments don't fill MSCB)
-      teachers = await User.find({}, "email name teacher_id").lean();
+      teachers = await User.find({}, "email name teacher_id department").lean();
     }
     const emailSet = new Set(teachers.map((t) => t.email?.toLowerCase()).filter(Boolean));
 
@@ -77,7 +77,7 @@ export const POST = async (request) => {
     return NextResponse.json(
       {
         weekStart: rangeStart,
-        teachers: teachers.map((t) => ({ email: t.email, name: t.name || t.email })),
+        teachers: teachers.map((t) => ({ email: t.email, name: t.name || t.email, department: t.department || "" })),
         busy,
       },
       { status: 200 }
