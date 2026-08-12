@@ -122,6 +122,13 @@ export default function MeetingPlannerPage() {
     [allTeachers]
   );
   const hasNoDept = useMemo(() => allTeachers.some((x) => !x.department), [allTeachers]);
+  // Teacher count per department (+ NO_DEPT) — shown in the dropdown.
+  const deptCount = useMemo(() => {
+    const m = {};
+    allTeachers.forEach((x) => { const k = x.department || NO_DEPT; m[k] = (m[k] || 0) + 1; });
+    return m;
+  }, [allTeachers]);
+  const allDeptKeys = useMemo(() => [...deptList, ...(hasNoDept ? [NO_DEPT] : [])], [deptList, hasNoDept]);
   // null until initialised; default = every real department (NOT "no department").
   const [selDepts, setSelDepts] = useState(null);
   useEffect(() => {
@@ -269,20 +276,40 @@ export default function MeetingPlannerPage() {
         <Input type="date" size="sm" label={t("meet.week")} className="max-w-[180px]"
           value={weekDate} onChange={(e) => setWeekDate(e.target.value)} />
         {deptList.length > 0 && (
-          <Select
-            label={t("meet.deptFilter")}
-            size="sm"
-            selectionMode="multiple"
-            className="max-w-[240px]"
-            selectedKeys={selKeys}
-            onSelectionChange={(keys) => setSelDepts(new Set(Array.from(keys).map(String)))}
-            renderValue={(items) => `${items.length} ${t("meet.deptUnit")}`}
-          >
-            {[
-              ...deptList.map((d) => <SelectItem key={d} textValue={d}>{d}</SelectItem>),
-              ...(hasNoDept ? [<SelectItem key={NO_DEPT} textValue="Không có bộ môn">({t("meet.noDept")})</SelectItem>] : []),
-            ]}
-          </Select>
+          <div className="flex items-end gap-1">
+            <Select
+              label={t("meet.deptFilter")}
+              size="sm"
+              selectionMode="multiple"
+              className="max-w-[240px] min-w-[180px]"
+              selectedKeys={selKeys}
+              onSelectionChange={(keys) => setSelDepts(new Set(Array.from(keys).map(String)))}
+              renderValue={(items) => `${items.length} ${t("meet.deptUnit")}`}
+            >
+              {[
+                ...deptList.map((d) => (
+                  <SelectItem key={d} textValue={d}>
+                    {d} <span className="text-default-400">({deptCount[d] || 0})</span>
+                  </SelectItem>
+                )),
+                ...(hasNoDept ? [
+                  <SelectItem key={NO_DEPT} textValue="Không có bộ môn">
+                    ({t("meet.noDept")}) <span className="text-default-400">({deptCount[NO_DEPT] || 0})</span>
+                  </SelectItem>,
+                ] : []),
+              ]}
+            </Select>
+            <div className="flex flex-col gap-1 pb-0.5">
+              <button onClick={() => setSelDepts(new Set(allDeptKeys))}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-default-100 hover:bg-default-200 whitespace-nowrap">
+                {t("meet.selectAll")}
+              </button>
+              <button onClick={() => setSelDepts(new Set())}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-default-100 hover:bg-default-200 whitespace-nowrap">
+                {t("meet.clearAll")}
+              </button>
+            </div>
+          </div>
         )}
         <div className="grow" />
         <div className="flex gap-4 text-xs text-default-500 items-center flex-wrap self-center">
