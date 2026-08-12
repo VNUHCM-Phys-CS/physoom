@@ -254,26 +254,55 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                     style={{ height: "100%" }}
                     eventPropGetter={eventStyleGetter}
                     components={{
-                        event: (props) => (
-                          <div className="relative group h-full w-full overflow-visible">
-                            <div className="rbc-event-content">
-                              {props.title}
+                        event: (props) => {
+                          const e = props.event.resource || {};
+                          if (e.isHoliday || e.type === "holiday") {
+                            return (
+                              <div className="h-full w-full overflow-hidden leading-tight">
+                                <div className="text-[11px] font-semibold truncate">{props.event.title}</div>
+                              </div>
+                            );
+                          }
+                          const courseTitle = e.course?.title || props.event.title;
+                          const cls = Array.isArray(e.course?.class_id)
+                            ? e.course.class_id.join(", ")
+                            : (e.course?.class_id || "");
+                          const room = e.room?.title || (typeof e.room === "string" ? "" : "");
+                          const teachers = nameList(e.teacher_email);
+                          return (
+                            <div className="relative group h-full w-full overflow-hidden leading-tight">
+                              {/* Course name — largest + bold (the primary info). */}
+                              <div className="text-[12px] font-bold line-clamp-2">{courseTitle}</div>
+                              {/* Class code (emphasised) · room (medium). */}
+                              {(cls || room) && (
+                                <div className="text-[10px] truncate mt-px">
+                                  {cls && <span className="font-semibold">{cls}</span>}
+                                  {cls && room && <span className="opacity-50"> · </span>}
+                                  {room && <span className="font-medium opacity-90">{room}</span>}
+                                </div>
+                              )}
+                              {/* Lecturer — smallest + lightest (secondary). */}
+                              {teachers && <div className="text-[9px] font-light opacity-75 truncate">{teachers}</div>}
+                              {!readOnly && onDelete && (
+                                <button
+                                  className="delete-btn absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 p-0.5 bg-white text-danger rounded-full hover:bg-danger hover:text-white transition-opacity z-50 shadow-sm flex items-center justify-center border border-danger/20"
+                                  style={{ width: '18px', height: '18px' }}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    onDelete(props.event.resource);
+                                  }}
+                                  title="Delete this schedule"
+                                >
+                                  <Trash2Icon size={10} />
+                                </button>
+                              )}
                             </div>
-                            {!readOnly && onDelete && !props.event.resource?.isHoliday && (
-                              <button
-                                className="delete-btn absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 p-0.5 bg-white text-danger rounded-full hover:bg-danger hover:text-white transition-opacity z-50 shadow-sm flex items-center justify-center border border-danger/20"
-                                style={{ width: '18px', height: '18px' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDelete(props.event.resource);
-                                }}
-                                title="Delete this schedule"
-                              >
-                                <Trash2Icon size={10} />
-                              </button>
-                            )}
-                          </div>
-                        )
+                          );
+                        }
+                    }}
+                    formats={{
+                        eventTimeRangeFormat: ({ start, end }, culture, loc) =>
+                            `${loc.format(start, "HH:mm", culture)}–${loc.format(end, "HH:mm", culture)}`,
                     }}
                     onSelectEvent={(e, ...rest) => {
                         if (e?.resource?.isHoliday) return;
