@@ -17,6 +17,7 @@ const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m %
 const overlap = (a1, b1, a2, b2) => a1 < b2 && a2 < b1;
 
 const C_FREE = "var(--free,#12b886)", C_TEACH = "#3b6fd6", C_TRAVEL = "#f08c00";
+const SEC_DASH = "2px dashed hsl(var(--heroui-secondary, 270 67% 47%))";
 
 // Conic-gradient donut: free (green) → teaching (blue) → travel (orange).
 function donut(nf, nt, nv, total) {
@@ -306,11 +307,20 @@ export default function MeetingPlannerPage() {
                                 // Selected meeting window → solid tinted background + ring.
                                 boxShadow: inSel ? "0 0 0 2px hsl(var(--heroui-primary, 212 100% 47%))" : "none",
                                 background: inSel ? "hsl(var(--heroui-primary-200, 212 92% 79%))" : undefined,
-                                // Preferred region → dashed box wrapping the picked cells.
-                                outline: inPref ? "2px dashed hsl(var(--heroui-secondary, 270 67% 47%))" : undefined,
-                                outlineOffset: inPref ? "-3px" : undefined,
                                 cursor: pickMode ? "crosshair" : "pointer",
                               }}>
+                              {/* Preferred region: dashed border only on edges facing
+                                  outside the region, extended 2px into the cell gap so
+                                  neighbouring cells' borders meet → one connected block. */}
+                              {inPref && (
+                                <span aria-hidden className="absolute rounded-[6px] pointer-events-none" style={{
+                                  inset: -2, zIndex: 3,
+                                  borderTop: pref.has(key(d, ri - 1)) ? "2px solid transparent" : SEC_DASH,
+                                  borderBottom: pref.has(key(d, ri + 1)) ? "2px solid transparent" : SEC_DASH,
+                                  borderLeft: pref.has(key(d - 1, ri)) ? "2px solid transparent" : SEC_DASH,
+                                  borderRight: pref.has(key(d + 1, ri)) ? "2px solid transparent" : SEC_DASH,
+                                }} />
+                              )}
                               <span className="relative block" style={{ width: 34, height: 34, borderRadius: "50%", background: donut(nf, nt, nv, total) }}>
                                 <span className="absolute rounded-full bg-content1 flex items-center justify-center"
                                   style={{ inset: 6 }}>
