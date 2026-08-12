@@ -202,7 +202,7 @@ export default function CourseListSelect({
           {courseGroup.map((cg) => (
             <ListboxSection key={cg.key} title={cg.title} showDivider>
               {cg.data.map(
-                ({ title, location, teacher_email, credit, _id, isLock, warnings }) => (
+                ({ title, location, teacher_email, credit, _id, isLock, warnings, class_id }) => (
                   <ListboxItem
                     key={_id?.toString()}
                     textValue={_id?.toString()}
@@ -220,26 +220,33 @@ export default function CourseListSelect({
                             <div key={d}>{d}</div>
                           ))}
                         </h6>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center flex-wrap">
                           <Chip size="sm" color="primary">
                             {location}
                           </Chip>
                           <Chip size="sm" variant="shadow">
                             {credit} {t("common.credits")}
                           </Chip>
+                          {(class_id ?? []).length > 0 && (
+                            <Chip size="sm" variant="flat" color="secondary">
+                              {(class_id ?? []).join(", ")}
+                            </Chip>
+                          )}
+                          {cg.key === "planned" && onUnschedule && (
+                            <Tooltip content={t("course.moveToPending")}>
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="light"
+                                color="warning"
+                                className="h-6 w-6 min-w-6"
+                                onPress={() => onUnschedule({ _id, title })}
+                              >
+                                <CalendarOffIcon size={14} />
+                              </Button>
+                            </Tooltip>
+                          )}
                         </div>
-                        {cg.key === "planned" && onUnschedule && (
-                          <Button
-                            size="sm"
-                            variant="flat"
-                            color="warning"
-                            className="mt-2"
-                            startContent={<CalendarOffIcon size={13} />}
-                            onPress={() => onUnschedule({ _id, title })}
-                          >
-                            {t("course.moveToPending")}
-                          </Button>
-                        )}
                       </div>
                     }
                     className="stack-item py-3"

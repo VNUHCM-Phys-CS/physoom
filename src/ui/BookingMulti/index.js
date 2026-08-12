@@ -60,7 +60,7 @@ export default function BookingMulti() {
   );
   const courseSearchKey = useMemo(() => {
     return (course ?? []).map((d) => [
-      `${d.teacher_email.join(" ")} ${d.location ?? defaultLoc} ${d.title
+      `${d.teacher_email.join(" ")} ${d.location ?? defaultLoc} ${d.title} ${(d.class_id ?? []).join(" ")
         }`.toLowerCase(),
       d,
     ]);
