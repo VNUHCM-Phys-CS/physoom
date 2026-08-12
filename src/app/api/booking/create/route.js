@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
 import Course from "@/models/course";
+import User from "@/models/user";
 import mongoose from "mongoose";
 import { includes } from "lodash";
 import { auth } from "@/lib/auth";
@@ -120,6 +121,20 @@ export const POST = async (request) => {
     const holidays = await CalendarEvent.find({ type: 'holiday', status: 'approved' }).lean();
     const allConflicts = [];
     const allCreated = [];
+
+    // Resolve lecturer email → display name (cached) so a teacher clash names the
+    // lecturer, not just their email.
+    const nameCache = new Map();
+    const resolveNames = async (emails) => {
+      const list = [...new Set((emails || []).map((e) => String(e).toLowerCase()).filter(Boolean))];
+      const missing = list.filter((e) => !nameCache.has(e));
+      if (missing.length) {
+        const users = await User.find({ email: { $in: missing } }, "email name").lean();
+        const byEmail = new Map(users.map((u) => [String(u.email).toLowerCase(), u.name]));
+        missing.forEach((e) => nameCache.set(e, byEmail.get(e) || e));
+      }
+      return list.map((e) => nameCache.get(e));
+    };
 
     for (let d of data) {
       const courseId = d.course?._id || d.course;
@@ -250,9 +265,15 @@ export const POST = async (request) => {
             const dayStr = weekdayNames[teacherOverlap.weekday] || `Thứ ${teacherOverlap.weekday}`;
             const sLabel = minutesToLabel(teacherOverlap.time_slot?.start_time || 0, grid.data);
             const eLabel = minutesToLabel(teacherOverlap.time_slot?.end_time || 0, grid.data);
+            // Name the double-booked lecturer(s): those shared by both bookings.
+            const clashEmails = (d.teacher_email || []).filter((e) =>
+              (teacherOverlap.teacher_email || []).some((x) => String(x).toLowerCase() === String(e).toLowerCase())
+            );
+            const names = await resolveNames(clashEmails.length ? clashEmails : d.teacher_email);
+            const who = names.filter(Boolean).join(", ");
             courseConflicts.push({
               at: occ.start,
-              reason: `Teacher conflict with ${conflictLabel(teacherOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+              reason: `Teacher conflict — GV ${who} — with ${conflictLabel(teacherOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
             });
             continue;
           }
