@@ -38,6 +38,9 @@ export default function MeetingPlannerPage() {
   // Preferred region(s): a set of "d-t" cell keys. Drag to paint (possibly
   // several disjoint rectangles); recommendations then only consider these.
   const [pref, setPref] = useState(() => new Set());
+  // "Pick favorite slots" mode: only when ON does clicking/dragging paint the
+  // preferred region. When OFF, clicking a cell just selects it for details.
+  const [pickMode, setPickMode] = useState(false);
   const [openG, setOpenG] = useState({ travel: true, teach: false, free: false });
   const tog = (k) => setOpenG((o) => ({ ...o, [k]: !o[k] }));
   const drag = useRef({ pressing: false, moved: false, erase: false, start: null, base: null });
@@ -59,22 +62,34 @@ export default function MeetingPlannerPage() {
   }, []);
   const onCellDown = (d, t) => (e) => {
     e.preventDefault();
-    drag.current = { pressing: true, moved: false, erase: pref.has(key(d, t)), start: { d, t }, base: new Set(pref) };
+    drag.current = { pressing: true, moved: false, erase: pickMode && pref.has(key(d, t)), start: { d, t }, base: new Set(pref) };
   };
   const onCellEnter = (d, t) => () => {
-    if (!drag.current.pressing) return;
+    if (!drag.current.pressing || !pickMode) return; // paint only in pick mode
     drag.current.moved = true;
     applyRect(d, t);
   };
   useEffect(() => {
     const up = () => {
       const st = drag.current;
-      if (st.pressing && !st.moved && st.start) setSel(st.start); // plain click → detail
+      if (st.pressing && !st.moved && st.start) {
+        if (pickMode) {
+          // plain click while picking → toggle that single cell in the region
+          const k = key(st.start.d, st.start.t);
+          setPref((prev) => {
+            const next = new Set(prev);
+            next.has(k) ? next.delete(k) : next.add(k);
+            return next;
+          });
+        } else {
+          setSel(st.start); // plain click → detail
+        }
+      }
       drag.current.pressing = false;
     };
     window.addEventListener("mouseup", up);
     return () => window.removeEventListener("mouseup", up);
-  }, []);
+  }, [pickMode]);
 
   const DAYS = lang === "en"
     ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -243,8 +258,13 @@ export default function MeetingPlannerPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
         {/* Heatmap */}
         <div className="bg-content1 border border-default-200 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-default-100 text-xs font-semibold uppercase tracking-wide text-default-400">
-            {t("meet.byDayTiet")}
+          <div className="px-4 py-3 border-b border-default-100 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-default-400">{t("meet.byDayTiet")}</span>
+            <Button size="sm" variant={pickMode ? "solid" : "bordered"} color="secondary"
+              onPress={() => setPickMode((v) => !v)}
+              startContent={<span aria-hidden>✏️</span>}>
+              {pickMode ? t("meet.pickModeOn") : t("meet.pickMode")}
+            </Button>
           </div>
           <div className="p-2 overflow-x-auto">
             {isLoading ? (
@@ -272,10 +292,6 @@ export default function MeetingPlannerPage() {
                         const isSelStart = d === sel.d && ri === sel.t;
                         const inPref = pref.has(key(d, ri));
                         const dimmed = pref.size > 0 && !inPref && !inSel;
-                        const rings = [
-                          inPref ? "inset 0 0 0 2px var(--heroui-secondary,#7c3aed)" : "",
-                          inSel ? "0 0 0 2px var(--heroui-primary,#4256d0)" : "",
-                        ].filter(Boolean).join(", ");
                         return (
                           <td key={d} className="p-[2px]">
                             <button
@@ -287,10 +303,13 @@ export default function MeetingPlannerPage() {
                               style={{
                                 opacity: dimmed ? 0.4 : 1,
                                 zIndex: inSel ? 2 : 1,
-                                boxShadow: rings || "none",
-                                background: inSel
-                                  ? "var(--heroui-primary-50,#eef1ff)"
-                                  : inPref ? "var(--heroui-secondary-50,#f2ecfe)" : undefined,
+                                // Selected meeting window → solid tinted background + ring.
+                                boxShadow: inSel ? "0 0 0 2px hsl(var(--heroui-primary, 212 100% 47%))" : "none",
+                                background: inSel ? "hsl(var(--heroui-primary-200, 212 92% 79%))" : undefined,
+                                // Preferred region → dashed box wrapping the picked cells.
+                                outline: inPref ? "2px dashed hsl(var(--heroui-secondary, 270 67% 47%))" : undefined,
+                                outlineOffset: inPref ? "-3px" : undefined,
+                                cursor: pickMode ? "crosshair" : "pointer",
                               }}>
                               <span className="relative block" style={{ width: 34, height: 34, borderRadius: "50%", background: donut(nf, nt, nv, total) }}>
                                 <span className="absolute rounded-full bg-content1 flex items-center justify-center"
