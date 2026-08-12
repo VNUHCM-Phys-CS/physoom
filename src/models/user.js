@@ -17,6 +17,15 @@ const userSchema = new Schema({
   name: {
     type: String,
   },
+  department: {
+    type: String, // bộ môn / đơn vị
+  },
+  rank: {
+    type: String, // ngạch (VD: GV, GVC, GVCC)
+  },
+  degree: {
+    type: String, // học vị (VD: GS, PGS, TS, ThS, CN)
+  },
 });
 userSchema.index({ email: 1 }, { unique: true });
 

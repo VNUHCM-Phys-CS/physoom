@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import User from "@/models/user";
 import TeacherAlias from "@/models/teacherAlias";
 import { auth } from "@/lib/auth";
+import { normalizeDepartment } from "@/lib/departments";
 
 async function requireAdmin() {
   const session = await auth();
@@ -16,7 +17,7 @@ export const GET = async () => {
   if (!await requireAdmin()) return NextResponse.json([], { status: 401 });
   try {
     await connectToDb();
-    const users = await User.find({}, "email name teacher_id isAdmin").lean();
+    const users = await User.find({}, "email name teacher_id isAdmin department rank degree").lean();
     return NextResponse.json(users);
   } catch (err) {
     console.error(err);
@@ -35,6 +36,9 @@ export const POST = async (request) => {
       name: data.name?.trim() || undefined,
       teacher_id: data.teacher_id?.trim() || undefined,
       isAdmin: !!data.isAdmin,
+      department: normalizeDepartment(data.department) || undefined,
+      rank: data.rank?.trim() || undefined,
+      degree: data.degree?.trim() || undefined,
     });
     return NextResponse.json({ success: true, user }, { status: 201 });
   } catch (err) {
@@ -53,6 +57,9 @@ export const PUT = async (request) => {
     if (data.name !== undefined)       update.name       = data.name?.trim() || undefined;
     if (data.teacher_id !== undefined) update.teacher_id = data.teacher_id?.trim() || undefined;
     if (data.isAdmin !== undefined)    update.isAdmin    = !!data.isAdmin;
+    if (data.department !== undefined) update.department = normalizeDepartment(data.department) || undefined;
+    if (data.rank !== undefined)       update.rank       = data.rank?.trim() || undefined;
+    if (data.degree !== undefined)     update.degree     = data.degree?.trim() || undefined;
     // email is not editable (identity key)
     const user = await User.findByIdAndUpdate(id, update, { new: true });
     if (!user) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
