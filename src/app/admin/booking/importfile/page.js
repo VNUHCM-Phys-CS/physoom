@@ -209,8 +209,15 @@ const Page = () => {
       setProgressRoom({ value: 100, isError: !roomResponse.ok });
 
       // --- Course creation ---
+      // Identity includes the TITLE: one subject code (Mã mh) can carry several
+      // session types on separate rows — e.g. MTH00003 = "Vi tích phân 1B" (LT)
+      // AND "Bài tập Vi tích phân 1B" — which are distinct sessions with their
+      // own teacher / tiết / Số tiết. Keying only on Mã mh+lớp collapsed them
+      // into one course, so (a) the booking used one shared credit and (b) if
+      // both fell on the same weekday, creating one deleted the other's events.
+      // Distinct titles ⇒ distinct courses fixes both.
       const courses = _.uniqBy(data, (item) =>
-        `${item["Mã mh"].trim()}_${item["mã lớp 2"]}_${item["Lớp"].trim()}`
+        `${item["Mã mh"].trim()}_${item["mã lớp 2"]}_${item["Lớp"].trim()}_${(item["Tên môn học"] || "").trim()}`
       ).map((d) => {
         const requested = d._teacher_emails ?? [];
         const teacher_email = requested.map((e) => name2email[e]).filter(Boolean);
@@ -337,6 +344,9 @@ const Page = () => {
                 course_id: _booking["Mã mh"].trim(),
                 course_id_extend: _booking["mã lớp 2"],
                 class_id: _booking["Lớp"].split(",").map((d) => d.trim()),
+                // Title is part of course identity (see course-creation note) so
+                // "Bài tập …" resolves to its own course, not the lecture's.
+                title: (_booking["Tên môn học"] || "").trim(),
               },
             }),
           }).then((d) => d.json());
