@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
 import Course from "@/models/course";
 import "@/models/room"; // register Room schema for .populate("room")
+import { classGroupRegex } from "@/lib/classGroup";
 
 export const POST = async (request) => {
   try {
@@ -26,18 +27,9 @@ export const POST = async (request) => {
       }
       let query = { class_id };
       if (isApproximate) {
-        // Group sub-sections that only differ by a trailing letter right after a
-        // digit: e.g. 25VLH_DKD1A / 25VLH_DKD1B belong to the same class as
-        // 25VLH_DKD1. But 25VLH, 25VLH_DKD1 and 25VLH_DKD2 are DIFFERENT classes
-        // and must stay separate. So the "group base" is the id with any single
-        // trailing letter (that follows a digit) stripped, and we match that
-        // base optionally followed by one more letter.
-        const regexFilters = class_id.map((id) => {
-          const base = String(id).replace(/(\d)[A-Za-z]$/, "$1");
-          const esc = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          return { class_id: { $regex: `^${esc}[A-Za-z]?$`, $options: "i" } };
-        });
-        query = { $or: regexFilters };
+        // Merge only trailing sub-section letters (_A/_B/_C or glued) into their
+        // group; keep 25VLH, _DKD1, _DKD2 distinct. See @/lib/classGroup.
+        query = { $or: class_id.map((id) => ({ class_id: classGroupRegex(id) })) };
       }
       
       const courses = await Course.find(query, ["_id"]).lean();

@@ -7,6 +7,7 @@ import Course from "@/models/course";
 import Room from "@/models/room"; // register Room schema for .populate("room")
 import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
+import { classGroupRegex } from "@/lib/classGroup";
 
 /**
  * Transforms a deduplicated representative CalendarEvent into the Booking-compatible
@@ -106,15 +107,8 @@ export const POST = async (request) => {
 
         let query = { class_id };
         if (isApproximate) {
-          // Same grouping rule as calendar-events/fetch: only a trailing letter
-          // right after a digit (e.g. _DKD1A → _DKD1) marks a sub-section of the
-          // same class. Different bases (25VLH vs _DKD1 vs _DKD2) stay separate.
-          const regexFilters = class_id.map((id) => {
-            const base = String(id).replace(/(\d)[A-Za-z]$/, "$1");
-            const esc = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            return { class_id: { $regex: `^${esc}[A-Za-z]?$`, $options: "i" } };
-          });
-          query = { $or: regexFilters };
+          // Same grouping rule as calendar-events/fetch. See @/lib/classGroup.
+          query = { $or: class_id.map((id) => ({ class_id: classGroupRegex(id) })) };
         }
         const courses = await Course.find(query, ['_id']).lean();
         ceFilter.course = { $in: courses.map(c => c._id) };
