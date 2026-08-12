@@ -22,9 +22,13 @@ export const POST = async (request) => {
     const ids = data.map((d) => d._id);
     const oldCourses = await Course.find({ _id: { $in: ids } });
 
-    // 2. Tìm những course có thay đổi teacher_email
+    // 2. Tìm những course có thay đổi teacher_email.
+    //    CHỈ xét khi payload THỰC SỰ gửi teacher_email — các thao tác như
+    //    khoá/mở khoá (chỉ gửi {_id, isLock}) không đụng giảng viên, không được
+    //    hiểu nhầm là "xoá GV" (trước đây gây xoá sạch lịch lớp của môn).
     const changedIds = [];
     for (const d of data) {
+      if (d.teacher_email === undefined) continue;
       const oldCourse = oldCourses.find((c) => c._id.toString() === d._id);
       if (
         oldCourse &&
