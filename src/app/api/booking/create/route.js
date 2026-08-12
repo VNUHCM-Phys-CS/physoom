@@ -201,6 +201,15 @@ export const POST = async (request) => {
       const courseConflicts = [];
       const validOccurrences = [];
 
+      // Label a conflicting event by course name AND class code — many classes
+      // share a course title, so the class_id disambiguates which one clashed.
+      const conflictLabel = (ev) => {
+        const cls = ev?.course?.class_id;
+        const clsStr = Array.isArray(cls) ? cls.filter(Boolean).join(", ") : (cls || "");
+        const t = ev?.title || ev?.course?.title || "?";
+        return clsStr ? `"${t}" [${clsStr}]` : `"${t}"`;
+      };
+
       // Block against both approved and pending bookings so two requests can't
       // silently claim the same room/teacher slot (which would collide once
       // both get approved). Rejected/cancelled events don't block.
@@ -214,7 +223,7 @@ export const POST = async (request) => {
           isCancelled: { $ne: true },
           start: { $lt: occ.end },
           end: { $gt: occ.start }
-        }).lean();
+        }).populate("course", "class_id title").lean();
 
         if (roomOverlap) {
           const dayStr = weekdayNames[roomOverlap.weekday] || `Thứ ${roomOverlap.weekday}`;
@@ -222,7 +231,7 @@ export const POST = async (request) => {
           const eLabel = minutesToLabel(roomOverlap.time_slot?.end_time || 0, grid.data);
           courseConflicts.push({
             at: occ.start,
-            reason: `Room conflict with "${roomOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+            reason: `Room conflict with ${conflictLabel(roomOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
           });
           continue;
         }
@@ -235,7 +244,7 @@ export const POST = async (request) => {
             isCancelled: { $ne: true },
             start: { $lt: occ.end },
             end: { $gt: occ.start }
-          }).lean();
+          }).populate("course", "class_id title").lean();
 
           if (teacherOverlap) {
             const dayStr = weekdayNames[teacherOverlap.weekday] || `Thứ ${teacherOverlap.weekday}`;
@@ -243,7 +252,7 @@ export const POST = async (request) => {
             const eLabel = minutesToLabel(teacherOverlap.time_slot?.end_time || 0, grid.data);
             courseConflicts.push({
               at: occ.start,
-              reason: `Teacher conflict with "${teacherOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+              reason: `Teacher conflict with ${conflictLabel(teacherOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
             });
             continue;
           }
@@ -257,7 +266,7 @@ export const POST = async (request) => {
             isCancelled: { $ne: true },
             start: { $lt: occ.end },
             end: { $gt: occ.start }
-          }).lean();
+          }).populate("course", "class_id title").lean();
 
           if (classOverlap) {
             const dayStr = weekdayNames[classOverlap.weekday] || `Thứ ${classOverlap.weekday}`;
@@ -265,7 +274,7 @@ export const POST = async (request) => {
             const eLabel = minutesToLabel(classOverlap.time_slot?.end_time || 0, grid.data);
             courseConflicts.push({
               at: occ.start,
-              reason: `Class conflict with "${classOverlap.title}" on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+              reason: `Class conflict with ${conflictLabel(classOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
             });
             continue;
           }

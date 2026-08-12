@@ -74,7 +74,7 @@
       @apply bg-red-200 ml-2;
     }
     &.review {
-      @apply bg-lime-200/50 dark:bg-lime-900/50 border-lime-600 border-dashed border-2 pointer-events-none;
+      @apply bg-lime-200/50 dark:bg-lime-900/50 border-lime-600 border-dashed border-2 pointer-events-none text-lime-900 dark:text-lime-100;
     }
     &.active {
       @apply bg-lime-200/80 dark:bg-lime-900/50 border-lime-600 border-2 pointer-events-none text-lime-900 dark:text-lime-100;
