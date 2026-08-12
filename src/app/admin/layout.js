@@ -13,7 +13,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, Share2Icon } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 
 // Grouped admin navigation. A standalone "Tổng quan" plus three dropdown groups
@@ -37,16 +37,12 @@ const NAV = [
       { key: "admin.nav.room", path: "/admin/room" },
       { key: "admin.nav.classGroups", path: "/admin/class" },
       { key: "admin.nav.users", path: "/admin/user" },
-    ],
-  },
-  {
-    type: "group",
-    label: "admin.grp.system",
-    items: [
       { key: "admin.nav.terms", path: "/admin/terms" },
-      { key: "admin.nav.viewShare", path: "/admin/view-share" },
     ],
   },
+  // Sharing stands on its own with a share icon — it's a distinct action, not a
+  // config category.
+  { type: "link", key: "admin.nav.viewShare", path: "/admin/view-share", icon: Share2Icon },
 ];
 
 // The dashboard ("/admin") must match EXACTLY — otherwise startsWith("/admin/")
@@ -97,9 +93,13 @@ export default function Layout({ children }) {
           {NAV.map((node) => {
             if (node.type === "link") {
               const active = isPathActive(pathname, node.path);
+              const Icon = node.icon;
               return (
                 <NavbarItem key={node.path} isActive={active}>
-                  <Link href={node.path} className={pill(active)}>{t(node.key)}</Link>
+                  <Link href={node.path} className={`${pill(active)} inline-flex items-center gap-1.5`}>
+                    {Icon && <Icon size={14} />}
+                    {t(node.key)}
+                  </Link>
                 </NavbarItem>
               );
             }
