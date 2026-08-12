@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import moment from "moment";
@@ -34,6 +34,47 @@ export default function MeetingPlannerPage() {
   const [buffer, setBuffer] = useState(60);
   const [weekDate, setWeekDate] = useState(moment().format("YYYY-MM-DD"));
   const [sel, setSel] = useState({ d: 0, t: 0 });
+
+  // Preferred region(s): a set of "d-t" cell keys. Drag to paint (possibly
+  // several disjoint rectangles); recommendations then only consider these.
+  const [pref, setPref] = useState(() => new Set());
+  const [openG, setOpenG] = useState({ travel: true, teach: false, free: false });
+  const tog = (k) => setOpenG((o) => ({ ...o, [k]: !o[k] }));
+  const drag = useRef({ pressing: false, moved: false, erase: false, start: null, base: null });
+
+  const key = (d, t) => `${d}-${t}`;
+  const rectKeys = (a, b) => {
+    const ks = [];
+    const [d0, d1] = [Math.min(a.d, b.d), Math.max(a.d, b.d)];
+    const [t0, t1] = [Math.min(a.t, b.t), Math.max(a.t, b.t)];
+    for (let d = d0; d <= d1; d++) for (let t = t0; t <= t1; t++) ks.push(key(d, t));
+    return ks;
+  };
+  const applyRect = useCallback((d, t) => {
+    const st = drag.current;
+    if (!st.start) return;
+    const next = new Set(st.base);
+    for (const k of rectKeys(st.start, { d, t })) st.erase ? next.delete(k) : next.add(k);
+    setPref(next);
+  }, []);
+  const onCellDown = (d, t) => (e) => {
+    e.preventDefault();
+    drag.current = { pressing: true, moved: false, erase: pref.has(key(d, t)), start: { d, t }, base: new Set(pref) };
+  };
+  const onCellEnter = (d, t) => () => {
+    if (!drag.current.pressing) return;
+    drag.current.moved = true;
+    applyRect(d, t);
+  };
+  useEffect(() => {
+    const up = () => {
+      const st = drag.current;
+      if (st.pressing && !st.moved && st.start) setSel(st.start); // plain click → detail
+      drag.current.pressing = false;
+    };
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, []);
 
   const DAYS = lang === "en"
     ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -97,12 +138,39 @@ export default function MeetingPlannerPage() {
     const all = [];
     for (let d = 0; d < DAYS.length; d++)
       for (let t = 0; t < TIET.length; t++) {
+        // When a preferred region is drawn, only recommend inside it.
+        if (pref.size > 0 && !pref.has(`${d}-${t}`)) continue;
         const g = agg(d, t);
         all.push({ d, t, free: g.free.length });
       }
-    return all.sort((a, b) => b.free - a.free).slice(0, 4);
+    return all.sort((a, b) => b.free - a.free).slice(0, 5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teachers, busy, campus, dur, buffer, TIET]);
+  }, [teachers, busy, campus, dur, buffer, TIET, pref]);
+
+  // Compact label of the preferred region(s): "Thứ 2 T1–5 · Thứ 6 T5–10".
+  const prefLabel = useMemo(() => {
+    if (!pref.size) return "";
+    const byDay = {};
+    for (const k of pref) {
+      const [d, t] = k.split("-").map(Number);
+      (byDay[d] ||= []).push(t);
+    }
+    const parts = [];
+    Object.keys(byDay).map(Number).sort((a, b) => a - b).forEach((d) => {
+      const ts = byDay[d].sort((a, b) => a - b);
+      const runs = [];
+      let s = ts[0], p = ts[0];
+      for (let i = 1; i < ts.length; i++) {
+        if (ts[i] === p + 1) p = ts[i];
+        else { runs.push([s, p]); s = p = ts[i]; }
+      }
+      runs.push([s, p]);
+      const label = runs.map(([a, b]) => (a === b ? `T${TIET[a]?.label}` : `T${TIET[a]?.label}–${TIET[b]?.label}`)).join(", ");
+      parts.push(`${DAYS[d]} ${label}`);
+    });
+    return parts.join(" · ");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pref, TIET]);
 
   const cur = agg(sel.d, sel.t);
   const [S, E] = win(sel.t);
@@ -199,13 +267,31 @@ export default function MeetingPlannerPage() {
                       {DAYS.map((_, d) => {
                         const g = agg(d, ri);
                         const nf = g.free.length, nt = g.teach.length, nv = g.travel.length;
-                        const isSel = sel.d === d && sel.t === ri;
+                        // Highlight the whole meeting window (start tiết … +duration).
+                        const inSel = d === sel.d && ri >= sel.t && ri < sel.t + dur;
+                        const isSelStart = d === sel.d && ri === sel.t;
+                        const inPref = pref.has(key(d, ri));
+                        const dimmed = pref.size > 0 && !inPref && !inSel;
+                        const rings = [
+                          inPref ? "inset 0 0 0 2px var(--heroui-secondary,#7c3aed)" : "",
+                          inSel ? "0 0 0 2px var(--heroui-primary,#4256d0)" : "",
+                        ].filter(Boolean).join(", ");
                         return (
                           <td key={d} className="p-[2px]">
-                            <button onClick={() => setSel({ d, t: ri })}
+                            <button
+                              onMouseDown={onCellDown(d, ri)}
+                              onMouseEnter={onCellEnter(d, ri)}
+                              draggable={false}
                               title={`${nf} rảnh · ${nt} bận dạy · ${nv} di chuyển`}
-                              className="w-full h-12 rounded-lg relative flex items-center justify-center transition hover:bg-default-100"
-                              style={{ outline: isSel ? "2px solid var(--heroui-primary,#4256d0)" : "none", outlineOffset: 1 }}>
+                              className="w-full h-12 rounded-lg relative flex items-center justify-center transition select-none hover:bg-default-100"
+                              style={{
+                                opacity: dimmed ? 0.4 : 1,
+                                zIndex: inSel ? 2 : 1,
+                                boxShadow: rings || "none",
+                                background: inSel
+                                  ? "var(--heroui-primary-50,#eef1ff)"
+                                  : inPref ? "var(--heroui-secondary-50,#f2ecfe)" : undefined,
+                              }}>
                               <span className="relative block" style={{ width: 34, height: 34, borderRadius: "50%", background: donut(nf, nt, nv, total) }}>
                                 <span className="absolute rounded-full bg-content1 flex items-center justify-center"
                                   style={{ inset: 6 }}>
@@ -251,31 +337,63 @@ export default function MeetingPlannerPage() {
                 ))}
               </div>
             </div>
-            {/* Actionable groups first (who's blocked), then the free roster. */}
-            <div>
-              <h3 className="text-[11px] uppercase tracking-wide text-default-400 mb-1.5">🚗 {t("meet.travelList")} ({cur.travel.length})</h3>
-              <div className="flex flex-col gap-1">
-                {cur.travel.length ? cur.travel.map((x) => (
-                  <span key={x.p.email} className="text-[11px] text-default-500 border border-dashed border-warning-300 rounded-lg px-2 py-1">
-                    🚗 {shortName(x.p.name)} — {x.r}
-                  </span>
-                )) : <span className="text-default-300 text-xs">—</span>}
+            {/* Collapsible groups — actionable ones first. */}
+            <div className="flex flex-col divide-y divide-default-100 border border-default-100 rounded-lg">
+              <div>
+                <button onClick={() => tog("travel")} className="w-full flex items-center gap-2 px-2.5 py-2 text-left">
+                  <span className="text-default-400 text-[10px] transition-transform" style={{ transform: openG.travel ? "rotate(90deg)" : "none" }}>▶</span>
+                  <span className="text-[11px] uppercase tracking-wide text-default-500 font-semibold">🚗 {t("meet.travelList")}</span>
+                  <span className="ml-auto text-xs font-bold tabular-nums" style={{ color: C_TRAVEL }}>{cur.travel.length}</span>
+                </button>
+                {openG.travel && (
+                  <div className="flex flex-col gap-1 px-2.5 pb-2">
+                    {cur.travel.length ? cur.travel.map((x) => (
+                      <span key={x.p.email} className="text-[11px] text-default-500 border border-dashed border-warning-300 rounded-lg px-2 py-1">
+                        🚗 {shortName(x.p.name)} — {x.r}
+                      </span>
+                    )) : <span className="text-default-300 text-xs">—</span>}
+                  </div>
+                )}
               </div>
-            </div>
-            <div>
-              <h3 className="text-[11px] uppercase tracking-wide text-default-400 mb-1.5">🏫 {t("meet.teachList")} ({cur.teach.length})</h3>
-              <div className="flex flex-wrap gap-1.5">{who(cur.teach, "#3b6fd6")}</div>
-            </div>
-            <div>
-              <h3 className="text-[11px] uppercase tracking-wide text-default-400 mb-1.5">✅ {t("meet.freeList")} ({cur.free.length})</h3>
-              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">{who(cur.free, "var(--free,#12b886)")}</div>
+              <div>
+                <button onClick={() => tog("teach")} className="w-full flex items-center gap-2 px-2.5 py-2 text-left">
+                  <span className="text-default-400 text-[10px] transition-transform" style={{ transform: openG.teach ? "rotate(90deg)" : "none" }}>▶</span>
+                  <span className="text-[11px] uppercase tracking-wide text-default-500 font-semibold">🏫 {t("meet.teachList")}</span>
+                  <span className="ml-auto text-xs font-bold tabular-nums" style={{ color: C_TEACH }}>{cur.teach.length}</span>
+                </button>
+                {openG.teach && <div className="flex flex-wrap gap-1.5 px-2.5 pb-2">{who(cur.teach, C_TEACH)}</div>}
+              </div>
+              <div>
+                <button onClick={() => tog("free")} className="w-full flex items-center gap-2 px-2.5 py-2 text-left">
+                  <span className="text-default-400 text-[10px] transition-transform" style={{ transform: openG.free ? "rotate(90deg)" : "none" }}>▶</span>
+                  <span className="text-[11px] uppercase tracking-wide text-default-500 font-semibold">✅ {t("meet.freeList")}</span>
+                  <span className="ml-auto text-xs font-bold tabular-nums" style={{ color: C_FREE }}>{cur.free.length}</span>
+                </button>
+                {openG.free && <div className="flex flex-wrap gap-1.5 px-2.5 pb-2 max-h-44 overflow-y-auto">{who(cur.free, C_FREE)}</div>}
+              </div>
             </div>
             <Button color="primary" startContent={<DoorOpenIcon size={16} />} onPress={onOpen} isDisabled={!meetingStart}>
               {t("meet.bookMeeting")}
             </Button>
           </div>
           <div className="px-4 py-3 border-t border-default-100">
-            <h3 className="text-[11px] uppercase tracking-wide text-default-400 mb-2">★ {t("meet.bestSlots")}</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[11px] uppercase tracking-wide text-default-400">
+                ★ {pref.size ? t("meet.bestInRegion") : t("meet.bestSlots")}
+              </h3>
+              {pref.size > 0 && (
+                <button onClick={() => setPref(new Set())} className="text-[11px] text-danger hover:underline">
+                  {t("meet.clearRegion")}
+                </button>
+              )}
+            </div>
+            {pref.size > 0 ? (
+              <div className="mb-2 text-[11px] bg-secondary-50 text-secondary-700 rounded-lg px-2.5 py-1.5">
+                📍 {prefLabel}
+              </div>
+            ) : (
+              <p className="text-[11px] text-default-400 mb-2">{t("meet.dragHint")}</p>
+            )}
             <div className="flex flex-col gap-1.5">
               {best.map((s, i) => (
                 <button key={i} onClick={() => setSel({ d: s.d, t: s.t })}
