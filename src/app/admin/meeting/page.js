@@ -121,14 +121,16 @@ export default function MeetingPlannerPage() {
     () => [...new Set(allTeachers.map((x) => x.department).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
     [allTeachers]
   );
-  const hasNoDept = useMemo(() => allTeachers.some((x) => !x.department), [allTeachers]);
   // Teacher count per department (+ NO_DEPT) — shown in the dropdown.
   const deptCount = useMemo(() => {
     const m = {};
     allTeachers.forEach((x) => { const k = x.department || NO_DEPT; m[k] = (m[k] || 0) + 1; });
     return m;
   }, [allTeachers]);
-  const allDeptKeys = useMemo(() => [...deptList, ...(hasNoDept ? [NO_DEPT] : [])], [deptList, hasNoDept]);
+  // Always expose the "no department" bucket as a stable filter option, even
+  // when every current person happens to have a department (count shows 0) —
+  // otherwise the option would flicker in/out as data changes.
+  const allDeptKeys = useMemo(() => [...deptList, NO_DEPT], [deptList]);
   // null until initialised; default = every real department (NOT "no department").
   const [selDepts, setSelDepts] = useState(null);
   useEffect(() => {
@@ -298,16 +300,14 @@ export default function MeetingPlannerPage() {
                     {d}
                   </SelectItem>
                 )),
-                ...(hasNoDept ? [
-                  <SelectItem
-                    key={NO_DEPT}
-                    textValue="Không có bộ môn"
-                    className="text-warning-600"
-                    endContent={<span className="text-tiny text-default-400 tabular-nums">{deptCount[NO_DEPT] || 0}</span>}
-                  >
-                    {t("meet.noDept")}
-                  </SelectItem>,
-                ] : []),
+                <SelectItem
+                  key={NO_DEPT}
+                  textValue="Không có bộ môn"
+                  className="text-warning-600"
+                  endContent={<span className="text-tiny text-default-400 tabular-nums">{deptCount[NO_DEPT] || 0}</span>}
+                >
+                  {t("meet.noDept")}
+                </SelectItem>,
               ]}
             </Select>
             <div className="flex flex-col gap-1 pb-0.5">
