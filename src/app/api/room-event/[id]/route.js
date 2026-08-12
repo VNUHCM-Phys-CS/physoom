@@ -55,6 +55,28 @@ export const PUT = async (request, { params }) => {
     }
 
     const updated = await CalendarEvent.findByIdAndUpdate(id, update, { new: true }).populate("room");
+
+    // Notify people newly added as host/attendee (they weren't invited before)
+    // so the event lands on their calendar with a heads-up.
+    try {
+      const before = new Set([...(event.host ?? []), ...(event.attendees ?? [])]);
+      const added = [...(updated.host ?? []), ...(updated.attendees ?? [])].filter(
+        (e) => e && e !== session.user.email && !before.has(e)
+      );
+      if (added.length) {
+        const when = `${moment(updated.start).format("DD/MM HH:mm")}–${moment(updated.end).format("HH:mm")}`;
+        await notify([...new Set(added)], {
+          type: "info",
+          title: "Bạn được mời tham dự",
+          message: `"${updated.title}" tại ${updated.room?.title || "phòng"} — ${when}`,
+          link: "/booking",
+          event: updated._id,
+        });
+      }
+    } catch (e) {
+      console.error("notify(edit-invite) failed:", e);
+    }
+
     return NextResponse.json({ success: true, event: updated });
   } catch (err) {
     console.log(err);

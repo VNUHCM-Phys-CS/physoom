@@ -537,6 +537,10 @@ export default function MeetingPlannerPage() {
         createdBy={session?.user?.email}
         initialStart={meetingStart ? meetingStart.format("YYYY-MM-DDTHH:mm") : null}
         initialEnd={meetingEnd ? meetingEnd.format("YYYY-MM-DDTHH:mm") : null}
+        // Pre-add the people whose availability is shown (the selected
+        // department(s)) as attendees, so booking the meeting puts it on their
+        // personal calendar and notifies them. The admin can still edit the list.
+        initialAttendees={teachers.map((x) => x.email).filter(Boolean)}
         onSuccess={() => {}}
       />
     </div>

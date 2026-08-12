@@ -13,7 +13,11 @@ export default function UserCalendarProvider({children, email}) {
           {
             method: "POST",
             body: JSON.stringify({
-              filter: { teacher_email: email },
+              // Show a person's own calendar: classes they teach PLUS meetings /
+              // events they host or are invited to (attendees). Without the host/
+              // attendees match, a meeting booked for a group wouldn't appear on
+              // the members' calendars.
+              filter: { $or: [{ teacher_email: email }, { host: email }, { attendees: email }] },
             }),
           },
         ],

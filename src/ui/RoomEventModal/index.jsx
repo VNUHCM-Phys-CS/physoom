@@ -131,6 +131,8 @@ export function RoomEventModal({
   initialStart,
   initialEnd,
   initialRoomId,
+  initialAttendees,
+  initialHost,
 }) {
   const { t } = useI18n();
   const isEdit = !!event;
@@ -216,8 +218,10 @@ export function RoomEventModal({
       const initDuration = initStart && initEnd ? String(moment(initEnd).diff(moment(initStart), "minutes")) : "";
       setForm({ roomId: initialRoomId || "", title: "", start: initStart, end: initEnd, duration: initDuration, note: "" });
       setRoomInput(preRoom?.title || "");
-      setHost([]);
-      setAttendees([]);
+      // Pre-fill host / attendees (e.g. the meeting planner passes the selected
+      // department's members so booking a group meeting adds them automatically).
+      setHost(Array.isArray(initialHost) ? [...new Set(initialHost.filter(Boolean))] : []);
+      setAttendees(Array.isArray(initialAttendees) ? [...new Set(initialAttendees.filter(Boolean))] : []);
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 

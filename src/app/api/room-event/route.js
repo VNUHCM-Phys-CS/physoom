@@ -139,6 +139,28 @@ export const POST = async (request) => {
 
     await newEvent.save();
 
+    // Notify the invited people (host + attendees) so the meeting/event shows on
+    // their personal calendar and they get a heads-up. Exclude the creator.
+    try {
+      const invited = [
+        ...(newEvent.host ?? []),
+        ...(newEvent.attendees ?? []),
+      ].filter((e) => e && e !== session.user.email);
+      if (invited.length) {
+        const room = await Room.findById(roomId, "title").lean();
+        const when = `${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}`;
+        await notify(invited, {
+          type: "info",
+          title: autoApprove ? "Bạn được mời tham dự" : "Bạn được mời tham dự (chờ duyệt)",
+          message: `"${title}" tại ${room?.title || "phòng"} — ${when}`,
+          link: "/booking",
+          event: newEvent._id,
+        });
+      }
+    } catch (e) {
+      console.error("notify(invite) failed:", e);
+    }
+
     // Notify room managers + admins when a request needs approval.
     if (!autoApprove) {
       try {

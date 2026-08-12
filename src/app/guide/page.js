@@ -244,7 +244,9 @@ const SECTIONS = {
       "Kéo chọn các khung giờ ưu tiên; hệ thống tính mức độ rảnh của mọi người theo khung đó.",
       "Lọc theo Bộ môn (chọn nhiều), có cả nhóm 'Không có bộ môn'; mặc định chọn tất cả trừ nhóm không bộ môn.",
       "Mỗi bộ môn hiện số lượng người; có nút 'Tất cả' / 'Bỏ chọn' để thao tác nhanh.",
-    ], tips: [{ type: "note", text: "Muốn lọc theo bộ môn cần người dùng đã có Bộ môn — cập nhật ở trang Người dùng." }]},
+      "Bấm 'Đặt lịch họp': thành viên của bộ môn đang lọc được tự thêm vào Người tham dự (vẫn sửa được).",
+      "Khi đặt xong, mỗi người tham dự nhận thông báo và cuộc họp hiện trong lịch cá nhân của họ.",
+    ], tips: [{ type: "note", text: "Muốn lọc/mời theo bộ môn cần người dùng đã có Bộ môn — cập nhật ở trang Người dùng." }]},
 
     { id: "users", audience: "admin", icon: UsersIcon, title: "Người dùng & bộ môn", intro: "Quản trị → Người dùng.", points: [
       "Mỗi người có thể gắn Bộ môn, Học hàm, Học vị — dùng cho lọc lịch họp và hiển thị.",
@@ -348,7 +350,9 @@ const SECTIONS = {
       "Drag to select preferred slots; the system scores everyone's availability for them.",
       "Filter by Department (multi-select), including a 'No department' group; by default all are selected except 'No department'.",
       "Each department shows its headcount, with 'All' / 'Clear' shortcuts.",
-    ], tips: [{ type: "note", text: "Department filtering needs users to have a Department set — update it on the Users page." }]},
+      "Click 'Book meeting': the filtered department's members are auto-added as Attendees (still editable).",
+      "Once booked, every attendee gets a notification and the meeting appears on their personal calendar.",
+    ], tips: [{ type: "note", text: "Filtering/inviting by department needs users to have a Department set — update it on the Users page." }]},
 
     { id: "users", audience: "admin", icon: UsersIcon, title: "Users & departments", intro: "Admin → Users.", points: [
       "Each person can carry a Department, Rank and Degree — used for meeting filters and display.",
