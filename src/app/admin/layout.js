@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { key: "admin.nav.courseBooking", path: "/admin/booking" },
   { key: "admin.nav.roomBooking", path: "/admin/room-booking" },
   { key: "admin.nav.meeting", path: "/admin/meeting" },
+  { key: "admin.nav.classGroups", path: "/admin/class" },
   { key: "admin.nav.terms", path: "/admin/terms" },
   { key: "admin.nav.users", path: "/admin/user" },
   { key: "admin.nav.viewShare", path: "/admin/view-share" },

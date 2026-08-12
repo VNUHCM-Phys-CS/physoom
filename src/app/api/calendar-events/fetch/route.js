@@ -5,7 +5,8 @@ import { revalidateTag } from "next/cache";
 import CalendarEvent from "@/models/calendarEvent";
 import Course from "@/models/course";
 import "@/models/room"; // register Room schema for .populate("room")
-import { classGroupRegex } from "@/lib/classGroup";
+import ClassGroupOverride from "@/models/classGroupOverride";
+import { classGroupQuery } from "@/lib/classGroup";
 
 export const POST = async (request) => {
   try {
@@ -25,13 +26,11 @@ export const POST = async (request) => {
       if (!Array.isArray(class_id)) {
         class_id = [class_id];
       }
-      let query = { class_id };
-      if (isApproximate) {
-        // Merge only trailing sub-section letters (_A/_B/_C or glued) into their
-        // group; keep 25VLH, _DKD1, _DKD2 distinct. See @/lib/classGroup.
-        query = { $or: class_id.map((id) => ({ class_id: classGroupRegex(id) })) };
-      }
-      
+      // Merge only trailing sub-section letters (_A/_B/_C or glued) into their
+      // group; keep 25VLH, _DKD1, _DKD2 distinct. Manual overrides win.
+      const overrides = await ClassGroupOverride.find({}, "classId group").lean();
+      const query = classGroupQuery({ classIds: class_id, isApproximate, overrides });
+
       const courses = await Course.find(query, ["_id"]).lean();
       
       const events = await CalendarEvent.find({

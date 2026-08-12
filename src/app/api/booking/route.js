@@ -7,7 +7,8 @@ import Course from "@/models/course";
 import Room from "@/models/room"; // register Room schema for .populate("room")
 import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
-import { classGroupRegex } from "@/lib/classGroup";
+import ClassGroupOverride from "@/models/classGroupOverride";
+import { classGroupQuery } from "@/lib/classGroup";
 
 /**
  * Transforms a deduplicated representative CalendarEvent into the Booking-compatible
@@ -105,11 +106,9 @@ export const POST = async (request) => {
         let class_id = filter['course.class_id'];
         if (!Array.isArray(class_id)) class_id = [class_id];
 
-        let query = { class_id };
-        if (isApproximate) {
-          // Same grouping rule as calendar-events/fetch. See @/lib/classGroup.
-          query = { $or: class_id.map((id) => ({ class_id: classGroupRegex(id) })) };
-        }
+        // Same grouping rule as calendar-events/fetch, honouring overrides.
+        const overrides = await ClassGroupOverride.find({}, "classId group").lean();
+        const query = classGroupQuery({ classIds: class_id, isApproximate, overrides });
         const courses = await Course.find(query, ['_id']).lean();
         ceFilter.course = { $in: courses.map(c => c._id) };
       }
