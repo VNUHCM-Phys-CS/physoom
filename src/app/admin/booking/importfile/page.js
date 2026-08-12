@@ -318,7 +318,11 @@ const Page = () => {
             continue;
           }
 
-          const grid = location === "NVC" ? defaultGridNVC : defaultGridLT;
+          // Use the matched room's OWN campus for the grid — the pre-loaded room
+          // lookup above can miss on a title-format mismatch and leave `location`
+          // undefined, which would silently pick the wrong (LT) grid for a cs1 room.
+          const effLoc = room?.[0]?.location || location;
+          const grid = effLoc === "NVC" ? defaultGridNVC : defaultGridLT;
           const weekday = +_booking["Thứ"];
           const duration = +course[0].credit;
           const precision = getSnapFromDuration(duration, 1);
@@ -336,7 +340,7 @@ const Page = () => {
 
           let booking = {
             teacher_email: _booking._teacher_emails?.map((e) => name2email[e])?.filter((d) => d),
-            room: { ...room[0], location },
+            room: { ...room[0], location: effLoc },
             course: course[0],
             time_slot: {},
           };

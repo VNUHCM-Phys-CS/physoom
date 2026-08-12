@@ -224,6 +224,11 @@ export const POST = async (request) => {
         const t = ev?.title || ev?.course?.title || "?";
         return clsStr ? `"${t}" [${clsStr}]` : `"${t}"`;
       };
+      // Tiết labels must use the CONFLICTING event's own campus grid — NVC and LT
+      // have different period times, so labelling a cross-campus clash with this
+      // course's grid would show the wrong tiết.
+      const gridDataOf = (ev) =>
+        ((ev?.location || ev?.room?.location || location) === "LT" ? defaultGridLT : defaultGridNVC).data;
 
       // Block against both approved and pending bookings so two requests can't
       // silently claim the same room/teacher slot (which would collide once
@@ -242,8 +247,9 @@ export const POST = async (request) => {
 
         if (roomOverlap) {
           const dayStr = weekdayNames[roomOverlap.weekday] || `Thứ ${roomOverlap.weekday}`;
-          const sLabel = minutesToLabel(roomOverlap.time_slot?.start_time || 0, grid.data);
-          const eLabel = minutesToLabel(roomOverlap.time_slot?.end_time || 0, grid.data);
+          const oGrid = gridDataOf(roomOverlap);
+          const sLabel = minutesToLabel(roomOverlap.time_slot?.start_time || 0, oGrid);
+          const eLabel = minutesToLabel(roomOverlap.time_slot?.end_time || 0, oGrid);
           const when = moment(occ.start).utcOffset(420).format("DD/MM/YYYY");
           courseConflicts.push({
             at: occ.start,
@@ -264,8 +270,9 @@ export const POST = async (request) => {
 
           if (teacherOverlap) {
             const dayStr = weekdayNames[teacherOverlap.weekday] || `Thứ ${teacherOverlap.weekday}`;
-            const sLabel = minutesToLabel(teacherOverlap.time_slot?.start_time || 0, grid.data);
-            const eLabel = minutesToLabel(teacherOverlap.time_slot?.end_time || 0, grid.data);
+            const oGrid = gridDataOf(teacherOverlap);
+            const sLabel = minutesToLabel(teacherOverlap.time_slot?.start_time || 0, oGrid);
+            const eLabel = minutesToLabel(teacherOverlap.time_slot?.end_time || 0, oGrid);
             // Name the double-booked lecturer(s): those shared by both bookings.
             const clashEmails = (d.teacher_email || []).filter((e) =>
               (teacherOverlap.teacher_email || []).some((x) => String(x).toLowerCase() === String(e).toLowerCase())
@@ -293,8 +300,9 @@ export const POST = async (request) => {
 
           if (classOverlap) {
             const dayStr = weekdayNames[classOverlap.weekday] || `Thứ ${classOverlap.weekday}`;
-            const sLabel = minutesToLabel(classOverlap.time_slot?.start_time || 0, grid.data);
-            const eLabel = minutesToLabel(classOverlap.time_slot?.end_time || 0, grid.data);
+            const oGrid = gridDataOf(classOverlap);
+            const sLabel = minutesToLabel(classOverlap.time_slot?.start_time || 0, oGrid);
+            const eLabel = minutesToLabel(classOverlap.time_slot?.end_time || 0, oGrid);
             const when = moment(occ.start).utcOffset(420).format("DD/MM/YYYY");
             courseConflicts.push({
               at: occ.start,
