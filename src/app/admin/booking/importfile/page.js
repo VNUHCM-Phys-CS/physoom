@@ -382,14 +382,20 @@ const Page = () => {
           const wasOverwrite = !!resData.created?.[0]?.overwritten;
 
           if (resData.conflicts?.length > 0) {
-            // Dedupe: the API returns up to 3 example occurrences per conflict,
-            // but their reason strings are keyed on weekday+tiết so repeat weekly
-            // clashes produce identical text — collapse them.
-            const reason = [...new Set(
-              resData.conflicts
-                .flatMap((c) => (c.examples?.map((e) => e.reason) || [c.reason]))
-                .filter(Boolean)
-            )].join("; ");
+            // Dedupe: the API returns up to 3 example occurrences per conflict —
+            // the same weekday+tiết clash on consecutive weeks. Collapse them by
+            // ignoring the "(ngày …)" suffix, keeping the first (with its date).
+            const _seen = new Set();
+            const reason = resData.conflicts
+              .flatMap((c) => (c.examples?.map((e) => e.reason) || [c.reason]))
+              .filter(Boolean)
+              .filter((rsn) => {
+                const key = rsn.replace(/\s*\(ngày [^)]*\)/g, "");
+                if (_seen.has(key)) return false;
+                _seen.add(key);
+                return true;
+              })
+              .join("; ");
             // Some occurrences may still have been placed alongside the clash.
             add(index, _booking, "conflict",
               madeCount ? `Trùng lịch (xếp được ${madeCount} buổi): ${reason}` : `Trùng lịch: ${reason}`,
