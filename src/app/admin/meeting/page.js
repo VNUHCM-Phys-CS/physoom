@@ -276,38 +276,49 @@ export default function MeetingPlannerPage() {
         <Input type="date" size="sm" label={t("meet.week")} className="max-w-[180px]"
           value={weekDate} onChange={(e) => setWeekDate(e.target.value)} />
         {deptList.length > 0 && (
-          <div className="flex items-end gap-1">
+          <div className="flex items-end gap-2">
             <Select
               label={t("meet.deptFilter")}
               size="sm"
               selectionMode="multiple"
-              className="max-w-[240px] min-w-[180px]"
+              className="w-[240px]"
               selectedKeys={selKeys}
               onSelectionChange={(keys) => setSelDepts(new Set(Array.from(keys).map(String)))}
               renderValue={(items) => `${items.length} ${t("meet.deptUnit")}`}
+              popoverProps={{ classNames: { content: "min-w-[300px]" } }}
+              classNames={{ listbox: "max-h-[320px]" }}
             >
               {[
                 ...deptList.map((d) => (
-                  <SelectItem key={d} textValue={d}>
-                    {d} <span className="text-default-400">({deptCount[d] || 0})</span>
+                  <SelectItem
+                    key={d}
+                    textValue={d}
+                    endContent={<span className="text-tiny text-default-400 tabular-nums">{deptCount[d] || 0}</span>}
+                  >
+                    {d}
                   </SelectItem>
                 )),
                 ...(hasNoDept ? [
-                  <SelectItem key={NO_DEPT} textValue="Không có bộ môn">
-                    ({t("meet.noDept")}) <span className="text-default-400">({deptCount[NO_DEPT] || 0})</span>
+                  <SelectItem
+                    key={NO_DEPT}
+                    textValue="Không có bộ môn"
+                    className="text-warning-600"
+                    endContent={<span className="text-tiny text-default-400 tabular-nums">{deptCount[NO_DEPT] || 0}</span>}
+                  >
+                    {t("meet.noDept")}
                   </SelectItem>,
                 ] : []),
               ]}
             </Select>
             <div className="flex flex-col gap-1 pb-0.5">
-              <button onClick={() => setSelDepts(new Set(allDeptKeys))}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-default-100 hover:bg-default-200 whitespace-nowrap">
+              <Button size="sm" variant="flat" className="h-7 min-w-0 px-2 text-tiny"
+                onPress={() => setSelDepts(new Set(allDeptKeys))}>
                 {t("meet.selectAll")}
-              </button>
-              <button onClick={() => setSelDepts(new Set())}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-default-100 hover:bg-default-200 whitespace-nowrap">
+              </Button>
+              <Button size="sm" variant="flat" className="h-7 min-w-0 px-2 text-tiny"
+                onPress={() => setSelDepts(new Set())}>
                 {t("meet.clearAll")}
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -508,12 +508,6 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
   const { isOpen: isAddOpen, onOpen: onAddOpen, onOpenChange: onAddOpenChange } = useDisclosure();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure();
 
-  const handleSelectSlot = useCallback(({ start, end }) => {
-    setSlotStart(start);
-    setSlotEnd(end);
-    onAddOpen();
-  }, [onAddOpen]);
-
   const handleAddButton = useCallback(() => {
     setSlotStart(null);
     setSlotEnd(null);
@@ -549,6 +543,22 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
     }));
     return [...custom, ...classes];
   }, [customEvents, classEvents, roomFilter]);
+
+  const handleSelectSlot = useCallback(({ start, end }) => {
+    // Warn on a slot that overlaps a class / approved event (would 409 on submit).
+    const clash = calEvents.find(
+      (e) => (e.eventType === "class" || e.resource?.status === "approved") && start < e.end && e.start < end
+    );
+    if (clash) {
+      const when = `${moment(clash.start).format("HH:mm")}–${moment(clash.end).format("HH:mm")}`;
+      const kind = clash.eventType === "class" ? t("rb.slotHasClass") : t("rb.slotHasEvent");
+      toast.warning(`${kind}: "${clash.title}" (${when})`);
+      return;
+    }
+    setSlotStart(start);
+    setSlotEnd(end);
+    onAddOpen();
+  }, [calEvents, onAddOpen, t]);
 
   // Auto-open event detail when navigated from another page
   useEffect(() => {

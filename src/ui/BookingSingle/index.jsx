@@ -248,7 +248,20 @@ function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick,
     return { style: { backgroundColor: bg, borderRadius: "6px", color: "white", border: "none", opacity: 0.9 } };
   };
 
-  const handleSlot = useCallback(({ start, end }) => { setSlotStart(start); setSlotEnd(end); onBookOpen(); }, [onBookOpen]);
+  const handleSlot = useCallback(({ start, end }) => {
+    // Warn immediately if the dragged slot overlaps a class or an already-approved
+    // event (those would be rejected with a 409 on submit anyway).
+    const clash = calEvents.find(
+      (e) => (e.eventType === "class" || e.resource?.status === "approved") && start < e.end && e.start < end
+    );
+    if (clash) {
+      const when = `${moment(clash.start).format("HH:mm")}–${moment(clash.end).format("HH:mm")}`;
+      const kind = clash.eventType === "class" ? t("rb.slotHasClass") : t("rb.slotHasEvent");
+      toast.warning(`${kind}: "${clash.title}" (${when})`);
+      return;
+    }
+    setSlotStart(start); setSlotEnd(end); onBookOpen();
+  }, [calEvents, onBookOpen, t]);
   const handleAddBtn = useCallback(() => { setSlotStart(null); setSlotEnd(null); onBookOpen(); }, [onBookOpen]);
 
   return (
