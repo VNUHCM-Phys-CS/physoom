@@ -106,17 +106,13 @@ export const POST = async (request) => {
 
         let query = { class_id };
         if (isApproximate) {
+          // Same grouping rule as calendar-events/fetch: only a trailing letter
+          // right after a digit (e.g. _DKD1A → _DKD1) marks a sub-section of the
+          // same class. Different bases (25VLH vs _DKD1 vs _DKD2) stay separate.
           const regexFilters = class_id.map((id) => {
-            if (id.includes("_")) {
-              return {
-                $or: [
-                  { class_id: { $regex: `^${id}$`, $options: "i" } },
-                  { class_id: { $regex: `^${id.split("_")[0]}$`, $options: "i" } },
-                ],
-              };
-            } else {
-              return { class_id: { $regex: `^${id}(_[A-Za-z0-9])?$`, $options: "i" } };
-            }
+            const base = String(id).replace(/(\d)[A-Za-z]$/, "$1");
+            const esc = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            return { class_id: { $regex: `^${esc}[A-Za-z]?$`, $options: "i" } };
           });
           query = { $or: regexFilters };
         }
