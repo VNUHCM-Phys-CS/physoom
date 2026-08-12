@@ -15,6 +15,7 @@ import {
 import DragDropzone from "@/ui/CSVReader/DragDropzone";
 import { useI18n } from "@/i18n/I18nProvider";
 import { DEPARTMENTS } from "@/lib/departments";
+import { downloadTemplate } from "@/lib/downloadTemplate";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -161,7 +162,17 @@ function ImportModal({ isOpen, onClose, onSuccess }) {
       <ModalContent>
         <ModalHeader>{t("user.importTitle")}</ModalHeader>
         <ModalBody className="flex flex-col gap-3">
-          <p className="text-xs text-default-400">{t("user.importDesc")}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-default-400">{t("user.importDesc")}</p>
+            <Button size="sm" variant="flat" startContent={<DownloadIcon size={14} />}
+              onPress={() => downloadTemplate(
+                "mau-nhap-nguoi-dung.xlsx",
+                IMPORT_COLUMNS.map((c) => c.name),
+                [["nguyenvana@hcmus.edu.vn", "Nguyễn Văn A", "1234", "Vật lý Tin học", "GV", "TS", "false"]]
+              )}>
+              {t("import.downloadTemplate")}
+            </Button>
+          </div>
           <DragDropzone
             collums={IMPORT_COLUMNS}
             INITIAL_VISIBLE_COLUMNS={["email", "name", "teacher_id", "department", "rank", "degree", "isAdmin"]}

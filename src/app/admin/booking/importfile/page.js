@@ -33,6 +33,8 @@ import {
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import { useI18n } from "@/i18n/I18nProvider";
+import { downloadTemplate } from "@/lib/downloadTemplate";
+import { DownloadIcon } from "lucide-react";
 
 const BOOKiNG_FIELDS = [
   { name: "Mã mh", uid: "Mã mh", sortable: true, isRequired: true },
@@ -255,6 +257,12 @@ const Page = () => {
       // Collect conflict reasons per course so they persist on the course
       // "track" (⚠) and can be reviewed after the import dialog is closed.
       const conflictByCourse = {};
+      // Courses whose OLD bookings have already been wiped this run. On the first
+      // (valid) row of a course we clear all its previous bookings, so a
+      // re-import that moved a session to another day/tiết can't leave a stale
+      // booking behind (which used to cause phantom class/room conflicts). Later
+      // rows of the SAME course then just add their session.
+      const clearedCourses = new Set();
       const add = (index, _b, status, detail, courseTitle) =>
         report.push({
           row: index + 1,
@@ -347,6 +355,22 @@ const Page = () => {
           booking = grid.calendar2booking({ weekday, start_time, end_time }, booking, precision);
           booking.time_slot.start_date = new Date(selectedTermObj.start);
           booking.time_slot.end_date = new Date(selectedTermObj.end);
+
+          // First valid session of this course in this run → wipe its old
+          // bookings so a moved/removed session doesn't linger.
+          const _cid = String(course[0]._id);
+          let _wasCleared = false;
+          if (!clearedCourses.has(_cid)) {
+            clearedCourses.add(_cid);
+            try {
+              const delRes = await fetch("/api/booking/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: "course", id: _cid }),
+              });
+              _wasCleared = delRes.ok;
+            } catch { /* ignore — fall through to create */ }
+          }
 
           const res = await fetch("/api/booking/create", {
             method: "POST",
@@ -485,6 +509,16 @@ const Page = () => {
             <SelectItem key={term._id} value={term._id}>{term.title}</SelectItem>
           ))}
         </Select>
+        <div className="flex justify-end">
+          <Button size="sm" variant="flat" startContent={<DownloadIcon size={14} />}
+            onPress={() => downloadTemplate(
+              "mau-nhap-lich.xlsx",
+              BOOKiNG_FIELDS.map((f) => f.name),
+              [["PHY00001", "Vật lý đại cương 1 (Cơ - Nhiệt)", "26VLH_DKD1", "", "60", "", "", "cs1:9,3", "4", "2", "4", "Đặng Hoài Trung", "", "", ""]]
+            )}>
+            {t("import.downloadTemplate")}
+          </Button>
+        </div>
       </div>
       <CSVReader
         path={"/api/booking/create"}

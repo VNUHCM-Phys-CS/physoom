@@ -2,6 +2,10 @@
 import React from "react";
 import CSVReader from "@/ui/CSVReader";
 import { useSession } from "next-auth/react";
+import { Button } from "@heroui/react";
+import { DownloadIcon } from "lucide-react";
+import { downloadTemplate } from "@/lib/downloadTemplate";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const COURSE_FIELDS = [
   { name: "Course name", uid: "title", sortable: true },
@@ -43,8 +47,19 @@ const INITIAL_VISIBLE_COLUMNS = COURSE_FIELDS.map((d) => d.uid);
 
 const Page = () => {
   const { data: session } = useSession();
+  const { t } = useI18n();
   return (
     <div>
+      <div className="flex justify-end mb-2">
+        <Button size="sm" variant="flat" startContent={<DownloadIcon size={14} />}
+          onPress={() => downloadTemplate(
+            "mau-nhap-mon-hoc.xlsx",
+            COURSE_FIELDS.map((c) => c.name),
+            [["Vật lý đại cương 1 (Cơ - Nhiệt)", "PHY00001", "", "26VLH_DKD1", "60", "4", "15", "NVC", "", "2026-09-14", "nguyenvana@hcmus.edu.vn", ""]]
+          )}>
+          {t("import.downloadTemplate")}
+        </Button>
+      </div>
       <CSVReader
         path={"/api/course/create"}
         email={session?.user?.email}
