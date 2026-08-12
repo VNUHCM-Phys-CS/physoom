@@ -55,11 +55,6 @@ export const POST = async (request) => {
               course_id: d.course_id,
               class_id: Array.isArray(d.class_id) ? d.class_id : [d.class_id],
               course_id_extend: d.course_id_extend,
-              // Title is part of course identity: a single Mã mh may carry a
-              // lecture AND its "Bài tập"/"Thực hành" rows, which must NOT
-              // collapse into one course (that merged their credit and made
-              // same-weekday sessions overwrite each other).
-              title: d.title,
             },
             update: { $set: d },
             upsert: true,

@@ -163,13 +163,18 @@ export const POST = async (request) => {
       const location = d.room?.location || d.location || "NVC";
       const grid = location === "LT" ? defaultGridLT : defaultGridNVC;
 
-      // Is this an overwrite? A course that already has a schedule on this
-      // weekday is being re-scheduled (e.g. a re-import), not newly booked —
-      // this must be reported as "ghi đè", NOT as a room/overlap conflict.
+      // Is this an overwrite? A course already scheduled at THIS exact slot
+      // (weekday + start tiết) is being re-scheduled (e.g. a re-import), not
+      // newly booked — report it as "ghi đè", NOT a room/overlap conflict.
+      // The slot must include start_time: one subject code (Mã mh) can carry a
+      // lecture AND its "Bài tập"/"Thực hành" on the SAME weekday at different
+      // tiết, all under one course — those are distinct sessions, not overwrites
+      // of each other.
       const prevCount = await CalendarEvent.countDocuments({
         course: courseId,
         type: 'class',
         weekday,
+        'time_slot.start_time': start_time,
       });
       const isOverwrite = prevCount > 0;
 
@@ -177,12 +182,16 @@ export const POST = async (request) => {
       if (d.series_id) {
         await CalendarEvent.deleteMany({ series_id: d.series_id });
       } else {
-        // Fallback or new booking: delete existing classes for this course
-        // that overlap with the same weekday (to allow multi-day schedules)
+        // Fallback or new booking: replace only the SAME slot (weekday + start
+        // tiết) for this course. Scoping by start_time is critical — a course
+        // with a lecture and its bài tập/thực hành on the same weekday must not
+        // have one session delete the other (which silently dropped sessions and
+        // caused phantom conflicts on re-import).
         await CalendarEvent.deleteMany({
           course: courseId,
           type: 'class',
-          weekday: weekday
+          weekday: weekday,
+          'time_slot.start_time': start_time,
         });
       }
 
