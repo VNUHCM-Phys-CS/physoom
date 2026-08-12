@@ -244,9 +244,10 @@ export const POST = async (request) => {
           const dayStr = weekdayNames[roomOverlap.weekday] || `Thứ ${roomOverlap.weekday}`;
           const sLabel = minutesToLabel(roomOverlap.time_slot?.start_time || 0, grid.data);
           const eLabel = minutesToLabel(roomOverlap.time_slot?.end_time || 0, grid.data);
+          const when = moment(occ.start).utcOffset(420).format("DD/MM/YYYY");
           courseConflicts.push({
             at: occ.start,
-            reason: `Room conflict with ${conflictLabel(roomOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+            reason: `PHÒNG trùng với ${conflictLabel(roomOverlap)} — ${dayStr} tiết ${sLabel}–${eLabel} (ngày ${when})`
           });
           continue;
         }
@@ -271,9 +272,10 @@ export const POST = async (request) => {
             );
             const names = await resolveNames(clashEmails.length ? clashEmails : d.teacher_email);
             const who = names.filter(Boolean).join(", ");
+            const when = moment(occ.start).utcOffset(420).format("DD/MM/YYYY");
             courseConflicts.push({
               at: occ.start,
-              reason: `Teacher conflict — GV ${who} — with ${conflictLabel(teacherOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+              reason: `GIẢNG VIÊN ${who} trùng với ${conflictLabel(teacherOverlap)} — ${dayStr} tiết ${sLabel}–${eLabel} (ngày ${when})`
             });
             continue;
           }
@@ -293,9 +295,10 @@ export const POST = async (request) => {
             const dayStr = weekdayNames[classOverlap.weekday] || `Thứ ${classOverlap.weekday}`;
             const sLabel = minutesToLabel(classOverlap.time_slot?.start_time || 0, grid.data);
             const eLabel = minutesToLabel(classOverlap.time_slot?.end_time || 0, grid.data);
+            const when = moment(occ.start).utcOffset(420).format("DD/MM/YYYY");
             courseConflicts.push({
               at: occ.start,
-              reason: `Class conflict with ${conflictLabel(classOverlap)} on ${dayStr} (Tiết ${sLabel}-${eLabel})`
+              reason: `LỚP trùng với ${conflictLabel(classOverlap)} — ${dayStr} tiết ${sLabel}–${eLabel} (ngày ${when})`
             });
             continue;
           }
