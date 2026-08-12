@@ -314,6 +314,67 @@ const Page = () => {
           tiet: _b["Tiết bắt đầu"] ?? "",
         });
 
+      // Warn on rows that share the SAME course identity (Mã mh + mã lớp 2 +
+      // Lớp) — those rows collapse into ONE course. That is legitimate for a
+      // lecture and its "Bài tập"/"Thực hành" (different tiết → they coexist),
+      // but two rows on the SAME weekday + tiết bắt đầu overwrite each other (a
+      // lost session), and a fully identical duplicate is almost always a
+      // data-entry mistake. Surface every group so the user can review; flag the
+      // harmful same-slot case explicitly.
+      {
+        const idGroups = {};
+        data.forEach((r, i) => {
+          const mh = String(r["Mã mh"] ?? "").trim();
+          const lop = String(r["Lớp"] ?? "").trim();
+          if (!mh || !lop) return; // rows with no code/class aren't schedulable
+          const ext = String(r["mã lớp 2"] ?? "").trim();
+          const key = `${mh}__${ext}__${lop}`;
+          (idGroups[key] ||= []).push({ i, r });
+        });
+        const benign = []; // merged but harmless (different tiết → all kept)
+        Object.values(idGroups).forEach((members) => {
+          if (members.length < 2) return;
+          const first = members[0];
+          const mh = String(first.r["Mã mh"] ?? "").trim();
+          const ext = String(first.r["mã lớp 2"] ?? "").trim();
+          const lop = String(first.r["Lớp"] ?? "").trim();
+          const keyLabel = `${mh}${ext ? "+" + ext : ""}·${lop}`;
+          // Members colliding on the same weekday + start tiết → real overwrite
+          // (one session silently replaces the other). This is the case worth a
+          // prominent, per-group warning.
+          const slotMap = {};
+          members.forEach((m) => {
+            const thu = String(m.r["Thứ"] ?? "").trim();
+            const tiet = String(m.r["Tiết bắt đầu"] ?? "").trim();
+            if (!thu || !tiet) return;
+            (slotMap[`${thu}__${tiet}`] ||= []).push(m);
+          });
+          const clashing = Object.values(slotMap).filter((g) => g.length > 1);
+          if (clashing.length) {
+            const list = members
+              .map((m) => `dòng ${m.i + 1} "${String(m.r["Tên môn học"] ?? "").trim()}" (Thứ ${m.r["Thứ"] || "?"} tiết ${m.r["Tiết bắt đầu"] || "?"})`)
+              .join("; ");
+            add(
+              first.i, first.r, "dupkey",
+              `⚠ Trùng khoá môn Mã mh ${mh}${ext ? " + mã lớp 2 " + ext : ""} + lớp ${lop}, VÀ trùng cả Thứ + Tiết bắt đầu → các buổi sẽ ĐÈ mất nhau. Hãy kiểm tra/sửa file. ${list}`,
+              String(first.r["Tên môn học"] ?? "").trim()
+            );
+          } else {
+            benign.push(keyLabel);
+          }
+        });
+        // Benign merges (lecture + bài tập/thực hành sharing a code, different
+        // tiết) are normal and keep all sessions — surface them once, compactly,
+        // instead of flooding the report with one row per subject.
+        if (benign.length) {
+          add(
+            0, data[0], "dupkey",
+            `${benign.length} mã môn có nhiều buổi dùng chung khoá (Mã mh + mã lớp 2 + lớp) → gộp chung MỘT môn; khác tiết nên vẫn giữ đủ buổi (thường là Lý thuyết + Bài tập/Thực hành): ${benign.join(", ")}`,
+            "— Tổng hợp —"
+          );
+        }
+      }
+
       for (const [index, _booking] of data.entries()) {
         // Rows without room/thứ/tiết carry no schedule (e.g. an extra-teacher
         // row) — record them so the report is truly complete.
@@ -500,6 +561,7 @@ const Page = () => {
   // Build the report as an array of row objects (shared by CSV + Excel export).
   const reportRows = () => {
     const statusVi = {
+      dupkey: "Trùng mã môn",
       created: "Tạo mới",
       overwrite: "Ghi đè",
       conflict: "Trùng lịch",
@@ -674,11 +736,11 @@ const Page = () => {
 
               {progressBooking.value >= 100 && conflictLog.length > 0 && (() => {
                 const count = (s) => conflictLog.filter((r) => r.status === s).length;
-                const label = { created: "Tạo mới", overwrite: "Ghi đè", conflict: "Trùng lịch", skipped: "Bỏ qua", error: "Lỗi" };
-                const rowBg = { conflict: "bg-danger-50", error: "bg-danger-50", overwrite: "bg-primary-50", skipped: "bg-warning-50", created: "bg-success-50" };
-                const chipColor = { conflict: "danger", error: "danger", overwrite: "primary", skipped: "warning", created: "success" };
+                const label = { dupkey: "Trùng mã môn", created: "Tạo mới", overwrite: "Ghi đè", conflict: "Trùng lịch", skipped: "Bỏ qua", error: "Lỗi" };
+                const rowBg = { dupkey: "bg-warning-50", conflict: "bg-danger-50", error: "bg-danger-50", overwrite: "bg-primary-50", skipped: "bg-warning-50", created: "bg-success-50" };
+                const chipColor = { dupkey: "warning", conflict: "danger", error: "danger", overwrite: "primary", skipped: "warning", created: "success" };
                 // Show problems first, then overwrites, then created.
-                const order = { conflict: 0, error: 1, skipped: 2, overwrite: 3, created: 4 };
+                const order = { dupkey: 0, conflict: 1, error: 2, skipped: 3, overwrite: 4, created: 5 };
                 const rows = [...conflictLog].sort((a, b) => (order[a.status] - order[b.status]) || (a.row - b.row));
                 return (
                   <div>
@@ -687,6 +749,7 @@ const Page = () => {
                       <Chip size="sm" color="primary" variant="flat">Ghi đè: {count("overwrite")}</Chip>
                       <Chip size="sm" color="danger" variant="flat">Trùng lịch: {count("conflict")}</Chip>
                       <Chip size="sm" color="warning" variant="flat">Bỏ qua: {count("skipped")}</Chip>
+                      {count("dupkey") > 0 && <Chip size="sm" color="warning" variant="flat">Trùng mã môn: {count("dupkey")}</Chip>}
                       {count("error") > 0 && <Chip size="sm" color="danger" variant="flat">Lỗi: {count("error")}</Chip>}
                     </div>
                     <div className="max-h-72 overflow-y-auto text-xs space-y-1 pr-1">
