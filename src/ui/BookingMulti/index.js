@@ -28,6 +28,9 @@ export default function BookingMulti() {
   const setCourse_selected = useStore((s) => s.setCourse_selected);
   const { confirm, confirmDialog } = useConfirm();
   const [selectedTab, setSelectedTab] = useState("general");
+  // Class-schedule scope: merge the group's sub-sections (…_A/_B/_C) or not.
+  // Declared here (above the class-events fetch that reads it) to avoid a TDZ.
+  const [mergeGroups, setMergeGroups] = useState(true);
   const [searhCourse, setSearhCourse] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState();
   const [selectedEventForDelete, setSelectedEventForDelete] = useState(null);
@@ -180,13 +183,20 @@ export default function BookingMulti() {
         method: "POST",
         body: JSON.stringify({
           filter: { "course.class_id": getClass(booking?.course?.class_id) },
-          isApproximate: true,
+          isApproximate: mergeGroups,
         }),
       },
     ],
     fetcheroptions,
     { tags: ["booking"], revalidate: 60 }
   );
+
+  // Distinct class_ids actually included in the class view (for the chips).
+  const mergedClasses = useMemo(() => {
+    const s = new Set();
+    (classEvents ?? []).forEach((e) => (e.course?.class_id ?? []).forEach((c) => c && s.add(c)));
+    return [...s].sort();
+  }, [classEvents]);
 
   const extraEvents = useMemo(() => {
     return _.values(
@@ -201,7 +211,12 @@ export default function BookingMulti() {
     try {
       setAutoJump(localStorage.getItem("physoom.autoJump") === "1");
       setCompactMode(localStorage.getItem("physoom.compactMode") === "1");
+      setMergeGroups(localStorage.getItem("physoom.mergeGroups") !== "0");
     } catch { /* ignore */ }
+  }, []);
+  const toggleMerge = useCallback((v) => {
+    setMergeGroups(v);
+    try { localStorage.setItem("physoom.mergeGroups", v ? "1" : "0"); } catch { /* ignore */ }
   }, []);
   const toggleAutoJump = useCallback((v) => {
     setAutoJump(v);
@@ -451,12 +466,24 @@ export default function BookingMulti() {
             </Tab>
             <Tab key="class_sche" title={t("booking.classSchedule")}>
               <div className="prose">
-                <h3>{t("common.class")}: {booking?.course?.class_id ?? t("common.noInfo")}</h3>
+                <h3>{t("common.class")}: {(booking?.course?.class_id ?? []).join?.(", ") || booking?.course?.class_id || t("common.noInfo")}</h3>
               </div>
               <div className="flex flex-wrap items-center gap-4 mb-2">
                 <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
                 <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
+                <Switch size="sm" isSelected={mergeGroups} onValueChange={toggleMerge}>{t("booking.mergeGroups")}</Switch>
               </div>
+              {mergedClasses.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mb-2 text-xs text-default-500">
+                  <span>{mergeGroups ? t("booking.mergingClasses") : t("booking.exactClass")}:</span>
+                  {mergedClasses.map((c) => (
+                    <Chip key={c} size="sm" variant="flat"
+                      color={c === (Array.isArray(booking?.course?.class_id) ? booking.course.class_id[0] : booking?.course?.class_id) ? "secondary" : "default"}>
+                      {c}
+                    </Chip>
+                  ))}
+                </div>
+              )}
               {compactMode ? (
                 <CompactSchedule
                   events={classEvents}
