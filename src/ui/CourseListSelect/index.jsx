@@ -57,14 +57,20 @@ export default function CourseListSelect({
       setSelectedKeys(new Set().add(currentId.toString()));
   }, [currentId]);
   const courseGroup = useMemo(() => {
-    let done = {};
-    (userEvents ?? []).forEach((d) => (done[d?.course?.title] = true));
+    // "Đã xếp" vs "Chờ xếp" must be decided per COURSE (its own bookings), not by
+    // title: two sections can share a title while only one is scheduled, so a
+    // title-based check wrongly marks a teacher-less/unscheduled course as done.
+    const done = new Set();
+    (userEvents ?? []).forEach((d) => {
+      const cid = d?.course?._id ?? d?.course;
+      if (cid) done.add(String(cid));
+    });
     let l = [
       { key: "pending", title: t("booking.pendingClass"), data: [], emptyText: t("booking.noAction") },
       { key: "planned", title: t("booking.plannedClass"), data: [] },
     ];
     (course ?? []).forEach((c) => {
-      if (done[c.title]) l[1].data.push(c);
+      if (done.has(String(c._id))) l[1].data.push(c);
       else l[0].data.push(c);
     });
     if (l[1].data.length === 0) l = [l[0]];
