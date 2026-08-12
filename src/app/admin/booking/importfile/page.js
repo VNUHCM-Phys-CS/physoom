@@ -370,13 +370,28 @@ const Page = () => {
           const effLoc = room?.[0]?.location || location;
           const grid = effLoc === "NVC" ? defaultGridNVC : defaultGridLT;
           const weekday = +_booking["Thứ"];
-          const duration = +course[0].credit;
-          const precision = getSnapFromDuration(duration, 1);
+          // Schedule each ROW by its OWN "Số tiết", NOT the course's credit.
+          // A subject code (Mã mh) can carry several session types on separate
+          // rows — e.g. MTH00003 = "Vi tích phân 1B" (4 tiết) AND "Bài tập Vi
+          // tích phân 1B" (2 tiết) — which collapse into ONE course document
+          // (keyed by Mã mh + lớp). Using course.credit would then stretch every
+          // session to the lecture's length: the 2-tiết bài tập would be placed
+          // as a 4-tiết block and overlap the sibling thực hành → phantom "trùng
+          // lịch" on every import. The row's Số tiết is the true block length.
+          const rowCreditRaw = _booking["Số tiết"];
+          const rowCredit = Number(String(rowCreditRaw ?? "").replace(",", ".").replace(/[^\d.]/g, ""));
+          if (!validCredit(rowCreditRaw) || !Number.isFinite(rowCredit) || rowCredit <= 0) {
+            // Never fabricate a duration — report the bad row so the admin fixes it.
+            add(index, _booking, "skipped", `Số tiết không hợp lệ ("${rowCreditRaw ?? ""}") — không xếp lịch dòng này`, title);
+            setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+            continue;
+          }
+          const precision = getSnapFromDuration(rowCredit, 1);
           const start_time = roundIndex(+_booking["Tiết bắt đầu"], precision, grid.data);
           const end_time =
             start_time == null
               ? null
-              : Math.min(grid.data.length - 1, start_time + (+course[0].credit || 1));
+              : Math.min(grid.data.length - 1, start_time + rowCredit);
 
           if (!(start_time != null && start_time >= 0 && end_time != null && end_time >= 0)) {
             add(index, _booking, "skipped", `Không xác định được tiết trên lịch (Tiết bắt đầu = "${_booking["Tiết bắt đầu"]}")`, title);
