@@ -32,7 +32,6 @@ const Links = ({ session }) => {
     { title: t("nav.home"), path: "/" },
     user && { title: t("nav.booking"), path: "/booking" },
     { title: t("nav.roomSchedule"), path: "/view/room" },
-    user && { title: t("nav.search"), path: "/search" },
     user?.isAdmin && { title: t("nav.adminDashboard"), path: "/admin" },
     user && !user.isAdmin && { title: t("nav.roomManager"), path: "/room-manager" },
     { title: t("nav.about"), path: "/about" },

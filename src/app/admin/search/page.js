@@ -1,29 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { SearchIcon } from "lucide-react";
 import SearchCalender from "@/ui/SearchCalender";
 import { useI18n } from "@/i18n/I18nProvider";
 
-// Dedicated "Find schedule" page — the teacher/room/class schedule search that
-// used to live only inside a booking tab, now on its own route for easy access.
-export default function SearchPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
+// "Find schedule" (Tìm lịch) — admin-only. The admin layout already guards
+// access, so no extra auth check is needed here.
+export default function AdminSearchPage() {
   const { t } = useI18n();
-
-  useEffect(() => {
-    if (status !== "loading" && !session?.user) router.push("/");
-  }, [status, session, router]);
-
-  if (status !== "loading" && !session?.user) {
-    return <p className="p-6 text-default-500">{t("search.needLogin")}</p>;
-  }
-
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
+    <div className="max-w-6xl">
       <div className="flex items-center gap-3 mb-1">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/10 text-secondary shrink-0">
           <SearchIcon size={20} />

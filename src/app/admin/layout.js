@@ -27,6 +27,7 @@ const NAV = [
       { key: "admin.nav.courseBooking", path: "/admin/booking" },
       { key: "admin.nav.roomBooking", path: "/admin/room-booking" },
       { key: "admin.nav.meeting", path: "/admin/meeting" },
+      { key: "admin.nav.search", path: "/admin/search" },
     ],
   },
   {
