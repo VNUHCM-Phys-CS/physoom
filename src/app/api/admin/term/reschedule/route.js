@@ -88,6 +88,13 @@ export const POST = async (request) => {
 
     const holidays = await CalendarEvent.find({ type: "holiday", status: "approved" }, "start end").lean();
 
+    // A course that ran the FULL old term (its session count == old term weeks)
+    // is a "full-term" course → it scales with the term (trim AND expand). A
+    // course shorter than the old term (e.g. 4 weeks in a 15-week term) keeps its
+    // own count (only trimmed if the new term is shorter than it). The `expand`
+    // override forces even short courses up to the full new term length.
+    const oldTermWeeks = termWeeks(term.start, term.end);
+
     // Build candidate occurrences for every series over the new window.
     // Per-course new week-count = max session count across its series (used to
     // update course.duration afterwards).
@@ -96,8 +103,12 @@ export const POST = async (request) => {
     for (const s of series) {
       if (!s.weekday || s.time_slot?.start_time == null || s.time_slot?.end_time == null) continue;
       const fullOcc = getOccurrences(newStart, newEnd, s.weekday, s.time_slot.start_time, s.time_slot.end_time, holidays);
-      // Trim to the old length unless expanding; never exceed the term window.
-      const targetLen = expand ? fullOcc.length : Math.min(s.count || fullOcc.length, fullOcc.length);
+      // fullOcc.length == new term weeks. Full-term courses (or `expand`) scale
+      // to it; shorter courses keep their own count, trimmed to fit the term.
+      const wasFullTerm = (s.count || 0) >= oldTermWeeks;
+      const targetLen = (expand || wasFullTerm)
+        ? fullOcc.length
+        : Math.min(s.count || fullOcc.length, fullOcc.length);
       const occ = fullOcc.slice(0, targetLen);
       const cid = String(s.course);
       courseWeeks.set(cid, Math.max(courseWeeks.get(cid) || 0, occ.length));
