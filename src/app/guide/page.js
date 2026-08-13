@@ -166,7 +166,7 @@ const LEVEL = { all: 0, user: 1, admin: 2 };
 // ---------------------------------------------------------------------------
 const SECTIONS = {
   vi: [
-    { id: "overview", audience: "all", icon: BookOpenIcon, title: "Physoom là gì?", intro: "Physoom là hệ thống xem và đặt lịch phòng của Khoa Vật lý — VNU-HCMUS.", fig: "nav", figCaption: "Thanh điều hướng: Đặt lịch · Lịch phòng · Quản trị, cùng nút ? (trợ giúp) và VI/EN.", points: [
+    { id: "overview", audience: "all", icon: BookOpenIcon, title: "Physoom là gì?", intro: "Physoom là hệ thống xem và đặt lịch phòng của Khoa Vật lý - Vật lý Kỹ thuật, VNU-HCMUS.", fig: "nav", figCaption: "Thanh điều hướng: Đặt lịch · Lịch phòng · Quản trị, cùng nút ? (trợ giúp) và VI/EN.", points: [
       "Xem lịch sử dụng của từng phòng theo tuần hoặc theo lưới tiết.",
       "Giảng viên đặt phòng cho sự kiện; quản trị xếp lịch môn học và lịch họp.",
       "Mặc định tiếng Việt, có thể chuyển sang tiếng Anh bất cứ lúc nào.",
@@ -272,7 +272,7 @@ const SECTIONS = {
     ]},
   ],
   en: [
-    { id: "overview", audience: "all", icon: BookOpenIcon, title: "What is Physoom?", intro: "Physoom is the room viewing & booking system for the Physics department, VNU-HCMUS.", fig: "nav", figCaption: "Nav bar: Booking · Room schedule · Admin, plus the ? (help) and VI/EN buttons.", points: [
+    { id: "overview", audience: "all", icon: BookOpenIcon, title: "What is Physoom?", intro: "Physoom is the room viewing & booking system for Physics & Engineering Physics, VNU-HCMUS.", fig: "nav", figCaption: "Nav bar: Booking · Room schedule · Admin, plus the ? (help) and VI/EN buttons.", points: [
       "View each room's usage by week or by period (tiết) grid.",
       "Lecturers book rooms for events; admins schedule courses and meetings.",
       "Vietnamese by default; switch to English anytime.",

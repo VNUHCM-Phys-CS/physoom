@@ -11,7 +11,7 @@ import PwaRegister from "@/ui/PwaRegister";
 
 export const metadata = {
   title: "Physoom app",
-  description: "Hệ thống đặt phòng & lịch học — Khoa Vật lý VNU-HCMUS",
+  description: "Hệ thống đặt phòng & lịch học — Khoa Vật lý - Vật lý Kỹ thuật, VNU-HCMUS",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, title: "Physoom", statusBarStyle: "default" },
 };

@@ -11,7 +11,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 // /guide page, which renders inside the shell.
 const CONTENT = {
   vi: {
-    intro: { title: "Chào mừng đến Physoom 👋", description: "Hệ thống xem & đặt lịch phòng của Khoa Vật lý. Xem nhanh các khu vực chính." },
+    intro: { title: "Chào mừng đến Physoom 👋", description: "Hệ thống xem & đặt lịch phòng của Khoa Vật lý - Vật lý Kỹ thuật. Xem nhanh các khu vực chính." },
     nav: { title: "Thanh điều hướng", description: "Chuyển giữa Trang chủ, Đặt lịch, Lịch phòng và Quản trị (nếu bạn là admin)." },
     help: { title: "Nút Trợ giúp", description: "Bấm biểu tượng ? bất cứ lúc nào để mở lại trang hướng dẫn này." },
     lang: { title: "Đổi ngôn ngữ", description: "Chuyển Việt / Anh — toàn bộ giao diện dịch ngay lập tức." },
@@ -19,7 +19,7 @@ const CONTENT = {
     outro: { title: "Xong! 🎉", description: "Cuộn xuống để đọc hướng dẫn chi tiết từng chức năng bên dưới." },
   },
   en: {
-    intro: { title: "Welcome to Physoom 👋", description: "The Physics department's room viewing & booking system. Here's a quick tour of the main areas." },
+    intro: { title: "Welcome to Physoom 👋", description: "The room viewing & booking system for Physics & Engineering Physics. Here's a quick tour of the main areas." },
     nav: { title: "Navigation bar", description: "Switch between Home, Booking, Room schedule and Admin (if you're an admin)." },
     help: { title: "Help button", description: "Click the ? icon anytime to reopen this guide." },
     lang: { title: "Change language", description: "Toggle Vietnamese / English — the whole UI translates instantly." },

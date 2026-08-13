@@ -382,7 +382,7 @@ export const dictionaries = {
     "home.userTagline": "Quản lý đặt phòng theo môn học, xem tình trạng phòng, hoặc đặt phòng cho sự kiện tiếp theo của bạn.",
     "home.goToBooking": "Đến trang đặt lịch",
     "home.viewRoomSchedule": "Xem lịch phòng",
-    "home.badge": "Khoa Vật lý",
+    "home.badge": "Vật lý - Vật lý Kỹ thuật",
     "home.title": "Hệ thống Đặt phòng & Lịch học",
     "home.subtitle": "Đặt phòng học cho môn học, giữ phòng cho sự kiện và xem tình trạng phòng theo thời gian thực — tất cả ở một nơi.",
     "home.signInGoogle": "Đăng nhập với Google",
@@ -399,10 +399,10 @@ export const dictionaries = {
 
     // About
     "about.badge": "Giới thiệu Physoom",
-    "about.title": "Xếp lịch cho Khoa Vật lý, được làm mới",
+    "about.title": "Xếp lịch cho Khoa Vật lý - Vật lý Kỹ thuật, được làm mới",
     "about.subtitle": "Physoom thay thế quy trình dùng bảng tính chậm và dễ sai bằng một hệ thống chung, thời gian thực để sắp xếp lịch giảng dạy và đặt phòng.",
     "about.whatTitle": "Physoom là gì?",
-    "about.whatBody": "Physoom là ứng dụng được phát triển để hỗ trợ cán bộ Khoa Vật lý tại VNU-HCMUS sắp xếp lịch giảng dạy hiệu quả hơn. Cách làm truyền thống bằng Excel tốn nhiều thời gian và công sức để phối hợp giữa các giảng viên và tối ưu lịch của mọi người. Với Physoom, giảng viên dễ dàng nhập thời gian rảnh và mong muốn, để ứng dụng tạo lịch tối ưu chỉ trong một phần thời gian — đồng thời giảm khả năng trùng lịch.",
+    "about.whatBody": "Physoom là ứng dụng được phát triển để hỗ trợ cán bộ Khoa Vật lý - Vật lý Kỹ thuật tại VNU-HCMUS sắp xếp lịch giảng dạy hiệu quả hơn. Cách làm truyền thống bằng Excel tốn nhiều thời gian và công sức để phối hợp giữa các giảng viên và tối ưu lịch của mọi người. Với Physoom, giảng viên dễ dàng nhập thời gian rảnh và mong muốn, để ứng dụng tạo lịch tối ưu chỉ trong một phần thời gian — đồng thời giảm khả năng trùng lịch.",
     "about.whyTitle": "Vì sao hữu ích",
     "about.benefit.conflict.title": "Phát hiện trùng lịch",
     "about.benefit.conflict.desc": "Trùng phòng, giảng viên và lớp được tự động cảnh báo trước khi thành vấn đề.",
@@ -413,7 +413,7 @@ export const dictionaries = {
     "about.benefit.team.title": "Cho cả nhóm",
     "about.benefit.team.desc": "Giảng viên, người quản lý phòng và quản trị viên đều có quy trình phù hợp với việc mình cần làm.",
     "about.createdBy": "Được phát triển bởi",
-    "about.createdFor": "cho cán bộ Khoa Vật lý tại VNU-HCMUS",
+    "about.createdFor": "cho cán bộ Khoa Vật lý - Vật lý Kỹ thuật tại VNU-HCMUS",
 
     // Room schedule (view/room)
     "room.title": "Lịch phòng",
@@ -923,7 +923,7 @@ export const dictionaries = {
     "home.userTagline": "Manage course room bookings, browse room availability, or reserve a space for your next event.",
     "home.goToBooking": "Go to Booking",
     "home.viewRoomSchedule": "View Room Schedule",
-    "home.badge": "Physics Department",
+    "home.badge": "Physics & Engineering Physics",
     "home.title": "Room Booking & Schedule System",
     "home.subtitle": "Book classrooms for courses, reserve rooms for events, and view real-time room availability — all in one place.",
     "home.signInGoogle": "Sign in with Google",
@@ -939,10 +939,10 @@ export const dictionaries = {
     "home.feat.manager.desc": "Manage room access, approve requests, and track usage for your assigned rooms.",
 
     "about.badge": "About Physoom",
-    "about.title": "Scheduling for the Physics department, reinvented",
+    "about.title": "Scheduling for Physics & Engineering Physics, reinvented",
     "about.subtitle": "Physoom replaces the slow, error-prone spreadsheet workflow with a shared, real-time system for arranging teaching schedules and room bookings.",
     "about.whatTitle": "What is Physoom?",
-    "about.whatBody": "Physoom is an app developed to help the Physics staff at VNU-HCMUS arrange teaching schedules more efficiently. The traditional method of using Excel required a lot of time and effort to coordinate between teachers and tighten everyone's schedule and needs. With Physoom, teachers can easily input their availability and preferences, letting the app generate optimized schedules in a fraction of the time — while reducing the likelihood of scheduling conflicts.",
+    "about.whatBody": "Physoom is an app developed to help the Physics & Engineering Physics staff at VNU-HCMUS arrange teaching schedules more efficiently. The traditional method of using Excel required a lot of time and effort to coordinate between teachers and tighten everyone's schedule and needs. With Physoom, teachers can easily input their availability and preferences, letting the app generate optimized schedules in a fraction of the time — while reducing the likelihood of scheduling conflicts.",
     "about.whyTitle": "Why it helps",
     "about.benefit.conflict.title": "Conflict detection",
     "about.benefit.conflict.desc": "Overlapping rooms, teachers, and classes are flagged automatically before they become a problem.",
@@ -953,7 +953,7 @@ export const dictionaries = {
     "about.benefit.team.title": "Built for teams",
     "about.benefit.team.desc": "Teachers, room managers, and admins each get a workflow tuned to what they actually need to do.",
     "about.createdBy": "Created by",
-    "about.createdFor": "for the Physics staff at VNU-HCMUS",
+    "about.createdFor": "for the Physics & Engineering Physics staff at VNU-HCMUS",
 
     "room.title": "Room Schedule",
     "room.subtitle": "Browse real-time room availability across the department.",
