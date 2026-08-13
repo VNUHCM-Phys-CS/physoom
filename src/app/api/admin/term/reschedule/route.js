@@ -30,7 +30,10 @@ export const POST = async (request) => {
 
   try {
     await connectToDb();
-    const { termId, start, end, force } = await request.json();
+    // expand=false (default): only TRIM each course to fit the term (never make a
+    // course longer than it already was). expand=true: also stretch shorter
+    // courses to the term's full length.
+    const { termId, start, end, force, expand } = await request.json();
     if (!termId || !start || !end) {
       return NextResponse.json({ success: false, message: "Thiếu termId/start/end" }, { status: 400 });
     }
@@ -76,18 +79,28 @@ export const POST = async (request) => {
           location: e.location,
           title: e.title,
           status: e.status || "approved",
+          count: 0, // old number of sessions (weeks) in this series
         });
       }
+      seriesMap.get(key).count++;
     }
     const series = [...seriesMap.values()];
 
     const holidays = await CalendarEvent.find({ type: "holiday", status: "approved" }, "start end").lean();
 
     // Build candidate occurrences for every series over the new window.
+    // Per-course new week-count = max session count across its series (used to
+    // update course.duration afterwards).
     const candidates = [];
+    const courseWeeks = new Map();
     for (const s of series) {
       if (!s.weekday || s.time_slot?.start_time == null || s.time_slot?.end_time == null) continue;
-      const occ = getOccurrences(newStart, newEnd, s.weekday, s.time_slot.start_time, s.time_slot.end_time, holidays);
+      const fullOcc = getOccurrences(newStart, newEnd, s.weekday, s.time_slot.start_time, s.time_slot.end_time, holidays);
+      // Trim to the old length unless expanding; never exceed the term window.
+      const targetLen = expand ? fullOcc.length : Math.min(s.count || fullOcc.length, fullOcc.length);
+      const occ = fullOcc.slice(0, targetLen);
+      const cid = String(s.course);
+      courseWeeks.set(cid, Math.max(courseWeeks.get(cid) || 0, occ.length));
       for (const o of occ) {
         candidates.push({
           title: s.title,
@@ -191,8 +204,17 @@ export const POST = async (request) => {
     await CalendarEvent.deleteMany({ course: { $in: courseIds }, type: "class" });
     const docs = candidates.map(({ _series, ...d }) => d);
     if (docs.length) await CalendarEvent.insertMany(docs);
-    const weeks = termWeeks(newStart, newEnd);
-    await Course.updateMany({ _id: { $in: courseIds } }, { $set: { start_date: newStart, duration: weeks } });
+    // duration = actual sessions placed per course (trimmed/expanded); courses
+    // with no schedule fall back to the term's week count.
+    const fallbackWeeks = termWeeks(newStart, newEnd);
+    await Course.bulkWrite(
+      courseIds.map((cid) => ({
+        updateOne: {
+          filter: { _id: cid },
+          update: { $set: { start_date: newStart, duration: courseWeeks.get(String(cid)) || fallbackWeeks } },
+        },
+      }))
+    );
     await CalendarEvent.findByIdAndUpdate(termId, { start: newStart, end: newEnd });
 
     revalidateTag("booking");

@@ -20,7 +20,8 @@ import {
   ModalBody,
   ModalFooter,
   Chip,
-  Tooltip
+  Tooltip,
+  Checkbox
 } from "@heroui/react";
 import moment from "moment";
 import { PlusIcon, FlagIcon } from "lucide-react";
@@ -45,6 +46,8 @@ export default function TermsAndHolidaysPage() {
   // Cascade conflict report ("chặn + báo cáo + vẫn áp dụng").
   const [conflictReport, setConflictReport] = useState(null); // { conflicts, conflictCount, pending }
   const [applying, setApplying] = useState(false);
+  // When a term is extended, expand courses to fill it? Default: only trim.
+  const [expandOnGrow, setExpandOnGrow] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -66,6 +69,7 @@ export default function TermsAndHolidaysPage() {
 
   const openEdit = (item) => {
     setEditingId(item._id);
+    setExpandOnGrow(false); // default: only trim, don't expand
     setFormData({
       title: item.title || "",
       type: item.type || "term",
@@ -146,15 +150,15 @@ export default function TermsAndHolidaysPage() {
   };
 
   // Cascade a term's date change to all its courses. Returns true if applied.
-  const runReschedule = async ({ termId, start, end, title, type, force }) => {
+  const runReschedule = async ({ termId, start, end, title, type, force, expand }) => {
     const res = await fetch("/api/admin/term/reschedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ termId, start, end, force }),
+      body: JSON.stringify({ termId, start, end, force, expand }),
     });
     const data = await res.json().catch(() => ({}));
     if (data?.blocked) {
-      setConflictReport({ conflicts: data.conflicts || [], conflictCount: data.conflictCount || 0, pending: { termId, start, end, title, type } });
+      setConflictReport({ conflicts: data.conflicts || [], conflictCount: data.conflictCount || 0, pending: { termId, start, end, title, type, expand } });
       return false;
     }
     if (!res.ok || !data?.success) {
@@ -183,6 +187,7 @@ export default function TermsAndHolidaysPage() {
           title: formData.title,
           type: formData.type,
           force: false,
+          expand: expandOnGrow,
         });
         if (ok) { mutate(); resetForm(); }
         else onClose(); // blocked → conflict modal shows; keep editingId for retry
@@ -369,6 +374,16 @@ export default function TermsAndHolidaysPage() {
               onChange={(e) => setFormData({...formData, end: e.target.value})}
               isRequired
             />
+            {editingId && formData.type === "term" && (
+              <div className="rounded-lg bg-default-50 p-3 flex flex-col gap-1">
+                <Checkbox size="sm" isSelected={expandOnGrow} onValueChange={setExpandOnGrow}>
+                  {t("terms.expandOnGrow") || "Nới số buổi của môn nếu học kỳ dài hơn"}
+                </Checkbox>
+                <p className="text-xs text-default-400 ml-6">
+                  {t("terms.expandHint") || "Mặc định chỉ RÚT cho vừa học kỳ (môn 12 tuần, kỳ 10 tuần → còn 10). Tick để MỞ RỘNG môn ngắn hơn cho bằng học kỳ."}
+                </p>
+              </div>
+            )}
           </ModalBody>
           <ModalFooter>
              <Button variant="light" onPress={onClose}>{t("common.cancel")}</Button>
