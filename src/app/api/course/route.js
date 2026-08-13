@@ -5,12 +5,16 @@ import { revalidateTag } from "next/cache";
 import Course from "@/models/course";
 import { getToken } from "next-auth/jwt";
 import { auth } from "@/lib/auth";
+import { courseScopeFilter, canManageClasses } from "@/lib/scope";
 import CalendarEvent from "@/models/calendarEvent";
 
 export const GET = async (request) => {
   try {
     await connectToDb();
-    const course = await Course.find();
+    // Scoped admins only see courses whose class matches their scope.
+    const session = await auth();
+    const filter = courseScopeFilter(session?.user);
+    const course = await Course.find(filter);
     revalidateTag("course");
     return NextResponse.json(course);
   } catch (err) {

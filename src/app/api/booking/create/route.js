@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth";
 import moment from "moment";
 import { defaultGridLT, defaultGridNVC } from "@/lib/ulti";
 import { getOccurrences } from "@/lib/occurrences";
+import { canManageClasses } from "@/lib/scope";
 
 /**
  * Convert a JS Date to minutes from midnight
@@ -160,6 +161,17 @@ export const POST = async (request) => {
         const c = await Course.findById(courseId, "class_id").lean();
         classIds = Array.isArray(c?.class_id) ? c.class_id : (c?.class_id ? [c.class_id] : []);
       }
+
+      // Scope enforcement: a scoped admin may only schedule classes in their
+      // scope. Reject (don't place) out-of-scope courses with a clear reason.
+      if (isAdmin && !canManageClasses(user, classIds)) {
+        allConflicts.push({
+          course: courseId,
+          reason: `Ngoài phạm vi quản lý của bạn (${(classIds || []).join(", ")}) — không được xếp lịch.`,
+        });
+        continue;
+      }
+
       if (classIds?.length) {
         const others = await Course.find(
           { class_id: { $in: classIds }, _id: { $ne: courseId } },

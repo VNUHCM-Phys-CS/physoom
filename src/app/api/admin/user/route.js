@@ -5,10 +5,19 @@ import User from "@/models/user";
 import TeacherAlias from "@/models/teacherAlias";
 import { auth } from "@/lib/auth";
 import { normalizeDepartment } from "@/lib/departments";
+import { isSuperAdmin } from "@/lib/scope";
 
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user?.isAdmin) return null;
+  return session;
+}
+
+// Creating/editing/deleting users (which grants roles & scopes) is super-admin
+// only — otherwise a scoped admin could escalate their own privileges.
+async function requireSuper() {
+  const session = await auth();
+  if (!isSuperAdmin(session?.user)) return null;
   return session;
 }
 
@@ -17,7 +26,7 @@ export const GET = async () => {
   if (!await requireAdmin()) return NextResponse.json([], { status: 401 });
   try {
     await connectToDb();
-    const users = await User.find({}, "email name teacher_id isAdmin department rank degree").lean();
+    const users = await User.find({}, "email name teacher_id isAdmin isSuperAdmin adminScope department rank degree").lean();
     return NextResponse.json(users);
   } catch (err) {
     console.error(err);
@@ -27,7 +36,7 @@ export const GET = async () => {
 
 // POST — create single user
 export const POST = async (request) => {
-  if (!await requireAdmin()) return NextResponse.json({ success: false }, { status: 401 });
+  if (!await requireSuper()) return NextResponse.json({ success: false, message: "Chỉ super admin" }, { status: 401 });
   try {
     await connectToDb();
     const data = await request.json();
@@ -36,6 +45,8 @@ export const POST = async (request) => {
       name: data.name?.trim() || undefined,
       teacher_id: data.teacher_id?.trim() || undefined,
       isAdmin: !!data.isAdmin,
+      isSuperAdmin: !!data.isSuperAdmin,
+      adminScope: Array.isArray(data.adminScope) ? data.adminScope.map((s) => String(s).trim()).filter(Boolean) : [],
       department: normalizeDepartment(data.department) || undefined,
       rank: data.rank?.trim() || undefined,
       degree: data.degree?.trim() || undefined,
@@ -49,7 +60,7 @@ export const POST = async (request) => {
 
 // PUT — update user by _id
 export const PUT = async (request) => {
-  if (!await requireAdmin()) return NextResponse.json({ success: false }, { status: 401 });
+  if (!await requireSuper()) return NextResponse.json({ success: false, message: "Chỉ super admin" }, { status: 401 });
   try {
     await connectToDb();
     const { id, ...data } = await request.json();
@@ -57,6 +68,8 @@ export const PUT = async (request) => {
     if (data.name !== undefined)       update.name       = data.name?.trim() || undefined;
     if (data.teacher_id !== undefined) update.teacher_id = data.teacher_id?.trim() || undefined;
     if (data.isAdmin !== undefined)    update.isAdmin    = !!data.isAdmin;
+    if (data.isSuperAdmin !== undefined) update.isSuperAdmin = !!data.isSuperAdmin;
+    if (data.adminScope !== undefined) update.adminScope = Array.isArray(data.adminScope) ? data.adminScope.map((s) => String(s).trim()).filter(Boolean) : [];
     if (data.department !== undefined) update.department = normalizeDepartment(data.department) || undefined;
     if (data.rank !== undefined)       update.rank       = data.rank?.trim() || undefined;
     if (data.degree !== undefined)     update.degree     = data.degree?.trim() || undefined;
@@ -71,7 +84,7 @@ export const PUT = async (request) => {
 
 // DELETE — remove user by _id
 export const DELETE = async (request) => {
-  if (!await requireAdmin()) return NextResponse.json({ success: false }, { status: 401 });
+  if (!await requireSuper()) return NextResponse.json({ success: false, message: "Chỉ super admin" }, { status: 401 });
   try {
     await connectToDb();
     const { id } = await request.json();

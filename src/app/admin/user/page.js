@@ -36,7 +36,7 @@ function downloadCSV(rows) {
   URL.revokeObjectURL(url);
 }
 
-const EMPTY_FORM = { email: "", name: "", teacher_id: "", department: "", rank: "", degree: "", isAdmin: false };
+const EMPTY_FORM = { email: "", name: "", teacher_id: "", department: "", rank: "", degree: "", isAdmin: false, isSuperAdmin: false, adminScope: "" };
 
 const IMPORT_COLUMNS = [
   { name: "email",      uid: "email",      sortable: true },
@@ -64,7 +64,15 @@ function UserFormModal({ isOpen, onClose, initial, onSave }) {
     setSaving(true);
     setError("");
     try {
-      await onSave(form);
+      // Normalise the scope textarea → array of patterns.
+      const payload = {
+        ...form,
+        isSuperAdmin: !!form.isSuperAdmin,
+        adminScope: typeof form.adminScope === "string"
+          ? form.adminScope.split(",").map((s) => s.trim()).filter(Boolean)
+          : (form.adminScope || []),
+      };
+      await onSave(payload);
       onClose();
     } catch (e) {
       setError(e.message);
@@ -114,6 +122,23 @@ function UserFormModal({ isOpen, onClose, initial, onSave }) {
             <span className="text-sm">{t("user.fAdmin")}</span>
             <Switch isSelected={form.isAdmin} onValueChange={set("isAdmin")} color="danger" size="sm" />
           </div>
+          {form.isAdmin && (
+            <>
+              <div className="flex items-center justify-between px-1">
+                <span className="text-sm">Super admin (toàn quyền)</span>
+                <Switch isSelected={!!form.isSuperAdmin} onValueChange={set("isSuperAdmin")} color="secondary" size="sm" />
+              </div>
+              {!form.isSuperAdmin && (
+                <Input
+                  label="Phạm vi mã lớp (phân cách bằng dấu phẩy)"
+                  placeholder="VD: CVD, 25VLH  → quản mọi lớp chứa các mẫu này"
+                  value={typeof form.adminScope === "string" ? form.adminScope : (form.adminScope || []).join(", ")}
+                  onValueChange={set("adminScope")}
+                  description="Admin này chỉ xếp/nhập được các lớp có mã chứa một trong các mẫu trên."
+                />
+              )}
+            </>
+          )}
           {error && <p className="text-danger text-xs">{error}</p>}
         </ModalBody>
         <ModalFooter>
@@ -409,7 +434,7 @@ export default function UserManagementPage() {
       <UserFormModal
         isOpen={isFormOpen}
         onClose={closeForm}
-        initial={editUser ? { email: editUser.email, name: editUser.name ?? "", teacher_id: editUser.teacher_id ?? "", department: editUser.department ?? "", rank: editUser.rank ?? "", degree: editUser.degree ?? "", isAdmin: editUser.isAdmin } : null}
+        initial={editUser ? { email: editUser.email, name: editUser.name ?? "", teacher_id: editUser.teacher_id ?? "", department: editUser.department ?? "", rank: editUser.rank ?? "", degree: editUser.degree ?? "", isAdmin: editUser.isAdmin, isSuperAdmin: editUser.isSuperAdmin ?? false, adminScope: (editUser.adminScope ?? []).join(", ") } : null}
         onSave={handleSave}
       />
       <ImportModal

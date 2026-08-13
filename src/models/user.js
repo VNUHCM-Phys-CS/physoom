@@ -11,6 +11,18 @@ const userSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  // Full-access admin. A plain isAdmin with a non-empty adminScope is a SCOPED
+  // admin who may only manage classes matching one of their scope patterns.
+  isSuperAdmin: {
+    type: Boolean,
+    default: false,
+  },
+  // Class-code patterns a scoped admin manages, e.g. ["CVD"] matches 24CVD,
+  // 24CVD_DKD, 25CVD… Substring match, case-insensitive, "-" treated as "_".
+  adminScope: {
+    type: [String],
+    default: [],
+  },
   teacher_id: {
     type: String,
   },

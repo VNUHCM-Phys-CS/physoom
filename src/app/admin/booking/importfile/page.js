@@ -33,6 +33,8 @@ import {
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import { useI18n } from "@/i18n/I18nProvider";
+import { toast } from "react-toastify";
+import { isSuperAdmin, classInScope } from "@/lib/scope";
 import { downloadTemplate } from "@/lib/downloadTemplate";
 import { DownloadIcon } from "lucide-react";
 
@@ -166,6 +168,29 @@ const Page = () => {
     setProgressCourse({ value: 0 });
     setProgressRoom({ value: 0 });
     setProgressBooking({ value: 0 });
+
+    // Scope enforcement: a scoped admin may only import classes within their
+    // scope. Out-of-scope rows are EXCLUDED (not created/scheduled) and warned.
+    let excludedScopeClasses = [];
+    if (!isSuperAdmin(session?.user)) {
+      const scope = session?.user?.adminScope || [];
+      const before = data.length;
+      const kept = [];
+      const excl = new Set();
+      data.forEach((r) => {
+        const classes = String(r["Lớp"] || "").split(",").map((s) => s.trim()).filter(Boolean);
+        const ok = classes.length && classes.some((c) => classInScope(scope, c));
+        if (ok) kept.push(r);
+        else classes.forEach((c) => excl.add(c));
+      });
+      excludedScopeClasses = [...excl];
+      if (excludedScopeClasses.length) {
+        data = kept;
+        toast.warning(
+          `Bỏ qua ${before - kept.length} dòng ngoài phạm vi quản lý của bạn: ${excludedScopeClasses.join(", ")}`
+        );
+      }
+    }
 
     try {
       // --- Room creation ---
@@ -327,6 +352,11 @@ const Page = () => {
           day: _b["Thứ"] ?? "",
           tiet: _b["Tiết bắt đầu"] ?? "",
         });
+
+      // Out-of-scope classes excluded above → surface in the report too.
+      if (excludedScopeClasses.length) {
+        add(0, {}, "skipped", `Ngoài phạm vi quản lý của bạn — KHÔNG nhập: ${excludedScopeClasses.join(", ")}`, "— Ngoài phạm vi —");
+      }
 
       // Warn on rows that share the SAME course identity (Mã mh + mã lớp 2 +
       // Lớp) — those rows collapse into ONE course. That is legitimate for a

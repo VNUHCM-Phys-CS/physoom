@@ -20,6 +20,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.teacher_id = token.teacher_id;
         session.user = token.user;
         session.user.isAdmin = token.isAdmin;
+        session.user.isSuperAdmin = token.isSuperAdmin;
+        session.user.adminScope = token.adminScope || [];
         session.user.teacher_id = token.teacher_id;
         session.error = token.error;
         session.accessToken = token.accessToken;
@@ -34,6 +36,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (user) {
         token.user = user;
         token.isAdmin = user.isAdmin;
+        token.isSuperAdmin = user.isSuperAdmin;
+        token.adminScope = user.adminScope || [];
         token.teacher_id = user.teacher_id;
       }
       // if (token.user&&token.user.email) {
@@ -70,6 +74,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const isAdmin = existingUser && existingUser.isAdmin;
         const teacher_id = existingUser && existingUser.teacher_id;
         user.isAdmin = isAdmin;
+        user.isSuperAdmin = existingUser?.isSuperAdmin || false;
+        user.adminScope = existingUser?.adminScope || [];
         user.teacher_id = teacher_id;
       }
       return true;
