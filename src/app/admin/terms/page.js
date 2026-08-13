@@ -19,7 +19,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Chip
+  Chip,
+  Tooltip
 } from "@heroui/react";
 import moment from "moment";
 import { PlusIcon, FlagIcon } from "lucide-react";
@@ -30,7 +31,20 @@ import { toast } from "react-toastify";
 export default function TermsAndHolidaysPage() {
   const { t } = useI18n();
   const { data: events, mutate, isLoading } = useSWR("/api/calendar-events?type=term,holiday", fetcher);
+  const { data: courses } = useSWR("/api/course", fetcher);
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Count courses per term (a term with courses can't be deleted, and its date
+  // edits cascade to those courses).
+  const countByTerm = useMemo(() => {
+    const m = {};
+    (courses ?? []).forEach((c) => { if (c.term) m[String(c.term)] = (m[String(c.term)] || 0) + 1; });
+    return m;
+  }, [courses]);
+
+  // Cascade conflict report ("chặn + báo cáo + vẫn áp dụng").
+  const [conflictReport, setConflictReport] = useState(null); // { conflicts, conflictCount, pending }
+  const [applying, setApplying] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -125,20 +139,62 @@ export default function TermsAndHolidaysPage() {
     }
   };
 
+  const resetForm = () => {
+    onClose();
+    setEditingId(null);
+    setFormData({ title: "", type: "term", start: "", end: "" });
+  };
+
+  // Cascade a term's date change to all its courses. Returns true if applied.
+  const runReschedule = async ({ termId, start, end, title, type, force }) => {
+    const res = await fetch("/api/admin/term/reschedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ termId, start, end, force }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data?.blocked) {
+      setConflictReport({ conflicts: data.conflicts || [], conflictCount: data.conflictCount || 0, pending: { termId, start, end, title, type } });
+      return false;
+    }
+    if (!res.ok || !data?.success) {
+      toast.error(data?.message || "Không thể cập nhật học kỳ.");
+      return false;
+    }
+    // Keep the title/type in sync (reschedule only touches dates).
+    await fetch("/api/calendar-events", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ _id: termId, title, type }),
+    });
+    if (data.created != null) toast.success(t("terms.rescheduled", { n: data.created }) || `Đã dời ${data.created} buổi.`);
+    return true;
+  };
+
   const onSubmit = async () => {
     setIsSubmitting(true);
     try {
+      // Editing an existing TERM → go through the cascade so its courses move too.
+      if (editingId && formData.type === "term") {
+        const ok = await runReschedule({
+          termId: editingId,
+          start: formData.start,
+          end: formData.end,
+          title: formData.title,
+          type: formData.type,
+          force: false,
+        });
+        if (ok) { mutate(); resetForm(); }
+        else onClose(); // blocked → conflict modal shows; keep editingId for retry
+        return;
+      }
+      // Create (new term/holiday) or edit a holiday → plain event write.
       const res = await fetch("/api/calendar-events", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingId ? { _id: editingId, ...formData } : formData)
+        body: JSON.stringify(editingId ? { _id: editingId, ...formData } : formData),
       });
-      if (res.ok) {
-        mutate();
-        onClose();
-        setEditingId(null);
-        setFormData({ title: "", type: "term", start: "", end: "" });
-      }
+      if (res.ok) { mutate(); resetForm(); }
     } catch (e) {
       console.error(e);
     } finally {
@@ -146,14 +202,31 @@ export default function TermsAndHolidaysPage() {
     }
   };
 
+  // "Vẫn áp dụng" — reschedule despite the reported conflicts.
+  const applyForce = async () => {
+    if (!conflictReport?.pending) return;
+    setApplying(true);
+    try {
+      const ok = await runReschedule({ ...conflictReport.pending, force: true });
+      if (ok) { mutate(); setConflictReport(null); resetForm(); }
+    } finally {
+      setApplying(false);
+    }
+  };
+
   const onDelete = async (id) => {
     if (!confirm(t("terms.confirmDelete"))) return;
     try {
-      await fetch("/api/calendar-events", {
+      const res = await fetch("/api/calendar-events", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ id }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.message || "Không thể xoá.");
+        return;
+      }
       mutate();
     } catch (e) {
       console.error(e);
@@ -209,6 +282,7 @@ export default function TermsAndHolidaysPage() {
           <TableColumn key="type" allowsSorting>{t("terms.colType")}</TableColumn>
           <TableColumn key="start" allowsSorting>{t("terms.colStart")}</TableColumn>
           <TableColumn key="end" allowsSorting>{t("terms.colEnd")}</TableColumn>
+          <TableColumn key="count">{t("terms.colCourses")}</TableColumn>
           <TableColumn key="actions">{t("terms.colActions")}</TableColumn>
         </TableHeader>
         <TableBody
@@ -227,13 +301,32 @@ export default function TermsAndHolidaysPage() {
               <TableCell>{moment(item.start).format('DD MMM YYYY')}</TableCell>
               <TableCell>{moment(item.end).format('DD MMM YYYY')}</TableCell>
               <TableCell>
+                {item.type === "term" ? (
+                  <Chip size="sm" variant="flat" color={countByTerm[item._id] ? "warning" : "default"}>
+                    {countByTerm[item._id] || 0}
+                  </Chip>
+                ) : (
+                  <span className="text-default-300">—</span>
+                )}
+              </TableCell>
+              <TableCell>
                 <div className="flex gap-2">
                   <Button size="sm" variant="flat" onPress={() => openEdit(item)}>
                     {t("tbl.edit")}
                   </Button>
-                  <Button size="sm" color="danger" variant="flat" onPress={() => onDelete(item._id)}>
-                    {t("terms.delete")}
-                  </Button>
+                  {item.type === "term" && countByTerm[item._id] > 0 ? (
+                    <Tooltip content={t("terms.deleteBlocked", { n: countByTerm[item._id] }) || `Còn ${countByTerm[item._id]} môn — không thể xoá`}>
+                      <span>
+                        <Button size="sm" color="danger" variant="flat" isDisabled>
+                          {t("terms.delete")}
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    <Button size="sm" color="danger" variant="flat" onPress={() => onDelete(item._id)}>
+                      {t("terms.delete")}
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
@@ -280,6 +373,41 @@ export default function TermsAndHolidaysPage() {
           <ModalFooter>
              <Button variant="light" onPress={onClose}>{t("common.cancel")}</Button>
              <Button color="primary" onPress={onSubmit} isLoading={isSubmitting}>{t("common.save")}</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Conflict report — shown when a term shift would clash with other terms */}
+      <Modal isOpen={!!conflictReport} onClose={() => setConflictReport(null)} size="2xl" scrollBehavior="inside">
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-0">
+            <span className="text-danger">{t("terms.conflictTitle") || "Dời học kỳ sẽ gây trùng lịch"}</span>
+            <span className="text-xs font-normal text-default-500">
+              {t("terms.conflictCount", { n: conflictReport?.conflictCount || 0 }) || `${conflictReport?.conflictCount || 0} trường hợp trùng`}
+            </span>
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-sm text-default-600">
+              {t("terms.conflictBody") || "Các buổi dưới đây sẽ đụng với phòng/giảng viên của lịch khác. Bạn có thể huỷ để chỉnh lại, hoặc vẫn áp dụng."}
+            </p>
+            <div className="max-h-80 overflow-y-auto text-xs space-y-1">
+              {(conflictReport?.conflicts || []).map((c, i) => (
+                <div key={i} className="p-2 rounded-lg bg-danger-50">
+                  <Chip size="sm" color="danger" variant="flat" className="h-4 text-[10px] mr-1">{c.kind}</Chip>
+                  <span className="font-medium">{c.course}</span>
+                  <span className="text-default-500"> ⟷ {c.with} · {c.at}</span>
+                </div>
+              ))}
+              {conflictReport?.conflictCount > (conflictReport?.conflicts?.length || 0) && (
+                <p className="text-default-400 italic">… và {conflictReport.conflictCount - conflictReport.conflicts.length} trường hợp khác.</p>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={() => setConflictReport(null)}>{t("common.cancel")}</Button>
+            <Button color="danger" isLoading={applying} onPress={applyForce}>
+              {t("terms.applyAnyway") || "Vẫn áp dụng"}
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

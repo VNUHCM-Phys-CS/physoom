@@ -235,6 +235,8 @@ const Page = () => {
           course_id_extend: d["mã lớp 2"],
           class_id: d["Lớp"]?.split(",")?.map((d) => d.trim()),
           title: d["Tên môn học"]?.trim(),
+          // Link the course to the selected term so a later term shift cascades.
+          term: selectedTermObj?._id || selectedTerm || undefined,
           teacher_email,
           population: d["Số sv"] ?? 0,
           start_date: d["Ngày đầu tuần"]

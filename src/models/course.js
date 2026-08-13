@@ -37,6 +37,12 @@ const courseSchema = new Schema(
       type: Date,
       // required: true,
     },
+    // Link to the term (a CalendarEvent of type "term"). When that term's dates
+    // shift or its weeks are trimmed, every course linked to it is rescheduled.
+    term: {
+      type: Schema.Types.ObjectId,
+      ref: "CalendarEvent",
+    },
     credit: {
       type: Number,
       required: true,
