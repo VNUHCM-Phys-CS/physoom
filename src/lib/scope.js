@@ -10,9 +10,9 @@
 const norm = (s) => String(s || "").toLowerCase().replace(/-/g, "_").trim();
 
 export function isSuperAdmin(user) {
-  if (!user) return false;
-  // Back-compat: an admin with no scope set behaves as full-access.
-  return !!user.isSuperAdmin || (!!user.isAdmin && (!user.adminScope || user.adminScope.length === 0));
+  // Strictly the flag. Existing admins must be backfilled to isSuperAdmin:true
+  // (a one-time DB update) so they keep full access.
+  return !!user?.isSuperAdmin;
 }
 
 /** Does a single class code fall under the scope patterns? */

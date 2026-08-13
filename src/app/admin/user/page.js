@@ -15,6 +15,8 @@ import {
 import DragDropzone from "@/ui/CSVReader/DragDropzone";
 import { useI18n } from "@/i18n/I18nProvider";
 import { DEPARTMENTS } from "@/lib/departments";
+import { useSession } from "next-auth/react";
+import { isSuperAdmin } from "@/lib/scope";
 import { downloadTemplate } from "@/lib/downloadTemplate";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -255,6 +257,8 @@ const PAGE_SIZE = 15;
 export default function UserManagementPage() {
   const { t } = useI18n();
   const { data: users, mutate, isLoading } = useSWR("/api/admin/user", fetcher);
+  const { data: session } = useSession();
+  const iAmSuper = isSuperAdmin(session?.user);
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -339,12 +343,16 @@ export default function UserManagementPage() {
           <Button size="sm" variant="flat" startContent={<DownloadIcon size={14} />} onPress={() => downloadCSV(users ?? [])}>
             {t("common.export")}
           </Button>
-          <Button size="sm" variant="flat" startContent={<UploadIcon size={14} />} onPress={openImport}>
-            {t("common.import")}
-          </Button>
-          <Button size="sm" color="primary" startContent={<PlusIcon size={14} />} onPress={handleAdd}>
-            {t("user.add")}
-          </Button>
+          {iAmSuper && (
+            <>
+              <Button size="sm" variant="flat" startContent={<UploadIcon size={14} />} onPress={openImport}>
+                {t("common.import")}
+              </Button>
+              <Button size="sm" color="primary" startContent={<PlusIcon size={14} />} onPress={handleAdd}>
+                {t("user.add")}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -407,23 +415,36 @@ export default function UserManagementPage() {
                 ) : <span className="text-default-300 text-sm">—</span>}
               </TableCell>
               <TableCell>
-                {u.isAdmin
-                  ? <Chip size="sm" color="danger" variant="flat" startContent={<CheckIcon size={11} />}>{t("user.roleAdmin")}</Chip>
-                  : <Chip size="sm" color="default" variant="flat" startContent={<XIcon size={11} />}>{t("user.roleUser")}</Chip>}
+                {!u.isAdmin ? (
+                  <Chip size="sm" color="default" variant="flat" startContent={<XIcon size={11} />}>{t("user.roleUser")}</Chip>
+                ) : u.isSuperAdmin ? (
+                  <Chip size="sm" color="danger" variant="flat" startContent={<CheckIcon size={11} />}>Super admin</Chip>
+                ) : (
+                  <div className="flex flex-col leading-tight">
+                    <Chip size="sm" color="secondary" variant="flat">Admin (theo mã lớp)</Chip>
+                    <span className="text-[11px] text-default-400 mt-0.5">
+                      {u.adminScope?.length ? u.adminScope.join(", ") : "⚠ chưa có phạm vi"}
+                    </span>
+                  </div>
+                )}
               </TableCell>
               <TableCell>
-                <div className="flex gap-1">
-                  <Tooltip content={t("common.edit")}>
-                    <Button isIconOnly size="sm" variant="light" onPress={() => handleEdit(u)}>
-                      <PencilIcon size={14} />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip content={t("common.delete")} color="danger">
-                    <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleDeleteClick(u)}>
-                      <Trash2Icon size={14} />
-                    </Button>
-                  </Tooltip>
-                </div>
+                {iAmSuper ? (
+                  <div className="flex gap-1">
+                    <Tooltip content={t("common.edit")}>
+                      <Button isIconOnly size="sm" variant="light" onPress={() => handleEdit(u)}>
+                        <PencilIcon size={14} />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content={t("common.delete")} color="danger">
+                      <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleDeleteClick(u)}>
+                        <Trash2Icon size={14} />
+                      </Button>
+                    </Tooltip>
+                  </div>
+                ) : (
+                  <span className="text-default-300 text-xs">—</span>
+                )}
               </TableCell>
             </TableRow>
           )}
