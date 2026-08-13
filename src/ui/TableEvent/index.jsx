@@ -42,6 +42,9 @@ export default function TableEvent({
   onDelete = () => {},
   onEdit = () => {},
   onAddNew = () => {},
+  // Optional: render extra bulk actions given the currently-selected rows.
+  // (selectedItems: object[], clearSelection: () => void) => ReactNode
+  renderBulkActions,
 }) {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
@@ -341,6 +344,18 @@ export default function TableEvent({
                     }}}>
                   Delete Selected
                 </Button>
+            {renderBulkActions && renderBulkActions(
+              selectedKeys === "all"
+                ? data
+                : data.filter((item) => {
+                    const k = item.key || item.id || item._id || item.uuid;
+                    const arr = selectedKeys instanceof Set
+                      ? Array.from(selectedKeys)
+                      : Array.from(selectedKeys.values?.() || selectedKeys);
+                    return arr.includes(k) || arr.includes(String(k));
+                  }),
+              () => setSelectedKeys(new Set([]))
+            )}
             {importPath && (
               <Link href={importPath}>
                 <Button color="primary" endContent={<PlusIcon />}>
@@ -378,8 +393,10 @@ export default function TableEvent({
     visibleColumns,
     onRowsPerPageChange,
     data.length,
+    data,
     onSearchChange,
     hasSearchFilter,
+    renderBulkActions,
   ]);
 
   const bottomContent = React.useMemo(() => {
