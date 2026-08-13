@@ -36,8 +36,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (user) {
         token.user = user;
         token.isAdmin = user.isAdmin;
-        token.isSuperAdmin = user.isSuperAdmin;
-        token.adminScope = user.adminScope || [];
+        token.isSuperAdmin = !!user.isSuperAdmin;
+        token.adminScope = Array.isArray(user.adminScope) ? user.adminScope.map((s) => String(s)) : [];
         token.teacher_id = user.teacher_id;
       }
       // if (token.user&&token.user.email) {
@@ -74,8 +74,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const isAdmin = existingUser && existingUser.isAdmin;
         const teacher_id = existingUser && existingUser.teacher_id;
         user.isAdmin = isAdmin;
-        user.isSuperAdmin = existingUser?.isSuperAdmin || false;
-        user.adminScope = existingUser?.adminScope || [];
+        user.isSuperAdmin = !!existingUser?.isSuperAdmin;
+        // Plain array of strings — a Mongoose document array can't be structured-
+        // cloned by the JWT encoder (DataCloneError).
+        user.adminScope = Array.isArray(existingUser?.adminScope)
+          ? existingUser.adminScope.map((s) => String(s))
+          : [];
         user.teacher_id = teacher_id;
       }
       return true;
