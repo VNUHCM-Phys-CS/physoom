@@ -13,13 +13,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
-import { ChevronDownIcon, Share2Icon } from "lucide-react";
+import { ChevronDownIcon, Share2Icon, SearchIcon } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 
 // Grouped admin navigation. A standalone "Tổng quan" plus three dropdown groups
 // keep the bar compact instead of ~10 flat items.
 const NAV = [
   { type: "link", key: "admin.nav.dashboard", path: "/admin" },
+  // "Tìm lịch" stands next to the dashboard for quick access (a lookup tool,
+  // not a scheduling action).
+  { type: "link", key: "admin.nav.search", path: "/admin/search", icon: SearchIcon },
   {
     type: "group",
     label: "admin.grp.booking",
@@ -27,7 +30,6 @@ const NAV = [
       { key: "admin.nav.courseBooking", path: "/admin/booking" },
       { key: "admin.nav.roomBooking", path: "/admin/room-booking" },
       { key: "admin.nav.meeting", path: "/admin/meeting" },
-      { key: "admin.nav.search", path: "/admin/search" },
     ],
   },
   {

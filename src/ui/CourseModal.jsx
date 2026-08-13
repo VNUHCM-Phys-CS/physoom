@@ -19,7 +19,7 @@ import { toast } from "react-toastify";
 import LecturerEmailInput from "./LecturerEmailInput";
 import { useI18n } from "@/i18n/I18nProvider";
 
-const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
+const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {}, terms = [] }) => {
   const { t } = useI18n();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const {
@@ -50,6 +50,7 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
     if (data) {
       reset({
         ...data,
+        term: data.term ? String(data.term) : "",
         start_date: data.start_date
           ? new Date(data.start_date).toISOString().slice(0, 10) // Extract YYYY-MM-DD
           : "",
@@ -61,6 +62,8 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
 
   const onSubmit = async (formData) => {
     setIsSubmitting(true);
+    // Empty / "unassign" term → null (avoid casting "" to an ObjectId).
+    if (!formData.term || formData.term === "__none__") formData.term = null;
     try {
       // Validate the combination of course_id and class_id
       const validateResponse = await fetch("/api/course/validate", {
@@ -333,6 +336,25 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {} }) => {
                     {locationList.short.map((loc) => (
                       <SelectItem key={loc}>{loc}</SelectItem>
                     ))}
+                  </Select>
+                )}
+              />
+              <Controller
+                name="term"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    label={t("cm.term") || "Học kỳ"}
+                    placeholder={t("cm.selectTerm") || "Chọn học kỳ"}
+                    selectedKeys={field.value ? [field.value] : []}
+                    onChange={(val) => field.onChange(val.target.value)}
+                  >
+                    {[
+                      ...(terms ?? []).map((tm) => (
+                        <SelectItem key={String(tm._id)}>{tm.title}</SelectItem>
+                      )),
+                      <SelectItem key="__none__" className="text-danger">— Gỡ học kỳ —</SelectItem>,
+                    ]}
                   </Select>
                 )}
               />

@@ -19,6 +19,7 @@ export const courseSchema = z.object({
   location: z.string().nonempty("Location is required"),
   isLock: z.boolean().optional(),
   note: z.string().optional(),
+  term: z.string().nullable().optional(),
 });
 
 export const roomSchema = z.object({

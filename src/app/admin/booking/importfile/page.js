@@ -243,7 +243,10 @@ const Page = () => {
             ? convertExcelDateToJSDate(d["Ngày đầu tuần"])
             : new Date(selectedTermObj.start),
           credit: d["Số tiết"] ?? 1,
-          duration: 15,
+          // Duration = số buổi = số tuần của học kỳ (không hardcode nữa).
+          duration: selectedTermObj
+            ? Math.max(1, Math.round((new Date(selectedTermObj.end) - new Date(selectedTermObj.start)) / (7 * 86400000)) + 1)
+            : 15,
           location: d.cleanRoomTitle
             ? rooms.find((r) => r.title === d.cleanRoomTitle)?.location
             : locationList.default,
