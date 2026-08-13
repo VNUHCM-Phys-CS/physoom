@@ -364,6 +364,22 @@ export const POST = async (request) => {
         created: validOccurrences.length,
         overwritten: isOverwrite, // replaced this course's own previous schedule
       });
+
+      // The course now has a real, clash-free schedule for this series, so any
+      // stale health warnings are obsolete — clear them here too (not just on
+      // import) so scheduling manually also makes the ⚠ disappear. Only clears
+      // when THIS placement had no conflict; a genuinely conflicting import path
+      // still records its own "Trùng lịch" warning afterwards.
+      if (courseConflicts.length === 0) {
+        try {
+          await Course.updateOne(
+            { _id: courseId },
+            { $pull: { warnings: { $regex: /(chưa xếp|Thiếu giảng viên|GV chưa có|Trùng lịch)/ } } }
+          );
+        } catch (e) {
+          console.error("clear warnings failed:", e);
+        }
+      }
     }
 
     revalidateTag("booking");

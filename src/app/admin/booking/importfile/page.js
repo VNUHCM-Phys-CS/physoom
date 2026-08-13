@@ -209,11 +209,20 @@ const Page = () => {
       setProgressRoom({ value: 100, isError: !roomResponse.ok });
 
       // --- Course creation ---
-      const courses = _.uniqBy(data, (item) =>
-        `${item["Mã mh"].trim()}_${item["mã lớp 2"]}_${item["Lớp"].trim()}`
-      ).map((d) => {
-        const requested = d._teacher_emails ?? [];
-        const teacher_email = requested.map((e) => name2email[e]).filter(Boolean);
+      // A course's teachers = the UNION across ALL rows sharing its identity
+      // (Mã mh + mã lớp 2 + Lớp). One code can carry a lecture AND its "Bài tập"/
+      // "Thực hành" rows with different teachers; keying on the first row only
+      // (old uniqBy) kept just the lecture's teacher on the course record, so
+      // editing another component's teacher never showed up. Union everything.
+      const courseGroups = {};
+      data.forEach((item) => {
+        const key = `${item["Mã mh"]?.trim()}_${item["mã lớp 2"]}_${item["Lớp"]?.trim()}`;
+        (courseGroups[key] ||= []).push(item);
+      });
+      const courses = Object.values(courseGroups).map((groupRows) => {
+        const d = groupRows[0];
+        const requested = [...new Set(groupRows.flatMap((r) => r._teacher_emails ?? []))];
+        const teacher_email = [...new Set(requested.map((e) => name2email[e]).filter(Boolean))];
         const missingNames = requested.filter((e) => !name2email[e]);
         // Persisted health flags shown in the course list.
         const warnings = [];
