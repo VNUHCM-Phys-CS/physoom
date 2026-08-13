@@ -46,9 +46,10 @@ export default function AboutPage() {
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        {/* Legibility overlay — works in light & dark */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/75" />
-        <div className="absolute inset-0 bg-secondary/20 mix-blend-multiply" />
+        {/* Brand-tint the photo to the site's secondary (purple 270°) so the
+            hero matches the theme, then darken for text legibility. */}
+        <div className="absolute inset-0 bg-secondary/60 mix-blend-multiply" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-secondary-900/30 to-black/75" />
 
         <div className="relative z-10 mx-auto max-w-3xl px-4 text-center text-white flex flex-col items-center gap-5 py-16">
           <motion.div variants={fadeUp}>
@@ -94,14 +95,19 @@ export default function AboutPage() {
             </div>
             <p className="text-default-600 leading-relaxed text-sm md:text-base">{t("about.whatBody")}</p>
           </motion.div>
-          <motion.div variants={fadeUp} className="order-1 md:order-2">
+          <motion.div
+            variants={fadeUp}
+            className="order-1 md:order-2 relative isolate rounded-2xl overflow-hidden border border-default-200 shadow-lg"
+          >
             <img
               src="/images/about/classroom.jpg"
               alt=""
               aria-hidden="true"
               loading="lazy"
-              className="w-full h-56 md:h-72 object-cover rounded-2xl border border-default-200 shadow-lg"
+              className="w-full h-56 md:h-72 object-cover"
             />
+            {/* brand tint to match the purple theme */}
+            <div className="absolute inset-0 bg-secondary/45 mix-blend-multiply" />
           </motion.div>
         </motion.section>
 
@@ -143,16 +149,16 @@ export default function AboutPage() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.4 }}
-          className="mt-14 relative overflow-hidden rounded-3xl border border-default-200 shadow-lg"
+          className="mt-14 relative overflow-hidden rounded-3xl border border-secondary-700/40 shadow-lg bg-gradient-to-br from-secondary-600 via-secondary-800 to-black"
         >
+          {/* physics-equation texture, brand-tinted, behind the credit */}
           <img
-            src="/images/about/planner.jpg"
+            src="/images/about/hero.jpg"
             alt=""
             aria-hidden="true"
             loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover object-top"
+            className="absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-overlay"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/30" />
           <div className="relative z-10 p-8 md:p-12 max-w-md text-white">
             <p className="text-xs uppercase tracking-widest text-white/70 font-semibold">
               {t("about.createdBy")}
