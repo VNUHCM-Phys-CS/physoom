@@ -22,6 +22,10 @@ import {
 } from "@heroui/react";
 import { useI18n } from "@/i18n/I18nProvider";
 
+// Start the week on Monday so Sunday is the LAST (right-most) column — matching
+// the tiết grid, compact schedule and meeting planner. Other week math here uses
+// startOf('isoWeek') explicitly, so it's unaffected by this locale tweak.
+moment.updateLocale(moment.locale(), { week: { dow: 1 } });
 const localizer = momentLocalizer(moment);
 const DnDCalendar = withDragAndDrop(Calendar);
 
