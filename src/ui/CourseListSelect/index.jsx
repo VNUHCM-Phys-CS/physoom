@@ -56,26 +56,21 @@ export default function CourseListSelect({
     if (currentId)
       setSelectedKeys(new Set().add(currentId.toString()));
   }, [currentId]);
-  const courseGroup = useMemo(() => {
-    // "Đã xếp" vs "Chờ xếp" must be decided per COURSE (its own bookings), not by
-    // title: two sections can share a title while only one is scheduled, so a
-    // title-based check wrongly marks a teacher-less/unscheduled course as done.
+  // Toggle between "Chờ xếp" and "Đã xếp" (decided per COURSE by its own
+  // bookings, not by title — two sections can share a title while only one is
+  // scheduled).
+  const [view, setView] = useState("pending");
+  const { pending, planned } = useMemo(() => {
     const done = new Set();
     (userEvents ?? []).forEach((d) => {
       const cid = d?.course?._id ?? d?.course;
       if (cid) done.add(String(cid));
     });
-    let l = [
-      { key: "pending", title: t("booking.pendingClass"), data: [], emptyText: t("booking.noAction") },
-      { key: "planned", title: t("booking.plannedClass"), data: [] },
-    ];
-    (course ?? []).forEach((c) => {
-      if (done.has(String(c._id))) l[1].data.push(c);
-      else l[0].data.push(c);
-    });
-    if (l[1].data.length === 0) l = [l[0]];
-    return l;
-  }, [userEvents, course, t]);
+    const pending = [], planned = [];
+    (course ?? []).forEach((c) => (done.has(String(c._id)) ? planned : pending).push(c));
+    return { pending, planned };
+  }, [userEvents, course]);
+  const activeList = view === "planned" ? planned : pending;
   useEffect(() => {
     const select = Array.from(selectedKeys);
     if (select[0] && onSelectionChange) {
@@ -124,12 +119,12 @@ export default function CourseListSelect({
         return { isIn: false, isSe: false };
       } else {
         const all = new Set();
-        courseGroup.forEach((cg) => cg.data.forEach(({ _id }) => all.add(_id)));
+        activeList.forEach(({ _id }) => all.add(_id));
         setSelectedRelated(all);
         return { isIn: false, isSe: true };
       }
     });
-  }, [courseGroup]);
+  }, [activeList]);
   const handleLockAll = (selectedRelated) => {
     const query = [];
     selectedRelated.forEach((_id) => query.push({ _id, isLock: true }));
@@ -187,6 +182,29 @@ export default function CourseListSelect({
           </Button>
         </div>
       </div>
+
+      {/* Toggle: Chờ xếp / Đã xếp — with counts */}
+      <div className="px-4 mb-2 flex gap-2">
+        <Button
+          size="sm"
+          className="flex-1"
+          variant={view === "pending" ? "solid" : "flat"}
+          color={view === "pending" ? "secondary" : "default"}
+          onPress={() => setView("pending")}
+        >
+          {t("booking.pendingClass")} ({pending.length})
+        </Button>
+        <Button
+          size="sm"
+          className="flex-1"
+          variant={view === "planned" ? "solid" : "flat"}
+          color={view === "planned" ? "secondary" : "default"}
+          onPress={() => setView("planned")}
+        >
+          {t("booking.plannedClass")} ({planned.length})
+        </Button>
+      </div>
+
       <ScrollShadow className="flex flex-col gap-2 h-full w-full relative">
         <Listbox
           className="list-stack"
@@ -199,9 +217,9 @@ export default function CourseListSelect({
           disabledKeys={["empty"]}
           hideSelectedIcon
         >
-          {courseGroup.map((cg) => (
-            <ListboxSection key={cg.key} title={cg.title} showDivider>
-              {cg.data.map(
+          {(
+            <ListboxSection key={view} title={null}>
+              {activeList.map(
                 ({ title, location, teacher_email, credit, _id, isLock, warnings, class_id }) => (
                   <ListboxItem
                     key={_id?.toString()}
@@ -232,7 +250,7 @@ export default function CourseListSelect({
                               {(class_id ?? []).join(", ")}
                             </Chip>
                           )}
-                          {cg.key === "planned" && onUnschedule && (
+                          {view === "planned" && onUnschedule && (
                             <Tooltip content={t("course.moveToPending")}>
                               <Button
                                 isIconOnly
@@ -282,11 +300,11 @@ export default function CourseListSelect({
                   </ListboxItem>
                 )
               )}
-              {cg.data.length === 0 && (
-                <ListboxItem key="empty">{cg.emptyText}</ListboxItem>
+              {activeList.length === 0 && (
+                <ListboxItem key="empty">{t("booking.noAction")}</ListboxItem>
               )}
             </ListboxSection>
-          ))}
+          )}
         </Listbox>
       </ScrollShadow>
     </div>
