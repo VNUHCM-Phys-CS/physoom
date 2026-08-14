@@ -40,6 +40,32 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         token.adminScope = Array.isArray(user.adminScope) ? user.adminScope.map((s) => String(s)) : [];
         token.teacher_id = user.teacher_id;
       }
+
+      // Always refresh role/scope from the DB so role changes (grant super,
+      // set a scope, backfills) take effect on the next request WITHOUT a
+      // re-login — and old tokens issued before these fields existed get them
+      // populated. Best-effort; never break auth on a DB hiccup.
+      if (token?.user?.email) {
+        try {
+          await connectToDb();
+          const dbUser = await User.findOne(
+            { email: token.user.email },
+            "isAdmin isSuperAdmin adminScope teacher_id"
+          ).lean();
+          if (dbUser) {
+            token.isAdmin = !!dbUser.isAdmin;
+            token.isSuperAdmin = !!dbUser.isSuperAdmin;
+            token.adminScope = Array.isArray(dbUser.adminScope) ? dbUser.adminScope.map((s) => String(s)) : [];
+            token.teacher_id = dbUser.teacher_id;
+            token.user.isAdmin = token.isAdmin;
+            token.user.isSuperAdmin = token.isSuperAdmin;
+            token.user.adminScope = token.adminScope;
+            token.user.teacher_id = token.teacher_id;
+          }
+        } catch (e) {
+          console.error("jwt role refresh failed", e);
+        }
+      }
       // if (token.user&&token.user.email) {
       //   const isAdmin = user.isAdmin;
       //   token.isAdmin = isAdmin;
