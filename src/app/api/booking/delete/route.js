@@ -15,7 +15,7 @@ export const POST = async (request) => {
 
   try {
     await connectToDb();
-    const { id, series_id, start, end, classIds, mode } = await request.json();
+    const { id, series_id, start, end, classIds, courseKeys, mode } = await request.json();
 
     if (!mode) {
       return NextResponse.json({ success: false, message: "Missing deletion mode" }, { status: 400 });
@@ -65,6 +65,26 @@ export const POST = async (request) => {
         q.start = { $gte: new Date(start), $lte: new Date(end) };
       }
       result = await CalendarEvent.deleteMany(q);
+    } else if (mode === 'courseKeys') {
+      // Delete class events for ONLY the specific courses in this import — each
+      // identified by (course_id + one of its class_id), across duplicate course
+      // docs sharing that identity. Unlike mode 'class' this does NOT touch OTHER
+      // courses of the same class, so importing a single course no longer sends
+      // that class's other courses to "chờ xếp".
+      const keys = Array.isArray(courseKeys) ? courseKeys : [];
+      const or = keys
+        .map((k) => {
+          const cls = Array.isArray(k.class_id) ? k.class_id : k.class_id ? [k.class_id] : [];
+          return k.course_id && cls.length
+            ? { course_id: String(k.course_id).trim(), class_id: { $in: cls.map((s) => String(s).trim()) } }
+            : null;
+        })
+        .filter(Boolean);
+      if (!or.length) {
+        return NextResponse.json({ success: false, message: "Missing courseKeys for deletion" }, { status: 400 });
+      }
+      const courses = await Course.find({ $or: or }, "_id").lean();
+      result = await CalendarEvent.deleteMany({ course: { $in: courses.map((c) => c._id) }, type: "class" });
     } else {
       return NextResponse.json({ success: false, message: "Invalid deletion mode" }, { status: 400 });
     }

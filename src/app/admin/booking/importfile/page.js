@@ -297,37 +297,20 @@ const Page = () => {
       // "track" (⚠) and can be reviewed after the import dialog is closed.
       const conflictByCourse = {};
 
-      // Import must REPLACE the schedule of every class in the file, and must NOT
-      // depend on those classes' OLD schedule data. Before placing anything, wipe
-      // all class events for every class code in the file (within the selected
-      // term), across EVERY course document that shares those codes — including
-      // duplicate/old course docs from earlier imports. Without this, a row for
-      // class A would clash against stale leftovers of class B (not cleared yet,
-      // or hidden under a duplicate course _id) → phantom "trùng lịch".
-      // After this wipe the only conflicts that can be reported are REAL ones:
-      // between two rows of the file, or against classes NOT in the file.
-      const importClassIds = [
-        ...new Set(
-          data
-            .flatMap((d) => String(d["Lớp"] || "").split(","))
-            .map((s) => s.trim())
-            .filter(Boolean)
-        ),
-      ];
-      // NOTE: no date scope on purpose. Leftover events from old buggy imports
-      // can carry a corrupted `start`/`time_slot` (e.g. a period in the "Break"
-      // slot, or a date that evades a term-range filter) yet still overlap the
-      // new occurrences enough to be flagged as a clash. Deleting strictly by
-      // class code — every event of every course that shares the code — is the
-      // only way to guarantee those corrupted leftovers are gone. These codes
-      // are term-specific (year-prefixed), so this can't touch another term.
+      // Before placing anything, wipe the OLD schedule of EXACTLY the courses in
+      // this file — each identified by (Mã mh + lớp), across any duplicate course
+      // docs sharing that identity. This clears stale/duplicate leftovers so a
+      // re-import fully replaces those courses' schedules WITHOUT touching OTHER
+      // courses of the same class (importing one course must not send the class's
+      // other courses to "chờ xếp").
+      const importCourseKeys = courses.map((c) => ({ course_id: c.course_id, class_id: c.class_id }));
       let wipedClassEvents = null;
-      if (importClassIds.length) {
+      if (importCourseKeys.length) {
         try {
           const wipeRes = await fetch("/api/booking/delete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode: "class", classIds: importClassIds }),
+            body: JSON.stringify({ mode: "courseKeys", courseKeys: importCourseKeys }),
           });
           const wipeData = await wipeRes.json().catch(() => ({}));
           wipedClassEvents = wipeData?.count ?? null;

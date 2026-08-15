@@ -1,7 +1,9 @@
 "use client";
+import { useEffect } from "react";
 import { Button, Chip } from "@heroui/react";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   CalendarIcon, DoorOpenIcon, ClockIcon, UsersIcon, ArrowRightIcon, SparklesIcon,
@@ -108,7 +110,16 @@ function FeatureCard({ icon: Icon, titleKey, descKey, href, locked }) {
 export default function Home() {
   const { data: session } = useSession();
   const { t } = useI18n();
+  const router = useRouter();
   const user = session?.user;
+
+  // Lecturers (logged-in, non-admin) land on their personal calendar.
+  useEffect(() => {
+    if (user && !user.isAdmin) router.replace("/booking");
+  }, [user, router]);
+
+  // Avoid flashing the marketing home before the redirect kicks in.
+  if (user && !user.isAdmin) return null;
 
   return (
     <main className="relative min-h-[70vh] flex flex-col overflow-hidden">
