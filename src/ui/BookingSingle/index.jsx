@@ -450,14 +450,9 @@ export default function BookingSingle({ email }) {
     (terms ?? []).forEach((tm) => { const y = termAcademicYear(tm); if (y) s.add(y); });
     return [...s].sort((a, b) => b.localeCompare(a));
   }, [terms]);
-  // Default = the term most of the lecturer's courses belong to.
-  useEffect(() => {
-    if (selectedTermId || !course?.length) return;
-    const counts = {};
-    course.forEach((c) => { if (c.term) counts[String(c.term)] = (counts[String(c.term)] || 0) + 1; });
-    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
-    if (top) setSelectedTermId(top);
-  }, [course, selectedTermId]);
+  // Default = "Tất cả" (null): a lecturer teaches across several cohort-terms, so
+  // the personal calendar should show the whole teaching load by default. Picking
+  // a term then narrows BOTH the course list and the calendar consistently.
   const selectedTermObj = useMemo(() => (terms ?? []).find((t) => String(t._id) === selectedTermId), [terms, selectedTermId]);
   // Default the year filter from the selected term (or the newest year).
   useEffect(() => {
@@ -481,6 +476,23 @@ export default function BookingSingle({ email }) {
   const filteredCourses = useMemo(
     () => (selectedTermId ? (course ?? []).filter((c) => String(c.term) === selectedTermId) : (course ?? [])),
     [course, selectedTermId]
+  );
+  // Course ids that belong to the selected term — used to filter the personal
+  // calendar so it MATCHES the term picker (not just the course list).
+  const termCourseIds = useMemo(
+    () => new Set((course ?? []).filter((c) => String(c.term) === selectedTermId).map((c) => String(c._id))),
+    [course, selectedTermId]
+  );
+  const inSelectedTerm = useCallback(
+    (ev) => {
+      if (!selectedTermId) return true; // "Tất cả"
+      const cid = ev?.course?._id ?? ev?.course;
+      if (!cid) return true; // non-course personal event (room booking) — always show
+      if (termCourseIds.has(String(cid))) return true;
+      const t = ev?.course?.term; // fallback if the event carries the term
+      return t ? String(t) === selectedTermId : false;
+    },
+    [selectedTermId, termCourseIds]
   );
   const selectedTermStart = selectedTermObj?.start ? new Date(selectedTermObj.start).getTime() : undefined;
 
@@ -725,7 +737,13 @@ export default function BookingSingle({ email }) {
     if (!times.length) return { from: undefined, to: undefined };
     return { from: new Date(Math.min(...times)), to: new Date(Math.max(...times)) };
   }, []);
-  const lecturerRange = useMemo(() => rangeOf(userEvents), [userEvents, rangeOf]);
+  // Personal calendar events filtered to the selected term (so the view matches
+  // the term picker). "Tất cả" → all teaching + personal events.
+  const personalEvents = useMemo(
+    () => (userEvents ?? []).filter(inSelectedTerm),
+    [userEvents, inSelectedTerm]
+  );
+  const lecturerRange = useMemo(() => rangeOf(personalEvents), [personalEvents, rangeOf]);
   const classRange = useMemo(() => rangeOf(classEvents), [classEvents, rangeOf]);
 
   // Detailed, step-by-step page tour: switches the sidebar/main tab as it goes
@@ -876,9 +894,10 @@ export default function BookingSingle({ email }) {
         <Select
           size="sm"
           label={t("cm.term") || "Học kỳ"}
-          selectedKeys={selectedTermId ? [selectedTermId] : []}
-          onChange={(e) => setSelectedTermId(e.target.value || null)}
+          selectedKeys={selectedTermId ? [selectedTermId] : ["__all__"]}
+          onChange={(e) => setSelectedTermId(e.target.value === "__all__" || !e.target.value ? null : e.target.value)}
         >
+          <SelectItem key="__all__" value="__all__">{t("myev.all")}</SelectItem>
           {termsInYear.map((tm) => (
             <SelectItem key={String(tm._id)} value={String(tm._id)}>
               {termYear(tm.title) ? tm.title.replace(termYear(tm.title), "").replace(/[\/\-–\s]+$/, "").trim() : tm.title}
@@ -1024,13 +1043,13 @@ export default function BookingSingle({ email }) {
               </div>
               {compactMode ? (
                 <CompactSchedule
-                  events={userEvents}
+                  events={personalEvents}
                   defaultFrom={lecturerRange.from}
                   defaultTo={lecturerRange.to}
                 />
               ) : (
                 <CalendarByUser
-                  _events={userEvents}
+                  _events={personalEvents}
                   customSubtitle={customSubtitle}
                   selectedID={booking?.course?._id}
                   jumpTo={lecturerJump}
