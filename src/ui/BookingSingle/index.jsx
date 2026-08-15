@@ -36,12 +36,13 @@ import {
   Switch,
   Select,
   SelectItem,
+  Input,
 } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import CompactSchedule from "../CompactSchedule";
 import EditScheduleModal from "../EditScheduleModal";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
-import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon } from "lucide-react";
+import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon, SearchIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import moment from "moment";
@@ -60,12 +61,60 @@ const statusColor = (status) => {
 };
 
 function EventListSidebar({ events, email, selectedId, onSelect }) {
-  if (!events?.length) return (
-    <p className="text-xs text-default-400 italic px-3 py-2">No events yet.</p>
-  );
+  const { t } = useI18n();
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
+  const [futureOnly, setFutureOnly] = useState(false);
+
+  const norm = (s) => String(s || "").toLowerCase();
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const qq = norm(q).trim();
+    return (events ?? [])
+      .filter((ev) => {
+        if (status !== "all" && (ev.status || "pending") !== status) return false;
+        if (futureOnly && ev.end && new Date(ev.end).getTime() < now) return false;
+        if (qq && !norm(`${ev.title} ${ev.room?.title || ""}`).includes(qq)) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
+  }, [events, q, status, futureOnly]);
+
   return (
-    <div className="flex flex-col gap-1 p-2">
-      {events.map((ev) => {
+    <div className="flex flex-col gap-2 p-2">
+      {/* Search + filters */}
+      <Input
+        size="sm"
+        placeholder={t("myev.searchPh") || "Tìm sự kiện / phòng"}
+        value={q}
+        onValueChange={setQ}
+        isClearable
+        onClear={() => setQ("")}
+        startContent={<SearchIcon size={14} className="text-default-400" />}
+      />
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select
+          size="sm"
+          aria-label="Trạng thái"
+          className="max-w-[140px]"
+          selectedKeys={[status]}
+          onChange={(e) => setStatus(e.target.value || "all")}
+        >
+          <SelectItem key="all">{t("myev.all") || "Tất cả"}</SelectItem>
+          <SelectItem key="approved">{t("myev.approved") || "Đã duyệt"}</SelectItem>
+          <SelectItem key="pending">{t("myev.pending") || "Chờ duyệt"}</SelectItem>
+          <SelectItem key="rejected">{t("myev.rejected") || "Từ chối"}</SelectItem>
+        </Select>
+        <Switch size="sm" isSelected={futureOnly} onValueChange={setFutureOnly}>
+          <span className="text-xs">{t("myev.futureOnly") || "Sắp tới"}</span>
+        </Switch>
+      </div>
+
+      {!filtered.length ? (
+        <p className="text-xs text-default-400 italic px-1 py-2">
+          {events?.length ? (t("myev.noMatch") || "Không có sự kiện khớp.") : "No events yet."}
+        </p>
+      ) : filtered.map((ev) => {
         const isOwner = (ev.teacher_email ?? []).includes(email);
         const isHost = (ev.host ?? []).includes(email);
         const isAttendee = (ev.attendees ?? []).includes(email);
