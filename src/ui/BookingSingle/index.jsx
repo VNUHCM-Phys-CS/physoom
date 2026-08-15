@@ -206,6 +206,7 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
 // ─── EventBookingTab ──────────────────────────────────────────────────────────
 
 function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick, initialRoomId, onRoomChange }) {
+  const { t } = useI18n();
   const [roomInput, setRoomInput] = useState("");
   const [roomFilter, setRoomFilter] = useState(initialRoomId || null); // selected room _id
   const [calDate, setCalDate] = useState(new Date());
