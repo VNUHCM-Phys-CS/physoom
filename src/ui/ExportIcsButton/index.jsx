@@ -9,7 +9,8 @@ import {
   Button,
 } from "@heroui/react";
 import { toast } from "react-toastify";
-import { CalendarPlusIcon, DownloadIcon, LinkIcon, CalendarCheckIcon } from "lucide-react";
+import { CalendarPlusIcon, DownloadIcon, LinkIcon } from "lucide-react";
+import { GoogleGIcon, AppleGlyphIcon, OutlookIcon } from "@/ui/icons/BrandIcons";
 import { useI18n } from "@/i18n/I18nProvider";
 
 /**
@@ -55,13 +56,16 @@ export default function ExportIcsButton({ email, label }) {
     const webcal = icsUrl(window.location.origin).replace(/^https?:\/\//, "webcal://");
     window.location.href = webcal;
   };
-  // Outlook on the web (office.com) subscribe-from-URL flow.
-  const addToOutlook = () => {
-    const url = `https://outlook.office.com/calendar/0/addfromweb?url=${encodeURIComponent(
+  // Outlook subscribe-from-URL flow. Two hosts: office.com (work/school 365)
+  // and live.com (personal outlook.com / hotmail).
+  const openOutlook = (host) => {
+    const url = `https://outlook.${host}/calendar/0/addfromweb?url=${encodeURIComponent(
       icsUrl(window.location.origin)
     )}&name=${encodeURIComponent("Physoom")}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
+  const addToOutlook = () => openOutlook("office.com");
+  const addToOutlookPersonal = () => openOutlook("live.com");
 
   return (
     <Dropdown>
@@ -74,7 +78,7 @@ export default function ExportIcsButton({ email, label }) {
         <DropdownSection title={t("ics.addToCalendar")}>
           <DropdownItem
             key="google"
-            startContent={<CalendarCheckIcon size={15} />}
+            startContent={<GoogleGIcon size={16} />}
             description={t("ics.googleDesc")}
             onPress={addToGoogle}
           >
@@ -82,7 +86,7 @@ export default function ExportIcsButton({ email, label }) {
           </DropdownItem>
           <DropdownItem
             key="apple"
-            startContent={<CalendarCheckIcon size={15} />}
+            startContent={<AppleGlyphIcon size={16} />}
             description={t("ics.appleDesc")}
             onPress={addToApple}
           >
@@ -90,11 +94,19 @@ export default function ExportIcsButton({ email, label }) {
           </DropdownItem>
           <DropdownItem
             key="outlook"
-            startContent={<CalendarCheckIcon size={15} />}
+            startContent={<OutlookIcon size={16} />}
             description={t("ics.outlookDesc")}
             onPress={addToOutlook}
           >
             {t("ics.outlook")}
+          </DropdownItem>
+          <DropdownItem
+            key="outlook-personal"
+            startContent={<OutlookIcon size={16} />}
+            description={t("ics.outlookPersonalDesc")}
+            onPress={addToOutlookPersonal}
+          >
+            {t("ics.outlookPersonal")}
           </DropdownItem>
           <DropdownItem
             key="download"

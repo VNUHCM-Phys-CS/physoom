@@ -712,11 +712,19 @@ export default function BookingSingle({ email }) {
     today.setHours(0, 0, 0, 0);
     return Math.max(ts, today.getTime());
   }, []);
-  // Earliest session across the lecturer's own events / class events — the
-  // schedule start to jump to when no specific term/course is picked ("Tất cả").
+  // Jump target across the lecturer's own / class events when no term/course is
+  // picked: the earliest UPCOMING session. Ignoring past dates matters because a
+  // stray old room booking (e.g. 31/07) would otherwise be the earliest event and
+  // — clamped to today — pin the view to the current week instead of the next
+  // class. Falls back to the earliest overall if nothing is upcoming.
   const firstOf = useCallback((events) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
     const times = (events ?? []).filter((e) => e.start).map((e) => new Date(e.start).valueOf());
-    return times.length ? Math.min(...times) : undefined;
+    if (!times.length) return undefined;
+    const upcoming = times.filter((t) => t >= todayMs);
+    return upcoming.length ? Math.min(...upcoming) : Math.min(...times);
   }, []);
   const firstUserEventTs = useMemo(() => firstOf(userEvents), [userEvents, firstOf]);
   const firstClassEventTs = useMemo(() => firstOf(classEvents), [classEvents, firstOf]);
