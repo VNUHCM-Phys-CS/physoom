@@ -2,6 +2,6 @@
 
 import Home from "@/ui/pages/Homepage";
 
-export default async function HomePage() {
+export default function HomePage() {
   return <Home />;
 }
