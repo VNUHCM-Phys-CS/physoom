@@ -43,6 +43,11 @@ export const GET = async (request) => {
        ];
        const titleParts = [name, cls, e.room?.title].filter(Boolean);
        return {
+         // STABLE uid per occurrence — the `ics` lib otherwise assigns a random
+         // uid each generation, so every refresh looks like new events to
+         // Google/Apple (duplicates/churn). Anchoring to the DB id keeps them
+         // matched across refreshes.
+         uid: `${e._id}@physoom.vercel.app`,
          title: titleParts.join(" · "),
          description:
            `Môn: ${e.course?.title || 'N/A'}\n` +
@@ -79,8 +84,12 @@ export const GET = async (request) => {
       : value.replace(/(BEGIN:VCALENDAR\r?\n)/, `$1${injected}`);
 
     const headers = new Headers();
-    headers.set('Content-Type', 'text/calendar');
-    headers.set('Content-Disposition', `attachment; filename="schedule_${teacher_email}.ics"`);
+    // charset so Vietnamese names render; inline (not attachment) so the same
+    // URL works cleanly as a subscription feed. A short cache lets calendar
+    // clients revalidate without hammering the DB, but not so long it goes stale.
+    headers.set('Content-Type', 'text/calendar; charset=utf-8');
+    headers.set('Content-Disposition', `inline; filename="physoom_${teacher_email}.ics"`);
+    headers.set('Cache-Control', 'public, max-age=3600');
 
     return new NextResponse(icsValue, { status: 200, headers });
   } catch (err) {
