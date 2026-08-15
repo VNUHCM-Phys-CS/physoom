@@ -42,11 +42,24 @@ export default function ExportIcsButton({ email, label }) {
     }
   };
 
-  // Open Google Calendar's "add by URL" subscription flow. Google fetches the
-  // (public) ICS feed periodically, so the calendar stays in sync automatically.
+  // The ICS feed is standard iCalendar, so it works in every calendar app. These
+  // helpers open each app's "subscribe by URL" flow so the calendar auto-syncs.
   const addToGoogle = () => {
     const webcal = icsUrl(window.location.origin).replace(/^https?:\/\//, "webcal://");
     const url = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+  // Apple Calendar (macOS/iOS) intercepts the webcal:// scheme and offers to
+  // subscribe. Navigate to it so the OS handler kicks in.
+  const addToApple = () => {
+    const webcal = icsUrl(window.location.origin).replace(/^https?:\/\//, "webcal://");
+    window.location.href = webcal;
+  };
+  // Outlook on the web (office.com) subscribe-from-URL flow.
+  const addToOutlook = () => {
+    const url = `https://outlook.office.com/calendar/0/addfromweb?url=${encodeURIComponent(
+      icsUrl(window.location.origin)
+    )}&name=${encodeURIComponent("Physoom")}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -66,6 +79,22 @@ export default function ExportIcsButton({ email, label }) {
             onPress={addToGoogle}
           >
             {t("ics.google")}
+          </DropdownItem>
+          <DropdownItem
+            key="apple"
+            startContent={<CalendarCheckIcon size={15} />}
+            description={t("ics.appleDesc")}
+            onPress={addToApple}
+          >
+            {t("ics.apple")}
+          </DropdownItem>
+          <DropdownItem
+            key="outlook"
+            startContent={<CalendarCheckIcon size={15} />}
+            description={t("ics.outlookDesc")}
+            onPress={addToOutlook}
+          >
+            {t("ics.outlook")}
           </DropdownItem>
           <DropdownItem
             key="download"
