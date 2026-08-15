@@ -43,27 +43,9 @@ export default function CalendarByRoom({
     const _room = (rooms ?? []).find((d) => d._id === initRoom);
     setCurrentRoom(_room);
   }, [initRoom, rooms, booking]);
-  const {
-    data: eventsByRoom,
-    mutate,
-    isLoading: isLoadingEvent,
-  } = useSWR(
-    [
-      selectedRoom ? "/api/booking" : null,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          filter: { room: selectedRoom },
-        }),
-      },
-    ],
-    fetcheroptions,
-    { tags: ["booking"], revalidate: 60 }
-  );
-  const [gridObject, setGridObject] = useState(defaultGridNVC);
   // Scheduling window (from the term + dates chosen upstream). Existing bookings
   // only "block" the weekly grid when they actually overlap this window — a room
-  // used in another term (non-overlapping dates) must not falsely block a slot.
+  // used in another week/term (no session in this window) must not falsely block.
   const [winStartMs, winEndMs] = useMemo(() => {
     const s = booking?.time_slot?.start_date;
     const e = booking?.time_slot?.end_date;
@@ -80,12 +62,32 @@ export default function CalendarByRoom({
     },
     [winStartMs, winEndMs]
   );
-  // Room bookings restricted to the chosen window (used only for the occupancy
-  // grid + overlap warnings; onClickCell still uses the full eventsByRoom).
-  const roomEventsInWindow = useMemo(
-    () => (eventsByRoom ?? []).filter((e) => inWindow(e.start)),
-    [eventsByRoom, inWindow]
+  // Room occupancy is scoped to the window at the SERVER (occurrence-level date
+  // overlap), so only classes with a real session in [winStart, winEnd] come
+  // back — no reliance on the fragile "first occurrence" representative.
+  const {
+    data: eventsByRoom,
+    mutate,
+    isLoading: isLoadingEvent,
+  } = useSWR(
+    [
+      selectedRoom ? "/api/booking" : null,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          filter: {
+            room: selectedRoom,
+            ...(winStartMs != null && winEndMs != null
+              ? { dateFrom: new Date(winStartMs).toISOString(), dateTo: new Date(winEndMs).toISOString() }
+              : {}),
+          },
+        }),
+      },
+    ],
+    fetcheroptions,
+    { tags: ["booking"], revalidate: 60 }
   );
+  const [gridObject, setGridObject] = useState(defaultGridNVC);
   const events = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -101,7 +103,7 @@ export default function CalendarByRoom({
       futureExtraByWeekday[e.weekday].push(e);
     });
 
-    return roomEventsInWindow.map((roomEvent) => {
+    return (eventsByRoom ?? []).map((roomEvent) => {
       const calEvent = gridObject.booking2calendar(roomEvent);
       const wd = roomEvent.time_slot?.weekday;
       const roomStart = roomEvent.time_slot?.start_time;
@@ -136,16 +138,16 @@ export default function CalendarByRoom({
         ? { ...calEvent, isOverlap: true, overlapWith }
         : calEvent;
     });
-  }, [roomEventsInWindow, gridObject, extraEvents, inWindow]);
+  }, [eventsByRoom, gridObject, extraEvents, inWindow]);
   const eventBoundary = useMemo(() => {
     const _ids = {};
     const extraBoundary = [];
-    roomEventsInWindow.forEach((e) => (_ids[e._id] = true));
+    (eventsByRoom ?? []).forEach((e) => (_ids[e._id] = true));
     (extraEvents ?? []).forEach((e) => {
       if (!_ids[e._id] && inWindow(e.start)) extraBoundary.push(gridObject.booking2calendar(e));
     });
     return extraBoundary;
-  }, [roomEventsInWindow, gridObject, extraEvents, inWindow]);
+  }, [eventsByRoom, gridObject, extraEvents, inWindow]);
   
   const [gridData, setGridData] = useState();
   const [subGridData, setSubGridData] = useState({});

@@ -101,6 +101,14 @@ export const POST = async (request) => {
       if (filter.status) {
         ceFilter.status = filter.status;
       }
+      // Date-window scoping: keep only series that have an actual occurrence
+      // overlapping [dateFrom, dateTo]. Applied at the occurrence level BEFORE
+      // the per-series $group, so a class scheduled in another week/term (no
+      // session in this window) is excluded and won't falsely block the grid.
+      if (filter.dateFrom && filter.dateTo) {
+        ceFilter.start = { $lt: new Date(filter.dateTo) };
+        ceFilter.end = { $gt: new Date(filter.dateFrom) };
+      }
       // class_id filter — resolve via Course lookup then filter by course ObjectId
       if (filter['course.class_id']) {
         let class_id = filter['course.class_id'];
