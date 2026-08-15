@@ -31,14 +31,24 @@ export const GET = async (request) => {
        const start = new Date(e.start);
        const end = new Date(e.end);
        const name = e.course?.title || e.title || 'Event';
+       // Class/cohort code(s) — e.g. 24VLH2_TN, 25CVD — so the event shows which
+       // class it belongs to, not just the course title.
+       const cls = Array.isArray(e.course?.class_id)
+         ? e.course.class_id.filter(Boolean).join(", ")
+         : (e.course?.class_id || "");
        // Use UTC parts + utc input type so the times are correct in any
        // calendar app regardless of the server's timezone.
        const toUtcParts = (d) => [
          d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(),
        ];
+       const titleParts = [name, cls, e.room?.title].filter(Boolean);
        return {
-         title: e.room?.title ? `${name} · ${e.room.title}` : name,
-         description: `Course: ${e.course?.title || 'N/A'}\nRoom: ${e.room?.title || 'N/A'}\nTeacher: ${(e.teacher_email || []).join(', ')}`,
+         title: titleParts.join(" · "),
+         description:
+           `Môn: ${e.course?.title || 'N/A'}\n` +
+           `Lớp: ${cls || 'N/A'}\n` +
+           `Phòng: ${e.room?.title || 'N/A'}\n` +
+           `Giảng viên: ${(e.teacher_email || []).join(', ')}`,
          start: toUtcParts(start),
          startInputType: 'utc',
          end: toUtcParts(end),
