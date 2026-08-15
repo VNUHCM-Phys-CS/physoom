@@ -85,6 +85,61 @@ export default function Calendar({
   const widthD = useCallback(() => {
       return 100 * (1 / visibleWeekdays.length);
   }, [visibleWeekdays]);
+
+  // Side-by-side overlap layout: when several events share a weekday and their
+  // tiết ranges overlap, split the day column into lanes so they sit next to
+  // each other instead of stacking on top of one another. Returns a map keyed
+  // by the event's index → { lane, lanes } (lane index + total lanes in its
+  // overlap cluster). Two events on the same weekday but non-overlapping tiết
+  // keep the full width; two that overlap each take half, three take a third…
+  const eventLayout = useMemo(() => {
+    const byDay = {};
+    events.forEach((e, i) => {
+      const wd = e.time_slot?.weekday;
+      const start = e.time_slot?.start_time;
+      const end = e.time_slot?.end_time;
+      if (wd === undefined || start === undefined || end === undefined) return;
+      (byDay[wd] ||= []).push({ i, start, end, lane: 0 });
+    });
+    const layout = {};
+    Object.values(byDay).forEach((list) => {
+      list.sort((a, b) => a.start - b.start || a.end - b.end);
+      let cluster = [];
+      let clusterEnd = -Infinity;
+      const flush = () => {
+        if (!cluster.length) return;
+        const laneEnds = []; // laneEnds[k] = end time of last event placed in lane k
+        cluster.forEach((ev) => {
+          let placed = false;
+          for (let k = 0; k < laneEnds.length; k++) {
+            if (ev.start >= laneEnds[k]) {
+              laneEnds[k] = ev.end;
+              ev.lane = k;
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            ev.lane = laneEnds.length;
+            laneEnds.push(ev.end);
+          }
+        });
+        const lanes = laneEnds.length;
+        cluster.forEach((ev) => (layout[ev.i] = { lane: ev.lane, lanes }));
+        cluster = [];
+      };
+      list.forEach((ev) => {
+        if (cluster.length && ev.start >= clusterEnd) {
+          flush();
+          clusterEnd = -Infinity;
+        }
+        cluster.push(ev);
+        clusterEnd = Math.max(clusterEnd, ev.end);
+      });
+      flush();
+    });
+    return layout;
+  }, [events]);
   
   // Get all time slots (main and sub) in order
   const getAllSlots = useCallback(() => {
@@ -338,16 +393,21 @@ export default function Calendar({
               {events.map((e, i) => {
                 const weekdayIndex = visibleWeekdays.indexOf(e.time_slot.weekday);
                 if (weekdayIndex === -1) return null; // Skip hidden days
-                
+
+                // Split the day column into lanes for overlapping events.
+                const lay = eventLayout[i] || { lane: 0, lanes: 1 };
+                const dayW = widthD();
+                const laneW = dayW / lay.lanes;
+
                 return (
                   <CalendarEvent
                     key={`e-${i}`}
                     customSubtitle={customSubtitle}
                     data={e}
                     height={`${responsiveCellHeight * (e.time_slot.end_time - e.time_slot.start_time)}px`}
-                    width={`${widthD()}%`}
+                    width={`${laneW}%`}
                     y={`${e.time_slot.start_time * responsiveCellHeight}px`}
-                    x={`${weekdayIndex * widthD()}%`}
+                    x={`${weekdayIndex * dayW + lay.lane * laneW}%`}
                     onClickEvent={onClickEvent}
                     onDragStart={onDragStart}
                     onDoubleClick={onDoubleClick}

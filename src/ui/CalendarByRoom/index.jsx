@@ -105,6 +105,8 @@ export default function CalendarByRoom({
 
     return (eventsByRoom ?? []).map((roomEvent) => {
       const calEvent = gridObject.booking2calendar(roomEvent);
+      // Carry the session (week) count so the event can show a small badge.
+      calEvent.sessions = roomEvent.sessions;
       const wd = roomEvent.time_slot?.weekday;
       const roomStart = roomEvent.time_slot?.start_time;
       const roomEnd = roomEvent.time_slot?.end_time;

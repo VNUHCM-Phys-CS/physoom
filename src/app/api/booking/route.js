@@ -24,6 +24,7 @@ function toBookingShape(ceDoc) {
     room: ceDoc.room,       // populated
     status: ceDoc.status,
     isConfirm: ceDoc.status === 'approved',
+    sessions: ceDoc.sessions, // number of occurrences (weeks) in this series
     time_slot: {
       weekday: ceDoc.weekday,
       start_time: ceDoc.time_slot?.start_time,
@@ -49,7 +50,8 @@ export const GET = async (request) => {
           isCancelled: { $ne: true } 
       } },
       { $sort: { start: 1 } },
-      { $group: { _id: "$series_id", doc: { $first: "$$ROOT" } } },
+      { $group: { _id: "$series_id", doc: { $first: "$$ROOT" }, count: { $sum: 1 } } },
+      { $addFields: { "doc.sessions": "$count" } },
       { $replaceRoot: { newRoot: "$doc" } }
     ]);
 
@@ -126,7 +128,8 @@ export const POST = async (request) => {
     const series = await CalendarEvent.aggregate([
       { $match: ceFilter },
       { $sort: { start: 1 } },
-      { $group: { _id: "$series_id", doc: { $first: "$$ROOT" } } },
+      { $group: { _id: "$series_id", doc: { $first: "$$ROOT" }, count: { $sum: 1 } } },
+      { $addFields: { "doc.sessions": "$count" } },
       { $replaceRoot: { newRoot: "$doc" } }
     ]);
 

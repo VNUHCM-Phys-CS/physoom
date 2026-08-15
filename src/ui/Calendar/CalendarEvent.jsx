@@ -23,7 +23,7 @@ export default function CalendarEvent({
   eventContentClass,
   onDelete,
 }) {
-  const { isOverlap, overlapWith, title, subtitle } = data;
+  const { isOverlap, overlapWith, title, subtitle, sessions } = data;
   const clickTimer = useRef(null);
   const formatTime = (time) => {
     const total_minutes = Math.round(time);
@@ -85,6 +85,9 @@ export default function CalendarEvent({
             <div className="time-display text-xs font-semibold mb-1">
               {formatTime(data?.data?.time_slot?.start_time)} - {formatTime(data?.data?.time_slot?.end_time)}
             </div>
+            {sessions > 0 && (
+              <div className="text-xs">{sessions} tuần</div>
+            )}
             {isOverlap && overlapWith?.length > 0 && (
               <div className="mt-2 border-t border-red-300 pt-1">
                 <p className="text-xs font-bold text-red-500">Schedule conflict:</p>
@@ -118,6 +121,14 @@ export default function CalendarEvent({
           )}
         </div>
       </Tooltip>
+      {sessions > 0 && !isReview && (
+        <div
+          className="absolute top-0 right-0 m-0.5 min-w-[16px] h-4 px-1 rounded-full bg-white/90 text-[9px] leading-4 font-bold text-secondary-700 text-center shadow-sm pointer-events-none"
+          title={`${sessions} tuần`}
+        >
+          {sessions}
+        </div>
+      )}
       {onDelete && (
         <button
           className="delete-btn"
