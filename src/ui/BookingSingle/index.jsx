@@ -34,6 +34,8 @@ import {
   ModalBody,
   ModalFooter,
   Switch,
+  Select,
+  SelectItem,
 } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import CompactSchedule from "../CompactSchedule";
@@ -377,6 +379,24 @@ export default function BookingSingle({ email }) {
     { tags: ["course"], revalidate: 60 }
   );
 
+  // ── Term filter (left panel) ──────────────────────────────────────────────
+  const { data: terms } = useSWR("/api/calendar-events?type=term", fetcher, { revalidateOnFocus: false });
+  const [selectedTermId, setSelectedTermId] = useState(null);
+  // Default = the term most of the lecturer's courses belong to.
+  useEffect(() => {
+    if (selectedTermId || !course?.length) return;
+    const counts = {};
+    course.forEach((c) => { if (c.term) counts[String(c.term)] = (counts[String(c.term)] || 0) + 1; });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (top) setSelectedTermId(top);
+  }, [course, selectedTermId]);
+  const filteredCourses = useMemo(
+    () => (selectedTermId ? (course ?? []).filter((c) => String(c.term) === selectedTermId) : (course ?? [])),
+    [course, selectedTermId]
+  );
+  const selectedTermObj = useMemo(() => (terms ?? []).find((t) => String(t._id) === selectedTermId), [terms, selectedTermId]);
+  const selectedTermStart = selectedTermObj?.start ? new Date(selectedTermObj.start).getTime() : undefined;
+
   const [booking, setBooking] = useState();
   const { data: rooms } = useSWR(
     [
@@ -583,13 +603,20 @@ export default function BookingSingle({ email }) {
   const courseStartTs = booking?.course?.start_date
     ? new Date(booking.course.start_date).getTime()
     : undefined;
+  // No course selected → jump to the selected term's start so the calendar
+  // opens on that term's weeks (not today). With a course selected, honour the
+  // auto-jump toggle (jump to the course's first session).
   const lecturerJump = useMemo(
-    () => (autoJump ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs) : undefined),
-    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor]
+    () => (booking?.course
+      ? (autoJump ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs) : undefined)
+      : selectedTermStart),
+    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart]
   );
   const classJump = useMemo(
-    () => (autoJump ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs) : undefined),
-    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor]
+    () => (booking?.course
+      ? (autoJump ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs) : undefined)
+      : selectedTermStart),
+    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart]
   );
 
   // Default compact range = span of the tab's events.
@@ -616,11 +643,29 @@ export default function BookingSingle({ email }) {
   }, [onInfoOpen]);
 
   // ── Desktop sidebar: tabs (uses lifted sidebarTab state) ──────────────────
+  const TermFilter = () => (
+    (terms ?? []).length > 0 && (
+      <div className="p-2 border-b border-default-100 shrink-0">
+        <Select
+          size="sm"
+          label={t("cm.term") || "Học kỳ"}
+          selectedKeys={selectedTermId ? [selectedTermId] : []}
+          onChange={(e) => setSelectedTermId(e.target.value || null)}
+        >
+          {(terms ?? []).map((tm) => (
+            <SelectItem key={String(tm._id)} value={String(tm._id)}>{tm.title}</SelectItem>
+          ))}
+        </Select>
+      </div>
+    )
+  );
+
   const DesktopSidebar = () => (
     <div className="flex flex-col h-full">
+      <TermFilter />
       <div className="flex border-b border-default-200 shrink-0">
         {[
-          { key: "courses", label: `Courses${course?.length ? ` (${course.length})` : ""}` },
+          { key: "courses", label: `Courses${filteredCourses?.length ? ` (${filteredCourses.length})` : ""}` },
           { key: "events", label: `My Events${myEvents?.length ? ` (${myEvents.length})` : ""}` },
         ].map((t) => (
           <button
@@ -638,7 +683,7 @@ export default function BookingSingle({ email }) {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {sidebarTab === "courses" ? (
-          <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
+          <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
         ) : (
           <EventListSidebar
             events={myEvents}
@@ -657,17 +702,18 @@ export default function BookingSingle({ email }) {
     const [eventsOpen, setEventsOpen] = useState(true);
     return (
       <div className="flex flex-col h-full w-full overflow-hidden">
+        <TermFilter />
         <div className={`flex flex-col min-h-0 ${coursesOpen ? "flex-1" : ""}`}>
           <button
             onClick={() => setCoursesOpen((v) => !v)}
             className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wide text-default-500 hover:text-default-800 border-b border-default-100 transition-colors shrink-0"
           >
-            <span>Courses{course?.length ? ` (${course.length})` : ""}</span>
+            <span>Courses{filteredCourses?.length ? ` (${filteredCourses.length})` : ""}</span>
             {coursesOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
           {coursesOpen && (
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <CourseList course={course} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
+              <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
             </div>
           )}
         </div>
