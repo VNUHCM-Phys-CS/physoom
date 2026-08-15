@@ -1,11 +1,12 @@
 "use client";
 import useSWR from "swr";
-import { fetcheroptions, defaultLoc, getClass, customSubtitle } from "@/lib/ulti";
+import { fetcher, fetcheroptions, defaultLoc, getClass, customSubtitle } from "@/lib/ulti";
+import { termWeeks } from "@/lib/occurrences";
 import Card from "../Card";
 import _ from "lodash";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import CalendarByRoom from "../CalendarByRoom";
-import { Input, ScrollShadow, Tab, Tabs, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Switch } from "@heroui/react";
+import { Input, ScrollShadow, Tab, Tabs, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Switch, Select, SelectItem } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
 import CompactSchedule from "../CompactSchedule";
 import EditScheduleModal from "../EditScheduleModal";
@@ -75,6 +76,16 @@ export default function BookingMulti() {
     [searhCourse, courseSearchKey]
   );
   const [booking, setBooking] = useState();
+  // Terms (CalendarEvent type "term") drive the scheduling window: an unscheduled
+  // course often has no usable start_date/duration, so the admin picks the term
+  // here and the window (start/end) is derived from it — no more silent
+  // "Missing start_date" when scheduling a "chờ xếp" course.
+  const { data: terms } = useSWR("/api/calendar-events?type=term", fetcher, {
+    revalidateOnFocus: false,
+  });
+  // Scheduling window controls for the selected course.
+  const [schedTermId, setSchedTermId] = useState("");
+  const [schedWeeks, setSchedWeeks] = useState(""); // number of sessions (buổi)
   const { data: rooms } = useSWR(
     [
       booking ? "/api/room" : null,
@@ -141,13 +152,67 @@ export default function BookingMulti() {
         },
       };
       setBooking(newBooking);
+      // Seed the scheduling-window controls from the course's assigned term +
+      // its session count, so an unscheduled course is immediately schedulable.
+      setSchedTermId(String(course.term?._id || course.term || ""));
+      setSchedWeeks(course.duration ? String(course.duration) : "");
     } else {
       setBooking(undefined);
+      setSchedTermId("");
+      setSchedWeeks("");
     }
     setSelectedCourseId(course?._id);
     setSelectedEventForDelete(null);
     setCourse_selected(course);
   }, [setCourse_selected]);
+  // --- Scheduling window derived from the chosen term + session count ---
+  const selectedSchedTerm = useMemo(
+    () => (terms ?? []).find((tm) => String(tm._id) === String(schedTermId)),
+    [terms, schedTermId]
+  );
+  const schedWindow = useMemo(() => {
+    const course = booking?.course;
+    const startRaw = selectedSchedTerm?.start || course?.start_date;
+    if (!startRaw) return { start_date: undefined, end_date: undefined, weeks: undefined };
+    const weeks =
+      Number(schedWeeks) > 0
+        ? Number(schedWeeks)
+        : selectedSchedTerm
+          ? termWeeks(selectedSchedTerm.start, selectedSchedTerm.end)
+          : course?.duration || undefined;
+    const start = new Date(startRaw);
+    let end;
+    if (weeks) {
+      end = new Date(start);
+      end.setDate(end.getDate() + (weeks - 1) * 7);
+    } else if (selectedSchedTerm?.end) {
+      end = new Date(selectedSchedTerm.end);
+    }
+    return { start_date: start, end_date: end, weeks };
+  }, [booking?.course, selectedSchedTerm, schedWeeks]);
+  // Feed the resolved window into the booking passed to the room calendar so a
+  // click schedules across the right dates even for a never-scheduled course.
+  const bookingForCal = useMemo(() => {
+    if (!booking) return booking;
+    return {
+      ...booking,
+      time_slot: {
+        ...booking.time_slot,
+        start_date: schedWindow.start_date ?? booking.time_slot?.start_date,
+        end_date: schedWindow.end_date ?? booking.time_slot?.end_date,
+      },
+    };
+  }, [booking, schedWindow]);
+  const onChangeSchedTerm = useCallback(
+    (id) => {
+      setSchedTermId(id);
+      const tm = (terms ?? []).find((t) => String(t._id) === String(id));
+      // Default the session count to the term length; admin can still override.
+      if (tm) setSchedWeeks(String(termWeeks(tm.start, tm.end)));
+    },
+    [terms]
+  );
+
   const { data: _events, mutate: mutateUserEvent } = useSWR(
     [
       "/api/booking",
@@ -284,6 +349,10 @@ export default function BookingMulti() {
             start_date: time_slot?.start_date || fullCourse.start_date,
           },
         });
+        // Reseed the window controls from the clicked course so schedWindow uses
+        // the right term (not a previously-selected course's term).
+        setSchedTermId(String(fullCourse.term?._id || fullCourse.term || ""));
+        setSchedWeeks(fullCourse.duration ? String(fullCourse.duration) : "");
       }
     }
   }, [course, onInfoOpen]);
@@ -413,7 +482,47 @@ export default function BookingMulti() {
                   </div>
                 </div>
               ) : !isLoadingBook && !isLoadingEvent ? (
-                <CalendarByRoom
+                <>
+                  {/* Scheduling window: pick the term + session count so an
+                      unscheduled course gets a valid start/end before placing. */}
+                  <div className="flex flex-wrap items-end gap-2 mb-3">
+                    <Select
+                      size="sm"
+                      label={t("booking.term")}
+                      className="max-w-[220px]"
+                      selectedKeys={schedTermId ? [schedTermId] : []}
+                      onChange={(e) => onChangeSchedTerm(e.target.value)}
+                    >
+                      {(terms ?? []).map((tm) => (
+                        <SelectItem key={String(tm._id)} value={String(tm._id)}>
+                          {tm.title}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    <Input
+                      size="sm"
+                      type="number"
+                      min={1}
+                      label={t("booking.sessionCount")}
+                      className="max-w-[120px]"
+                      value={schedWeeks}
+                      onValueChange={setSchedWeeks}
+                    />
+                    <div className="text-xs text-default-500 pb-1.5">
+                      {schedWindow.start_date ? (
+                        <>
+                          {moment(schedWindow.start_date).format("DD/MM/YYYY")}
+                          {schedWindow.end_date
+                            ? ` → ${moment(schedWindow.end_date).format("DD/MM/YYYY")}`
+                            : ""}
+                          {schedWindow.weeks ? ` · ${schedWindow.weeks} ${t("booking.sessionsUnit")}` : ""}
+                        </>
+                      ) : (
+                        <span className="text-warning-600">{t("booking.pickTermHint")}</span>
+                      )}
+                    </div>
+                  </div>
+                  <CalendarByRoom
                   initRoom={
                     currentbooking && currentbooking[0]
                       ? currentbooking[0]?.room?._id
@@ -421,7 +530,7 @@ export default function BookingMulti() {
                   }
                   rooms={roomsForCal}
                   extraEvents={extraEvents}
-                  booking={booking}
+                  booking={bookingForCal}
                   onBooking={() => {
                     mutateCourse();
                     mutateUserEvent();
@@ -432,6 +541,7 @@ export default function BookingMulti() {
                   onDoubleClick={onDoubleClick}
                   onDelete={handleDelete}
                 />
+                </>
               ) : null}
             </Tab>
             <Tab key="personal" title={t("booking.lecturerSchedule")}>
