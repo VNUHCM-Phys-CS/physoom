@@ -23,6 +23,11 @@ export const POST = async (request) => {
           { status: 400 }
         );
       }
+      // Empty payload (e.g. an import filtered down to nothing) — bulkWrite([])
+      // would throw, so short-circuit.
+      if (data.length === 0) {
+        return NextResponse.json({ success: true, course: {}, failed: 0, writeErrors: [] }, { status: 201 });
+      }
       // Coerce numeric fields so a stray string ("2,5", "2.5 tiết", "") can't
       // throw a CastError. credit allows one decimal (e.g. 2.5); duration and
       // population are integers.

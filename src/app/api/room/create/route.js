@@ -14,6 +14,9 @@ export const POST = async (request) => {
     await connectToDb();
     if (user && user.isAdmin) {
       let data = await request.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        return NextResponse.json({ success: true, data: {} }, { status: 201 });
+      }
       const bulkOps = await Promise.all(
         data.map(async (room) => {
           // Check if the room exists in the database

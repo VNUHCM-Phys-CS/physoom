@@ -45,6 +45,14 @@ export const POST = async (request) => {
       if (!id) {
         return NextResponse.json({ success: false, message: "Missing course id for course deletion" }, { status: 400 });
       }
+      // A LOCKED course's schedule is protected — unlock it first.
+      const co = await Course.findById(id, "isLock").lean();
+      if (co?.isLock) {
+        return NextResponse.json(
+          { success: false, locked: true, message: "Môn đang khoá — mở khoá trước khi xoá/đổi lịch." },
+          { status: 409 }
+        );
+      }
       result = await CalendarEvent.deleteMany({ course: id, type: 'class' });
     } else if (mode === 'class') {
       // Delete ALL class schedules for the given class code(s), across EVERY
@@ -58,7 +66,8 @@ export const POST = async (request) => {
       if (!ids.length) {
         return NextResponse.json({ success: false, message: "Missing classIds for class deletion" }, { status: 400 });
       }
-      const courses = await Course.find({ class_id: { $in: ids } }, "_id").lean();
+      // Never wipe a locked course's schedule.
+      const courses = await Course.find({ class_id: { $in: ids }, isLock: { $ne: true } }, "_id").lean();
       const courseIds = courses.map((c) => c._id);
       const q = { course: { $in: courseIds }, type: 'class' };
       if (start && end) {
@@ -91,7 +100,8 @@ export const POST = async (request) => {
       if (!or.length) {
         return NextResponse.json({ success: false, message: "Missing courseKeys for deletion" }, { status: 400 });
       }
-      const courses = await Course.find({ $or: or }, "_id").lean();
+      // Never wipe a locked course's schedule (re-import preserves locked courses).
+      const courses = await Course.find({ $or: or, isLock: { $ne: true } }, "_id").lean();
       result = await CalendarEvent.deleteMany({ course: { $in: courses.map((c) => c._id) }, type: "class" });
     } else {
       return NextResponse.json({ success: false, message: "Invalid deletion mode" }, { status: 400 });

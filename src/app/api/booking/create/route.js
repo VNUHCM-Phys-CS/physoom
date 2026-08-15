@@ -162,6 +162,13 @@ export const POST = async (request) => {
         classIds = Array.isArray(c?.class_id) ? c.class_id : (c?.class_id ? [c.class_id] : []);
       }
 
+      // Locked course → its schedule is frozen; never create/overwrite it.
+      const lockDoc = d.course?.isLock !== undefined ? d.course : await Course.findById(courseId, "isLock").lean();
+      if (lockDoc?.isLock) {
+        allConflicts.push({ course: courseId, reason: "Môn đang khoá — lịch được giữ nguyên (mở khoá để đổi)." });
+        continue;
+      }
+
       // Scope enforcement: a scoped admin may only schedule classes in their
       // scope. Reject (don't place) out-of-scope courses with a clear reason.
       if (isAdmin && !canManageClasses(user, classIds)) {
