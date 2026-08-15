@@ -331,6 +331,23 @@ export const POST = async (request) => {
         overwritten: isOverwrite, // replaced this course's own previous schedule
       });
 
+      // Persist the scheduling window onto the course so it's no longer "chưa
+      // gắn học kì": record the chosen term, the start date, and the session
+      // count (= sessions in the window). Admin-only; a lecturer's pending
+      // request must not rewrite the course's canonical term/dates.
+      if (isAdmin) {
+        const courseUpdate = {
+          start_date: new Date(start_date),
+          duration: occurrences.length,
+        };
+        if (d.term) courseUpdate.term = d.term;
+        try {
+          await Course.updateOne({ _id: courseId }, { $set: courseUpdate });
+        } catch (e) {
+          console.error("persist course term/window failed:", e);
+        }
+      }
+
       // The course now has a real, clash-free schedule for this series, so any
       // stale health warnings are obsolete — clear them here too (not just on
       // import) so scheduling manually also makes the ⚠ disappear. Only clears

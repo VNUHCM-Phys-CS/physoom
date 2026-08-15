@@ -83,9 +83,11 @@ export default function BookingMulti() {
   const { data: terms } = useSWR("/api/calendar-events?type=term", fetcher, {
     revalidateOnFocus: false,
   });
-  // Scheduling window controls for the selected course.
+  // Scheduling window controls for the selected course (dates as YYYY-MM-DD,
+  // editable like the term-reschedule feature; total weeks derived from them).
   const [schedTermId, setSchedTermId] = useState("");
-  const [schedWeeks, setSchedWeeks] = useState(""); // number of sessions (buổi)
+  const [schedStart, setSchedStart] = useState("");
+  const [schedEnd, setSchedEnd] = useState("");
   const { data: rooms } = useSWR(
     [
       booking ? "/api/room" : null,
@@ -152,63 +154,68 @@ export default function BookingMulti() {
         },
       };
       setBooking(newBooking);
-      // Seed the scheduling-window controls from the course's assigned term +
-      // its session count, so an unscheduled course is immediately schedulable.
-      setSchedTermId(String(course.term?._id || course.term || ""));
-      setSchedWeeks(course.duration ? String(course.duration) : "");
+      // Seed the scheduling-window controls. Prefer the course's assigned term
+      // (start/end); else fall back to the course's own start_date + duration.
+      const termId = String(course.term?._id || course.term || "");
+      setSchedTermId(termId);
+      const tm = (terms ?? []).find((x) => String(x._id) === termId);
+      if (tm) {
+        setSchedStart(moment(tm.start).format("YYYY-MM-DD"));
+        setSchedEnd(moment(tm.end).format("YYYY-MM-DD"));
+      } else if (course.start_date) {
+        setSchedStart(moment(course.start_date).format("YYYY-MM-DD"));
+        setSchedEnd(
+          course.duration
+            ? moment(course.start_date).add(course.duration - 1, "weeks").format("YYYY-MM-DD")
+            : ""
+        );
+      } else {
+        setSchedStart("");
+        setSchedEnd("");
+      }
     } else {
       setBooking(undefined);
       setSchedTermId("");
-      setSchedWeeks("");
+      setSchedStart("");
+      setSchedEnd("");
     }
     setSelectedCourseId(course?._id);
     setSelectedEventForDelete(null);
     setCourse_selected(course);
-  }, [setCourse_selected]);
-  // --- Scheduling window derived from the chosen term + session count ---
-  const selectedSchedTerm = useMemo(
-    () => (terms ?? []).find((tm) => String(tm._id) === String(schedTermId)),
-    [terms, schedTermId]
-  );
+  }, [setCourse_selected, terms]);
+  // --- Scheduling window from the chosen term + editable start/end dates ---
   const schedWindow = useMemo(() => {
-    const course = booking?.course;
-    const startRaw = selectedSchedTerm?.start || course?.start_date;
-    if (!startRaw) return { start_date: undefined, end_date: undefined, weeks: undefined };
-    const weeks =
-      Number(schedWeeks) > 0
-        ? Number(schedWeeks)
-        : selectedSchedTerm
-          ? termWeeks(selectedSchedTerm.start, selectedSchedTerm.end)
-          : course?.duration || undefined;
-    const start = new Date(startRaw);
-    let end;
-    if (weeks) {
-      end = new Date(start);
-      end.setDate(end.getDate() + (weeks - 1) * 7);
-    } else if (selectedSchedTerm?.end) {
-      end = new Date(selectedSchedTerm.end);
-    }
-    return { start_date: start, end_date: end, weeks };
-  }, [booking?.course, selectedSchedTerm, schedWeeks]);
+    if (!schedStart)
+      return { start_date: undefined, end_date: undefined, weeks: undefined, ready: false };
+    const end_date = schedEnd || undefined;
+    const weeks = end_date ? termWeeks(schedStart, schedEnd) : undefined;
+    // Ready to schedule only when a term is chosen AND both dates are set.
+    const ready = !!(schedTermId && schedStart && schedEnd && weeks > 0);
+    return { start_date: schedStart, end_date, weeks, ready };
+  }, [schedTermId, schedStart, schedEnd]);
   // Feed the resolved window into the booking passed to the room calendar so a
   // click schedules across the right dates even for a never-scheduled course.
   const bookingForCal = useMemo(() => {
     if (!booking) return booking;
     return {
       ...booking,
+      term: schedTermId || undefined,
       time_slot: {
         ...booking.time_slot,
         start_date: schedWindow.start_date ?? booking.time_slot?.start_date,
         end_date: schedWindow.end_date ?? booking.time_slot?.end_date,
       },
     };
-  }, [booking, schedWindow]);
+  }, [booking, schedTermId, schedWindow]);
   const onChangeSchedTerm = useCallback(
     (id) => {
       setSchedTermId(id);
       const tm = (terms ?? []).find((t) => String(t._id) === String(id));
-      // Default the session count to the term length; admin can still override.
-      if (tm) setSchedWeeks(String(termWeeks(tm.start, tm.end)));
+      // Picking a term fills the dates (admin can still edit them afterwards).
+      if (tm) {
+        setSchedStart(moment(tm.start).format("YYYY-MM-DD"));
+        setSchedEnd(moment(tm.end).format("YYYY-MM-DD"));
+      }
     },
     [terms]
   );
@@ -351,11 +358,24 @@ export default function BookingMulti() {
         });
         // Reseed the window controls from the clicked course so schedWindow uses
         // the right term (not a previously-selected course's term).
-        setSchedTermId(String(fullCourse.term?._id || fullCourse.term || ""));
-        setSchedWeeks(fullCourse.duration ? String(fullCourse.duration) : "");
+        const tid = String(fullCourse.term?._id || fullCourse.term || "");
+        setSchedTermId(tid);
+        const tm = (terms ?? []).find((x) => String(x._id) === tid);
+        const evStart = time_slot?.start_date || fullCourse.start_date;
+        if (tm) {
+          setSchedStart(moment(tm.start).format("YYYY-MM-DD"));
+          setSchedEnd(moment(tm.end).format("YYYY-MM-DD"));
+        } else if (evStart) {
+          setSchedStart(moment(evStart).format("YYYY-MM-DD"));
+          setSchedEnd(
+            fullCourse.duration
+              ? moment(evStart).add(fullCourse.duration - 1, "weeks").format("YYYY-MM-DD")
+              : ""
+          );
+        }
       }
     }
-  }, [course, onInfoOpen]);
+  }, [course, onInfoOpen, terms]);
 
   const onDoubleClick = useCallback((e) => {
     const eventRaw = e.resource || e.data || e;
@@ -483,12 +503,14 @@ export default function BookingMulti() {
                 </div>
               ) : !isLoadingBook && !isLoadingEvent ? (
                 <>
-                  {/* Scheduling window: pick the term + session count so an
-                      unscheduled course gets a valid start/end before placing. */}
-                  <div className="flex flex-wrap items-end gap-2 mb-3">
+                  {/* Scheduling window: term + editable start/end dates (like the
+                      reschedule feature). Required before an unscheduled course
+                      can be placed; also scopes which existing bookings block. */}
+                  <div className="flex flex-wrap items-end gap-2 mb-3 p-2 rounded-xl bg-default-50 border border-default-200">
                     <Select
                       size="sm"
                       label={t("booking.term")}
+                      isRequired
                       className="max-w-[220px]"
                       selectedKeys={schedTermId ? [schedTermId] : []}
                       onChange={(e) => onChangeSchedTerm(e.target.value)}
@@ -501,46 +523,57 @@ export default function BookingMulti() {
                     </Select>
                     <Input
                       size="sm"
-                      type="number"
-                      min={1}
-                      label={t("booking.sessionCount")}
-                      className="max-w-[120px]"
-                      value={schedWeeks}
-                      onValueChange={setSchedWeeks}
+                      type="date"
+                      label={t("terms.startDate")}
+                      className="max-w-[170px]"
+                      value={schedStart}
+                      onChange={(e) => setSchedStart(e.target.value)}
                     />
-                    <div className="text-xs text-default-500 pb-1.5">
-                      {schedWindow.start_date ? (
-                        <>
-                          {moment(schedWindow.start_date).format("DD/MM/YYYY")}
-                          {schedWindow.end_date
-                            ? ` → ${moment(schedWindow.end_date).format("DD/MM/YYYY")}`
-                            : ""}
-                          {schedWindow.weeks ? ` · ${schedWindow.weeks} ${t("booking.sessionsUnit")}` : ""}
-                        </>
-                      ) : (
-                        <span className="text-warning-600">{t("booking.pickTermHint")}</span>
-                      )}
-                    </div>
+                    <Input
+                      size="sm"
+                      type="date"
+                      label={t("terms.endDate")}
+                      className="max-w-[170px]"
+                      value={schedEnd}
+                      onChange={(e) => setSchedEnd(e.target.value)}
+                    />
+                    <Chip
+                      size="sm"
+                      variant="flat"
+                      color={schedWindow.ready ? "secondary" : "default"}
+                      className="mb-1.5"
+                    >
+                      {schedWindow.weeks
+                        ? `${schedWindow.weeks} ${t("booking.weeksUnit")}`
+                        : `— ${t("booking.weeksUnit")}`}
+                    </Chip>
                   </div>
-                  <CalendarByRoom
-                  initRoom={
-                    currentbooking && currentbooking[0]
-                      ? currentbooking[0]?.room?._id
-                      : undefined
-                  }
-                  rooms={roomsForCal}
-                  extraEvents={extraEvents}
-                  booking={bookingForCal}
-                  onBooking={() => {
-                    mutateCourse();
-                    mutateUserEvent();
-                    mutateBooking();
-                    mutateCurrentBooking();
-                  }}
-                  onClickEvent={onClickEvent}
-                  onDoubleClick={onDoubleClick}
-                  onDelete={handleDelete}
-                />
+                  {!schedWindow.ready ? (
+                    <div className="flex items-start gap-3 bg-warning-50 border border-warning-200 rounded-xl p-4 text-warning-800">
+                      <AlertTriangleIcon className="shrink-0 mt-0.5" size={20} />
+                      <p className="text-sm">{t("booking.pickTermHint")}</p>
+                    </div>
+                  ) : (
+                    <CalendarByRoom
+                      initRoom={
+                        currentbooking && currentbooking[0]
+                          ? currentbooking[0]?.room?._id
+                          : undefined
+                      }
+                      rooms={roomsForCal}
+                      extraEvents={extraEvents}
+                      booking={bookingForCal}
+                      onBooking={() => {
+                        mutateCourse();
+                        mutateUserEvent();
+                        mutateBooking();
+                        mutateCurrentBooking();
+                      }}
+                      onClickEvent={onClickEvent}
+                      onDoubleClick={onDoubleClick}
+                      onDelete={handleDelete}
+                    />
+                  )}
                 </>
               ) : null}
             </Tab>

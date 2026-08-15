@@ -61,20 +61,47 @@ export default function CalendarByRoom({
     { tags: ["booking"], revalidate: 60 }
   );
   const [gridObject, setGridObject] = useState(defaultGridNVC);
+  // Scheduling window (from the term + dates chosen upstream). Existing bookings
+  // only "block" the weekly grid when they actually overlap this window — a room
+  // used in another term (non-overlapping dates) must not falsely block a slot.
+  const [winStartMs, winEndMs] = useMemo(() => {
+    const s = booking?.time_slot?.start_date;
+    const e = booking?.time_slot?.end_date;
+    if (!s || !e) return [null, null];
+    const sd = new Date(s); sd.setHours(0, 0, 0, 0);
+    const ed = new Date(e); ed.setHours(23, 59, 59, 999);
+    return [sd.valueOf(), ed.valueOf()];
+  }, [booking?.time_slot?.start_date, booking?.time_slot?.end_date]);
+  const inWindow = useCallback(
+    (d) => {
+      if (winStartMs == null || winEndMs == null || !d) return true;
+      const t = new Date(d).valueOf();
+      return t >= winStartMs && t <= winEndMs;
+    },
+    [winStartMs, winEndMs]
+  );
+  // Room bookings restricted to the chosen window (used only for the occupancy
+  // grid + overlap warnings; onClickCell still uses the full eventsByRoom).
+  const roomEventsInWindow = useMemo(
+    () => (eventsByRoom ?? []).filter((e) => inWindow(e.start)),
+    [eventsByRoom, inWindow]
+  );
   const events = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Index future extra events by weekday for fast overlap lookup
+    // Index future extra events by weekday for fast overlap lookup — restricted
+    // to the scheduling window so only genuinely-overlapping events warn.
     const futureExtraByWeekday = {};
     (extraEvents ?? []).forEach(e => {
       if (!e.weekday || e.time_slot?.start_time === undefined || !e.start) return;
       if (new Date(e.start) < today) return;
+      if (!inWindow(e.start)) return;
       if (!futureExtraByWeekday[e.weekday]) futureExtraByWeekday[e.weekday] = [];
       futureExtraByWeekday[e.weekday].push(e);
     });
 
-    return (eventsByRoom ?? []).map((roomEvent) => {
+    return roomEventsInWindow.map((roomEvent) => {
       const calEvent = gridObject.booking2calendar(roomEvent);
       const wd = roomEvent.time_slot?.weekday;
       const roomStart = roomEvent.time_slot?.start_time;
@@ -109,16 +136,16 @@ export default function CalendarByRoom({
         ? { ...calEvent, isOverlap: true, overlapWith }
         : calEvent;
     });
-  }, [eventsByRoom, gridObject, extraEvents]);
+  }, [roomEventsInWindow, gridObject, extraEvents, inWindow]);
   const eventBoundary = useMemo(() => {
     const _ids = {};
     const extraBoundary = [];
-    (eventsByRoom ?? []).forEach((e) => (_ids[e._id] = true));
+    roomEventsInWindow.forEach((e) => (_ids[e._id] = true));
     (extraEvents ?? []).forEach((e) => {
-      if (!_ids[e._id]) extraBoundary.push(gridObject.booking2calendar(e));
+      if (!_ids[e._id] && inWindow(e.start)) extraBoundary.push(gridObject.booking2calendar(e));
     });
     return extraBoundary;
-  }, [eventsByRoom, gridObject, extraEvents]);
+  }, [roomEventsInWindow, gridObject, extraEvents, inWindow]);
   
   const [gridData, setGridData] = useState();
   const [subGridData, setSubGridData] = useState({});
