@@ -445,6 +445,11 @@ export const dictionaries = {
     "home.feat.event.desc": "Giữ phòng cho sự kiện, hội thảo hoặc buổi họp riêng lẻ, xác nhận tức thì.",
     "home.feat.manager.title": "Quản lý phòng",
     "home.feat.manager.desc": "Quản lý quyền truy cập phòng, duyệt yêu cầu và theo dõi sử dụng các phòng bạn phụ trách.",
+    "home.adminOnly": "Quản trị",
+    "home.showcase.title": "Xem phòng theo thời gian thực",
+    "home.showcase.desc": "Lịch phòng trực quan theo tuần: biết ngay phòng nào trống, phòng nào đang có lớp — trên toàn bộ cơ sở.",
+    "home.showcase.cta": "Xem lịch phòng",
+    "home.heroImageAlt": "Vật lý & Vật lý Kỹ thuật",
 
     // About
     "about.badge": "Giới thiệu Physoom",
@@ -1044,6 +1049,11 @@ export const dictionaries = {
     "home.feat.event.desc": "Reserve rooms for one-off events, seminars, or meetings with instant confirmation.",
     "home.feat.manager.title": "Room Manager",
     "home.feat.manager.desc": "Manage room access, approve requests, and track usage for your assigned rooms.",
+    "home.adminOnly": "Admin",
+    "home.showcase.title": "See rooms in real time",
+    "home.showcase.desc": "A clear weekly room calendar: instantly see which rooms are free and which are in class — across every facility.",
+    "home.showcase.cta": "View room schedule",
+    "home.heroImageAlt": "Physics & Engineering Physics",
 
     "about.badge": "About Physoom",
     "about.title": "Scheduling for Physics & Engineering Physics, reinvented",
