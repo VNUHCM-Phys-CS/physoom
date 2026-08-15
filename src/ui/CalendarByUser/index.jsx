@@ -248,6 +248,12 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
             <div className="h-[600px] w-full bg-white dark:bg-zinc-900 p-4 rounded-xl">
                 <DnDCalendar
                     localizer={localizer}
+                    messages={{
+                        today: t("cal.today"), previous: t("cal.back"), next: t("cal.next"),
+                        month: t("cal.month"), week: t("cal.week"), day: t("cal.day"), agenda: t("cal.agenda"),
+                        date: t("cal.date"), time: t("cal.time"), event: t("cal.event"),
+                        noEventsInRange: t("cal.noEventsRange"),
+                    }}
                     events={events}
                     date={date}
                     view={view}

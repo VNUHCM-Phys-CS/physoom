@@ -7,6 +7,7 @@ import {
   getClass,
   customSubtitle,
   termYear,
+  termAcademicYear,
 } from "@/lib/ulti";
 import CourseList from "../CourseList";
 import { useConfirm } from "../ConfirmDialog";
@@ -114,7 +115,7 @@ function EventListSidebar({ events, email, selectedId, onSelect }) {
 
       {!filtered.length ? (
         <p className="text-xs text-default-400 italic px-1 py-2">
-          {events?.length ? (t("myev.noMatch") || "Không có sự kiện khớp.") : "No events yet."}
+          {events?.length ? t("myev.noMatch") : t("myev.noEvents")}
         </p>
       ) : filtered.map((ev) => {
         const isOwner = (ev.teacher_email ?? []).includes(email);
@@ -136,10 +137,10 @@ function EventListSidebar({ events, email, selectedId, onSelect }) {
               {ev.room?.title}{ev.room?.title ? " · " : ""}{moment(ev.start).format("DD/MM HH:mm")}
             </span>
             <div className="flex flex-wrap gap-1 mt-0.5">
-              <Chip size="sm" color={statusColor(ev.status)} variant="flat">{ev.status}</Chip>
-              {isOwner && <Chip size="sm" color="primary" variant="flat">Owner</Chip>}
-              {isHost && <Chip size="sm" color="secondary" variant="flat">Host</Chip>}
-              {isAttendee && <Chip size="sm" color="default" variant="flat">Attendee</Chip>}
+              <Chip size="sm" color={statusColor(ev.status)} variant="flat">{t(`myev.${ev.status}`) || ev.status}</Chip>
+              {isOwner && <Chip size="sm" color="primary" variant="flat">{t("myev.owner")}</Chip>}
+              {isHost && <Chip size="sm" color="secondary" variant="flat">{t("myev.host")}</Chip>}
+              {isAttendee && <Chip size="sm" color="default" variant="flat">{t("myev.attendee")}</Chip>}
             </div>
           </button>
         );
@@ -362,6 +363,12 @@ function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick,
         ) : (
           <Calendar
             localizer={localizer}
+            messages={{
+              today: t("cal.today"), previous: t("cal.back"), next: t("cal.next"),
+              month: t("cal.month"), week: t("cal.week"), day: t("cal.day"), agenda: t("cal.agenda"),
+              date: t("cal.date"), time: t("cal.time"), event: t("cal.event"),
+              noEventsInRange: t("cal.noEventsRange"),
+            }}
             events={calEvents}
             date={calDate}
             view={calView}
@@ -437,10 +444,10 @@ export default function BookingSingle({ email }) {
   // cohort (CHÍNH QUY / 26DKD / 24VLH…), which clutters the term dropdown. Pick a
   // year first to collapse the list to that year's terms.
   const [selectedYear, setSelectedYear] = useState("");
-  // Distinct academic years present, newest first.
+  // Distinct academic years present, newest first (from title, else start date).
   const years = useMemo(() => {
     const s = new Set();
-    (terms ?? []).forEach((tm) => { const y = termYear(tm.title); if (y) s.add(y); });
+    (terms ?? []).forEach((tm) => { const y = termAcademicYear(tm); if (y) s.add(y); });
     return [...s].sort((a, b) => b.localeCompare(a));
   }, [terms]);
   // Default = the term most of the lecturer's courses belong to.
@@ -455,18 +462,18 @@ export default function BookingSingle({ email }) {
   // Default the year filter from the selected term (or the newest year).
   useEffect(() => {
     if (selectedYear) return;
-    const y = selectedTermObj ? termYear(selectedTermObj.title) : years[0];
+    const y = selectedTermObj ? termAcademicYear(selectedTermObj) : years[0];
     if (y) setSelectedYear(y);
   }, [selectedTermObj, years, selectedYear]);
   // Terms shown in the "Học kỳ" dropdown = only those in the chosen year.
   const termsInYear = useMemo(
-    () => (selectedYear ? (terms ?? []).filter((tm) => termYear(tm.title) === selectedYear) : (terms ?? [])),
+    () => (selectedYear ? (terms ?? []).filter((tm) => termAcademicYear(tm) === selectedYear) : (terms ?? [])),
     [terms, selectedYear]
   );
   const onChangeYear = useCallback((y) => {
     setSelectedYear(y);
     // If the selected term isn't in the new year, jump to that year's first term.
-    const inYear = (terms ?? []).filter((tm) => termYear(tm.title) === y);
+    const inYear = (terms ?? []).filter((tm) => termAcademicYear(tm) === y);
     if (!inYear.some((tm) => String(tm._id) === selectedTermId)) {
       setSelectedTermId(inYear[0] ? String(inYear[0]._id) : null);
     }
@@ -727,7 +734,7 @@ export default function BookingSingle({ email }) {
         popover: {
           side: "right",
           align: "start",
-          title: L("Bước 1 — Chọn học kỳ", "Step 1 — Pick a term"),
+          title: L("Chọn học kỳ", "Pick a term"),
           description: L(
             "Chọn học kỳ để lịch mở đúng các tuần của kỳ. Đổi học kỳ thì danh sách môn và lịch bên phải đổi theo.",
             "Choose a term so the calendar opens on that term's weeks. Changing it updates the course list and the calendar."
@@ -740,7 +747,7 @@ export default function BookingSingle({ email }) {
         popover: {
           side: "right",
           align: "center",
-          title: L("Bước 2 — Chọn môn để xem lịch", "Step 2 — Pick a course"),
+          title: L("Chọn môn để xem lịch", "Pick a course"),
           description: L(
             "Bấm một môn trong danh sách để xem lịch của môn đó ở khung bên phải. Gõ vào ô tìm kiếm để lọc nhanh.",
             "Click a course to see its schedule on the right. Use the search box to filter quickly."
@@ -753,7 +760,7 @@ export default function BookingSingle({ email }) {
         popover: {
           side: "right",
           align: "center",
-          title: L('Bước 3 — "My Events"', 'Step 3 — "My Events"'),
+          title: L('"My Events"', '"My Events"'),
           description: L(
             "Tab My Events: xem các buổi mượn phòng của bạn — trạng thái (chờ duyệt/đã duyệt), lọc, tìm kiếm và chỉ hiện sự kiện sắp tới.",
             "The My Events tab: your room requests — status (pending/approved), filter, search, and show-only-upcoming."
@@ -766,7 +773,7 @@ export default function BookingSingle({ email }) {
         popover: {
           side: "bottom",
           align: "start",
-          title: L("Bước 4 — Các khung xem", "Step 4 — The views"),
+          title: L("Các khung xem", "The views"),
           description: L(
             "4 tab: Lịch cá nhân, Lịch phòng học, Lịch lớp và Đặt phòng sự kiện. Đang mở Lịch cá nhân — lịch dạy của riêng bạn.",
             "4 tabs: Personal, Classroom, Class, and Event booking. Personal (your own teaching schedule) is open now."
@@ -792,7 +799,7 @@ export default function BookingSingle({ email }) {
         popover: {
           side: "bottom",
           align: "start",
-          title: L("Bước 5 — Đặt phòng cho sự kiện", "Step 5 — Request a room"),
+          title: L("Đặt phòng cho sự kiện", "Request a room"),
           description: L(
             "Vào tab Đặt phòng sự kiện: chọn phòng, ngày giờ, nhập nội dung rồi gửi yêu cầu. Admin duyệt xong bạn sẽ nhận thông báo ở chuông trên thanh trên.",
             "Open Event booking: pick a room, date/time, add details, then submit. You'll be notified at the top-bar bell once an admin approves."
@@ -874,8 +881,8 @@ export default function BookingSingle({ email }) {
       <TermFilter />
       <div className="flex border-b border-default-200 shrink-0">
         {[
-          { key: "courses", label: `Courses${filteredCourses?.length ? ` (${filteredCourses.length})` : ""}` },
-          { key: "events", label: `My Events${myEvents?.length ? ` (${myEvents.length})` : ""}` },
+          { key: "courses", label: `${t("booking.tabCourses")}${filteredCourses?.length ? ` (${filteredCourses.length})` : ""}` },
+          { key: "events", label: `${t("booking.tabMyEvents")}${myEvents?.length ? ` (${myEvents.length})` : ""}` },
         ].map((t) => (
           <button
             key={t.key}
@@ -917,7 +924,7 @@ export default function BookingSingle({ email }) {
             onClick={() => setCoursesOpen((v) => !v)}
             className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wide text-default-500 hover:text-default-800 border-b border-default-100 transition-colors shrink-0"
           >
-            <span>Courses{filteredCourses?.length ? ` (${filteredCourses.length})` : ""}</span>
+            <span>{t("booking.tabCourses")}{filteredCourses?.length ? ` (${filteredCourses.length})` : ""}</span>
             {coursesOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
           {coursesOpen && (
@@ -931,7 +938,7 @@ export default function BookingSingle({ email }) {
             onClick={() => setEventsOpen((v) => !v)}
             className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wide text-default-500 hover:text-default-800 transition-colors shrink-0"
           >
-            <span>My Events{myEvents?.length ? ` (${myEvents.length})` : ""}</span>
+            <span>{t("booking.tabMyEvents")}{myEvents?.length ? ` (${myEvents.length})` : ""}</span>
             {eventsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
           {eventsOpen && (
@@ -971,7 +978,7 @@ export default function BookingSingle({ email }) {
             startContent={<MenuIcon />}
             className="w-full"
           >
-            Select Course
+            {t("booking.selectCourse")}
           </Button>
         </div>
 
@@ -984,14 +991,15 @@ export default function BookingSingle({ email }) {
         <Drawer isOpen={isOpen} onClose={onClose} placement="left" className="sm:hidden">
           <DrawerContent>
             <DrawerHeader>
-              <h3>Courses & Events</h3>
+              <h3>{t("booking.coursesEvents")}</h3>
             </DrawerHeader>
             <DrawerBody className="!p-0 overflow-hidden">
               <MobileSidebarContent />
             </DrawerBody>
           </DrawerContent>
         </Drawer>
-        <Card data-tour="booking-tabs" className="w-full sm:w-3/4">
+        <Card className="w-full sm:w-3/4">
+          <div data-tour="booking-tabs">
           <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab}>
             <Tab key="personal" title={t("booking.personalSchedule")}>
               <div className="flex justify-between items-center gap-4 mb-2 flex-wrap">
@@ -1083,6 +1091,7 @@ export default function BookingSingle({ email }) {
               />
             </Tab>
           </Tabs>
+          </div>
         </Card>
 
         <EventInfoModal

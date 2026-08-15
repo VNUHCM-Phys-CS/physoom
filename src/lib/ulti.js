@@ -11,6 +11,29 @@ export function termYear(title) {
   const m = String(title || "").match(/(\d{4})\s*[-–]\s*(\d{4})/);
   return m ? `${m[1]}-${m[2]}` : "";
 }
+
+/**
+ * Academic year (e.g. "2026-2027") derived from a term's START DATE — robust
+ * even when the title has no year (e.g. "24DKD_HK1"). VN academic year begins
+ * around August, so a term starting Jul–Dec belongs to that calendar year's
+ * year, and Jan–Jun belongs to the previous one.
+ */
+export function academicYearOfDate(start) {
+  if (!start) return "";
+  const d = new Date(start);
+  if (isNaN(d)) return "";
+  const y = d.getFullYear();
+  const startY = d.getMonth() >= 6 ? y : y - 1; // month is 0-indexed; >=6 → Jul+
+  return `${startY}-${startY + 1}`;
+}
+
+/**
+ * Best academic year for a term: prefer the explicit year in its title, else
+ * derive it from the start date.
+ */
+export function termAcademicYear(term) {
+  return termYear(term?.title) || academicYearOfDate(term?.start);
+}
 export const fetcheroptions = ([url, options = {}]) =>
   url
     ? fetch(url, { credentials: "include", ...options }).then((res) =>
