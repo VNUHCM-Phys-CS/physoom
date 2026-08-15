@@ -75,9 +75,17 @@ export const POST = async (request) => {
       const or = keys
         .map((k) => {
           const cls = Array.isArray(k.class_id) ? k.class_id : k.class_id ? [k.class_id] : [];
-          return k.course_id && cls.length
-            ? { course_id: String(k.course_id).trim(), class_id: { $in: cls.map((s) => String(s).trim()) } }
-            : null;
+          if (!k.course_id || !cls.length) return null;
+          const cond = {
+            course_id: String(k.course_id).trim(),
+            class_id: { $in: cls.map((s) => String(s).trim()) },
+          };
+          // Course identity is (course_id + course_id_extend + class). Match the
+          // extend too so we never touch a sibling that shares only code+class.
+          const ext = k.course_id_extend;
+          cond.course_id_extend =
+            ext === undefined || ext === null || ext === "" ? { $in: [null, ""] } : String(ext).trim();
+          return cond;
         })
         .filter(Boolean);
       if (!or.length) {

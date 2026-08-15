@@ -303,7 +303,11 @@ const Page = () => {
       // re-import fully replaces those courses' schedules WITHOUT touching OTHER
       // courses of the same class (importing one course must not send the class's
       // other courses to "chờ xếp").
-      const importCourseKeys = courses.map((c) => ({ course_id: c.course_id, class_id: c.class_id }));
+      const importCourseKeys = courses.map((c) => ({
+        course_id: c.course_id,
+        course_id_extend: c.course_id_extend,
+        class_id: c.class_id,
+      }));
       let wipedClassEvents = null;
       if (importCourseKeys.length) {
         try {
