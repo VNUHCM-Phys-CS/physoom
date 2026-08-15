@@ -9,7 +9,7 @@ import {
   Button,
 } from "@heroui/react";
 import { toast } from "react-toastify";
-import { CalendarPlusIcon, DownloadIcon, LinkIcon } from "lucide-react";
+import { CalendarPlusIcon, DownloadIcon, LinkIcon, CalendarCheckIcon } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 
 /**
@@ -42,6 +42,14 @@ export default function ExportIcsButton({ email, label }) {
     }
   };
 
+  // Open Google Calendar's "add by URL" subscription flow. Google fetches the
+  // (public) ICS feed periodically, so the calendar stays in sync automatically.
+  const addToGoogle = () => {
+    const webcal = icsUrl(window.location.origin).replace(/^https?:\/\//, "webcal://");
+    const url = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <Dropdown>
       <DropdownTrigger>
@@ -51,6 +59,14 @@ export default function ExportIcsButton({ email, label }) {
       </DropdownTrigger>
       <DropdownMenu aria-label="Calendar export">
         <DropdownSection title={t("ics.addToCalendar")}>
+          <DropdownItem
+            key="google"
+            startContent={<CalendarCheckIcon size={15} />}
+            description={t("ics.googleDesc")}
+            onPress={addToGoogle}
+          >
+            {t("ics.google")}
+          </DropdownItem>
           <DropdownItem
             key="download"
             startContent={<DownloadIcon size={15} />}
