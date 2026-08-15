@@ -17,7 +17,7 @@ export const dictionaries = {
 
     // Navigation
     "nav.home": "Trang chủ",
-    "nav.booking": "Đặt lịch",
+    "nav.booking": "Thời khóa biểu",
     "nav.roomSchedule": "Lịch phòng",
     "nav.search": "Tìm lịch",
     "nav.adminDashboard": "Quản trị",
@@ -181,6 +181,7 @@ export const dictionaries = {
     "guide.title": "Hướng dẫn sử dụng",
     "guide.subtitle": "Cách dùng Physoom: xem lịch phòng, đặt phòng, xếp lịch môn học và quản trị.",
     "guide.startTour": "Xem hướng dẫn nhanh",
+    "guide.pageTour": "Hướng dẫn trang này",
     "guide.toc": "Mục lục",
     "guide.tourError": "Không mở được hướng dẫn nhanh trên trang này.",
     "tour.next": "Tiếp",
@@ -589,7 +590,7 @@ export const dictionaries = {
     "notif.pushDenied": "Notifications blocked — re-enable in browser settings.",
 
     "nav.home": "Home",
-    "nav.booking": "Booking",
+    "nav.booking": "Timetable",
     "nav.roomSchedule": "Room Schedule",
     "nav.search": "Find schedule",
     "nav.adminDashboard": "Admin Dashboard",
@@ -752,6 +753,7 @@ export const dictionaries = {
     "guide.title": "User Guide",
     "guide.subtitle": "How to use Physoom: view room schedules, book rooms, schedule courses, and administer.",
     "guide.startTour": "Take a quick tour",
+    "guide.pageTour": "Guide for this page",
     "guide.toc": "Contents",
     "guide.tourError": "Couldn't start the tour on this page.",
     "tour.next": "Next",

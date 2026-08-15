@@ -41,6 +41,7 @@ import {
 import CalendarByUser from "../CalendarByUser";
 import CompactSchedule from "../CompactSchedule";
 import EditScheduleModal from "../EditScheduleModal";
+import GuideTour from "../GuideTour";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
 import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon, SearchIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -791,6 +792,16 @@ export default function BookingSingle({ email }) {
 
   if (email)
     return (
+      <>
+      {/* Page toolbar: a guide button specific to this Timetable page */}
+      <div className="flex items-center justify-end px-2 pt-1">
+        <GuideTour
+          variant="booking"
+          buttonVariant="flat"
+          size="sm"
+          label={t("guide.pageTour")}
+        />
+      </div>
       <div className="flex flex-col sm:flex-row py-2 px-2 mx-auto gap-2">
         {confirmDialog}
         {/* Mobile drawer trigger button - only visible on small screens */}
@@ -806,7 +817,7 @@ export default function BookingSingle({ email }) {
         </div>
 
         {/* Desktop sidebar - tabs layout, fixed height */}
-        <Card className="hidden sm:flex sm:flex-col sm:w-1/4 !p-0 overflow-hidden" style={{ height: "640px" }}>
+        <Card data-tour="booking-sidebar" className="hidden sm:flex sm:flex-col sm:w-1/4 !p-0 overflow-hidden" style={{ height: "640px" }}>
           <DesktopSidebar />
         </Card>
 
@@ -821,7 +832,7 @@ export default function BookingSingle({ email }) {
             </DrawerBody>
           </DrawerContent>
         </Drawer>
-        <Card className="w-full sm:w-3/4">
+        <Card data-tour="booking-tabs" className="w-full sm:w-3/4">
           <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab}>
             <Tab key="personal" title={t("booking.personalSchedule")}>
               <div className="flex justify-between items-center gap-4 mb-2 flex-wrap">
@@ -937,6 +948,7 @@ export default function BookingSingle({ email }) {
           }}
         />
       </div>
+      </>
     );
   else return <div>{t("common.loginFirst")}</div>;
 }
