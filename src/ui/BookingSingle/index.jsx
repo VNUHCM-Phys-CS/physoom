@@ -712,23 +712,32 @@ export default function BookingSingle({ email }) {
     today.setHours(0, 0, 0, 0);
     return Math.max(ts, today.getTime());
   }, []);
-  // With auto-jump ON: jump to the schedule's start (course's first session, or
-  // the term start when no course is picked), clamped to today. OFF → no jump.
+  // Earliest session across the lecturer's own events / class events — the
+  // schedule start to jump to when no specific term/course is picked ("Tất cả").
+  const firstOf = useCallback((events) => {
+    const times = (events ?? []).filter((e) => e.start).map((e) => new Date(e.start).valueOf());
+    return times.length ? Math.min(...times) : undefined;
+  }, []);
+  const firstUserEventTs = useMemo(() => firstOf(userEvents), [userEvents, firstOf]);
+  const firstClassEventTs = useMemo(() => firstOf(classEvents), [classEvents, firstOf]);
+  // With auto-jump ON: jump to the schedule's start — the selected course's first
+  // session, else the selected term start, else the earliest event overall —
+  // clamped to today. OFF → no jump.
   const lecturerJump = useMemo(
     () => clampToToday(autoJump
       ? (booking?.course
         ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs)
-        : selectedTermStart)
+        : (selectedTermStart ?? firstUserEventTs))
       : undefined),
-    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart, clampToToday]
+    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart, firstUserEventTs, clampToToday]
   );
   const classJump = useMemo(
     () => clampToToday(autoJump
       ? (booking?.course
         ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs)
-        : selectedTermStart)
+        : (selectedTermStart ?? firstClassEventTs))
       : undefined),
-    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart, clampToToday]
+    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart, firstClassEventTs, clampToToday]
   );
 
   // Default compact range = span of the tab's events.
