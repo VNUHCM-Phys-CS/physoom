@@ -662,11 +662,13 @@ export default function BookingSingle({ email }) {
   }, [classEvents, userEvents]);
 
   // --- Lecturer/Class schedule view options (auto-jump + compact) ---
-  const [autoJump, setAutoJump] = useState(false);
+  // Auto-jump defaults ON (jump to the schedule's start), unless the user
+  // explicitly turned it off before.
+  const [autoJump, setAutoJump] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
   useEffect(() => {
     try {
-      setAutoJump(localStorage.getItem("physoom.autoJump") === "1");
+      setAutoJump(localStorage.getItem("physoom.autoJump") !== "0");
       setCompactMode(localStorage.getItem("physoom.compactMode") === "1");
     } catch { /* ignore */ }
   }, []);
@@ -690,20 +692,31 @@ export default function BookingSingle({ email }) {
   const courseStartTs = booking?.course?.start_date
     ? new Date(booking.course.start_date).getTime()
     : undefined;
-  // No course selected → jump to the selected term's start so the calendar
-  // opens on that term's weeks (not today). With a course selected, honour the
-  // auto-jump toggle (jump to the course's first session).
+  // Never jump into the PAST: if the target start is before today (the term/
+  // course already began), open on the current week instead of an old one.
+  const clampToToday = useCallback((ts) => {
+    if (ts == null) return ts;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.max(ts, today.getTime());
+  }, []);
+  // With auto-jump ON: jump to the schedule's start (course's first session, or
+  // the term start when no course is picked), clamped to today. OFF → no jump.
   const lecturerJump = useMemo(
-    () => (booking?.course
-      ? (autoJump ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs) : undefined)
-      : selectedTermStart),
-    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart]
+    () => clampToToday(autoJump
+      ? (booking?.course
+        ? (jumpDateFor(userEvents, booking?.course?._id) ?? courseStartTs)
+        : selectedTermStart)
+      : undefined),
+    [autoJump, userEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart, clampToToday]
   );
   const classJump = useMemo(
-    () => (booking?.course
-      ? (autoJump ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs) : undefined)
-      : selectedTermStart),
-    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart]
+    () => clampToToday(autoJump
+      ? (booking?.course
+        ? (jumpDateFor(classEvents, booking?.course?._id) ?? courseStartTs)
+        : selectedTermStart)
+      : undefined),
+    [autoJump, classEvents, booking?.course?._id, courseStartTs, jumpDateFor, selectedTermStart, clampToToday]
   );
 
   // Default compact range = span of the tab's events.
