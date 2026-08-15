@@ -104,8 +104,12 @@ export default function ViewRoomPage() {
         { tags: ["room"], revalidate: 60 }
     );
 
+    // Use /api/calendar-events/fetch (returns EVERY occurrence) rather than
+    // /api/booking (which dedupes each series to its first occurrence). The
+    // room calendar renders by real date, so with the deduped feed only the
+    // first week of a weekly class showed and every later week was empty.
     const { data: userEvents, isLoading: eventLoading } = useSWR(
-        [filter ? "/api/booking" : null, { method: "POST", body: JSON.stringify({ filter: { room: filter } }) }],
+        [filter ? "/api/calendar-events/fetch" : null, { method: "POST", body: JSON.stringify({ filter: { room: filter } }) }],
         fetcheroptions,
         { tags: ["booking"], revalidate: 60 }
     );
