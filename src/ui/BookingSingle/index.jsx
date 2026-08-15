@@ -354,7 +354,7 @@ export default function BookingSingle({ email }) {
   const { confirm, confirmDialog } = useConfirm();
 
   // Main tab + room — kept in sync with URL
-  const [mainTab, setMainTab] = useState(() => searchParams.get("tab") || "general");
+  const [mainTab, setMainTab] = useState(() => searchParams.get("tab") || "personal");
   const [eventRoomId, setEventRoomId] = useState(() => searchParams.get("room") || null);
   const initialCourseId = useRef(searchParams.get("course") || null);
 
@@ -728,6 +728,31 @@ export default function BookingSingle({ email }) {
         </Drawer>
         <Card className="w-full sm:w-3/4">
           <Tabs radius={"full"} color="secondary" selectedKey={mainTab} onSelectionChange={setMainTab}>
+            <Tab key="personal" title={t("booking.personalSchedule")}>
+              <div className="flex justify-between items-center gap-4 mb-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-4">
+                  <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
+                  <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
+                </div>
+                <ExportIcsButton email={email} />
+              </div>
+              {compactMode ? (
+                <CompactSchedule
+                  events={userEvents}
+                  defaultFrom={lecturerRange.from}
+                  defaultTo={lecturerRange.to}
+                />
+              ) : (
+                <CalendarByUser
+                  _events={userEvents}
+                  customSubtitle={customSubtitle}
+                  selectedID={booking?.course?._id}
+                  jumpTo={lecturerJump}
+                  onEventUpdate={mutateUserEvent}
+                  onEditDates={setEditSchedEvent}
+                />
+              )}
+            </Tab>
             <Tab key="general" title={t("booking.classroomSchedule")}>
               {!booking ? (
                 <div className="prose">
@@ -759,31 +784,6 @@ export default function BookingSingle({ email }) {
                   isLock={booking?.course?.isLock}
                 />
               ) : null}
-            </Tab>
-            <Tab key="personal" title={t("booking.personalSchedule")}>
-              <div className="flex justify-between items-center gap-4 mb-2 flex-wrap">
-                <div className="flex flex-wrap items-center gap-4">
-                  <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
-                  <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
-                </div>
-                <ExportIcsButton email={email} />
-              </div>
-              {compactMode ? (
-                <CompactSchedule
-                  events={userEvents}
-                  defaultFrom={lecturerRange.from}
-                  defaultTo={lecturerRange.to}
-                />
-              ) : (
-                <CalendarByUser
-                  _events={userEvents}
-                  customSubtitle={customSubtitle}
-                  selectedID={booking?.course?._id}
-                  jumpTo={lecturerJump}
-                  onEventUpdate={mutateUserEvent}
-                  onEditDates={setEditSchedEvent}
-                />
-              )}
             </Tab>
             <Tab key="class_sche" title={t("booking.classSchedule")}>
               <div className="flex flex-wrap items-center gap-4 mb-2">
