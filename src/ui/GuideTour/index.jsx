@@ -44,12 +44,16 @@ const BOOKING_CONTENT = {
   },
 };
 
-export default function GuideTour({ className, variant = "app", label, size, buttonVariant = "shadow" }) {
+export default function GuideTour({ className, variant = "app", label, size, buttonVariant = "shadow", steps: customSteps }) {
   const { t, lang } = useI18n();
 
   const startTour = () => {
     let all;
-    if (variant === "booking") {
+    if (Array.isArray(customSteps) && customSteps.length) {
+      // Caller-provided steps (already driver.js step objects, e.g. a page tour
+      // that switches tabs via onHighlightStarted).
+      all = customSteps;
+    } else if (variant === "booking") {
       const c = BOOKING_CONTENT[lang] || BOOKING_CONTENT.vi;
       all = [
         { popover: c.intro },

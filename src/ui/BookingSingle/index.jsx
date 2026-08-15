@@ -402,7 +402,7 @@ export default function BookingSingle({ email }) {
   const { data: session } = useSession();
   const isAdmin = !!session?.user?.isAdmin;
   const searchParams = useSearchParams();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { confirm, confirmDialog } = useConfirm();
 
   // Main tab + room — kept in sync with URL
@@ -678,6 +678,121 @@ export default function BookingSingle({ email }) {
   const lecturerRange = useMemo(() => rangeOf(userEvents), [userEvents, rangeOf]);
   const classRange = useMemo(() => rangeOf(classEvents), [classEvents, rangeOf]);
 
+  // Detailed, step-by-step page tour: switches the sidebar/main tab as it goes
+  // so each step actually shows the area it describes (not a hollow overview).
+  const bookingTourSteps = useMemo(() => {
+    const L = (vi, en) => (lang === "en" ? en : vi);
+    return [
+      {
+        popover: {
+          title: L("Thời khóa biểu của bạn 📅", "Your timetable 📅"),
+          description: L(
+            "Nơi xem lịch cá nhân, lịch lớp và đăng ký mượn phòng cho sự kiện. Đi qua vài bước ngắn nhé.",
+            "View your personal & class schedule and request rooms for events. A short guided tour."
+          ),
+        },
+      },
+      {
+        element: '[data-tour="tour-term"]',
+        popover: {
+          side: "right",
+          align: "start",
+          title: L("Bước 1 — Chọn học kỳ", "Step 1 — Pick a term"),
+          description: L(
+            "Chọn học kỳ để lịch mở đúng các tuần của kỳ. Đổi học kỳ thì danh sách môn và lịch bên phải đổi theo.",
+            "Choose a term so the calendar opens on that term's weeks. Changing it updates the course list and the calendar."
+          ),
+        },
+      },
+      {
+        element: '[data-tour="tour-sidebar-list"]',
+        onHighlightStarted: () => setSidebarTab("courses"),
+        popover: {
+          side: "right",
+          align: "center",
+          title: L("Bước 2 — Chọn môn để xem lịch", "Step 2 — Pick a course"),
+          description: L(
+            "Bấm một môn trong danh sách để xem lịch của môn đó ở khung bên phải. Gõ vào ô tìm kiếm để lọc nhanh.",
+            "Click a course to see its schedule on the right. Use the search box to filter quickly."
+          ),
+        },
+      },
+      {
+        element: '[data-tour="tour-sidebar-list"]',
+        onHighlightStarted: () => setSidebarTab("events"),
+        popover: {
+          side: "right",
+          align: "center",
+          title: L('Bước 3 — "My Events"', 'Step 3 — "My Events"'),
+          description: L(
+            "Tab My Events: xem các buổi mượn phòng của bạn — trạng thái (chờ duyệt/đã duyệt), lọc, tìm kiếm và chỉ hiện sự kiện sắp tới.",
+            "The My Events tab: your room requests — status (pending/approved), filter, search, and show-only-upcoming."
+          ),
+        },
+      },
+      {
+        element: '[data-tour="booking-tabs"]',
+        onHighlightStarted: () => setMainTab("personal"),
+        popover: {
+          side: "bottom",
+          align: "start",
+          title: L("Bước 4 — Các khung xem", "Step 4 — The views"),
+          description: L(
+            "4 tab: Lịch cá nhân, Lịch phòng học, Lịch lớp và Đặt phòng sự kiện. Đang mở Lịch cá nhân — lịch dạy của riêng bạn.",
+            "4 tabs: Personal, Classroom, Class, and Event booking. Personal (your own teaching schedule) is open now."
+          ),
+        },
+      },
+      {
+        element: '[data-tour="booking-tabs"]',
+        onHighlightStarted: () => setMainTab("personal"),
+        popover: {
+          side: "bottom",
+          align: "start",
+          title: L("Mẹo ở Lịch cá nhân", "Tip: Personal schedule"),
+          description: L(
+            'Bật "Tự nhảy tới ngày bắt đầu" để nhảy tới buổi đầu của môn đang chọn; "Chế độ gọn" để xem dạng danh sách; nút Xuất .ics để đưa lịch vào Google/Outlook.',
+            'Toggle auto-jump to jump to the selected course\'s first session; compact mode for a list view; Export .ics to add your schedule to Google/Outlook.'
+          ),
+        },
+      },
+      {
+        element: '[data-tour="booking-tabs"]',
+        onHighlightStarted: () => setMainTab("event_booking"),
+        popover: {
+          side: "bottom",
+          align: "start",
+          title: L("Bước 5 — Đặt phòng cho sự kiện", "Step 5 — Request a room"),
+          description: L(
+            "Vào tab Đặt phòng sự kiện: chọn phòng, ngày giờ, nhập nội dung rồi gửi yêu cầu. Admin duyệt xong bạn sẽ nhận thông báo ở chuông trên thanh trên.",
+            "Open Event booking: pick a room, date/time, add details, then submit. You'll be notified at the top-bar bell once an admin approves."
+          ),
+        },
+      },
+      {
+        element: '[data-tour="help"]',
+        popover: {
+          side: "bottom",
+          align: "end",
+          title: L("Cần thêm?", "Need more?"),
+          description: L(
+            "Bấm biểu tượng ? để mở trang hướng dẫn đầy đủ, có ảnh minh hoạ từng chức năng.",
+            "Click the ? icon for the full, illustrated guide."
+          ),
+        },
+      },
+      {
+        popover: {
+          title: L("Xong! 🎉", "All set! 🎉"),
+          description: L(
+            'Mở lại bất cứ lúc nào bằng nút "Hướng dẫn trang này".',
+            'Reopen anytime via the "Guide for this page" button.'
+          ),
+        },
+      },
+    ];
+  }, [lang]);
+
   // ── Sidebar / event-click handlers ────────────────────────────────────────
   const handleSidebarEventClick = useCallback((ev) => {
     setInfoEvent(ev);
@@ -695,7 +810,7 @@ export default function BookingSingle({ email }) {
   // ── Desktop sidebar: tabs (uses lifted sidebarTab state) ──────────────────
   const TermFilter = () => (
     (terms ?? []).length > 0 && (
-      <div className="p-2 border-b border-default-100 shrink-0">
+      <div data-tour="tour-term" className="p-2 border-b border-default-100 shrink-0">
         <Select
           size="sm"
           label={t("cm.term") || "Học kỳ"}
@@ -731,7 +846,7 @@ export default function BookingSingle({ email }) {
           </button>
         ))}
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div data-tour="tour-sidebar-list" className="flex-1 min-h-0 overflow-y-auto">
         {sidebarTab === "courses" ? (
           <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
         ) : (
@@ -796,7 +911,7 @@ export default function BookingSingle({ email }) {
       {/* Page toolbar: a guide button specific to this Timetable page */}
       <div className="flex items-center justify-end px-2 pt-1">
         <GuideTour
-          variant="booking"
+          steps={bookingTourSteps}
           buttonVariant="flat"
           size="sm"
           label={t("guide.pageTour")}
