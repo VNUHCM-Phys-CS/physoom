@@ -2,6 +2,15 @@ import moment, { duration } from "moment";
 
 export const fetcher = (...args) =>
   args[0] ? fetch(...args).then((res) => res.json()) : null;
+
+/**
+ * Extract the academic year (e.g. "2026-2027") from a term title such as
+ * "CHÍNH QUY HK1/2026-2027" or "26DKD_HK1/2026-2027". Returns "" if none.
+ */
+export function termYear(title) {
+  const m = String(title || "").match(/(\d{4})\s*[-–]\s*(\d{4})/);
+  return m ? `${m[1]}-${m[2]}` : "";
+}
 export const fetcheroptions = ([url, options = {}]) =>
   url
     ? fetch(url, { credentials: "include", ...options }).then((res) =>

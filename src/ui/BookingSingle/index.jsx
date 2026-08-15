@@ -6,6 +6,7 @@ import {
   defaultLoc,
   getClass,
   customSubtitle,
+  termYear,
 } from "@/lib/ulti";
 import CourseList from "../CourseList";
 import { useConfirm } from "../ConfirmDialog";
@@ -432,6 +433,16 @@ export default function BookingSingle({ email }) {
   // ── Term filter (left panel) ──────────────────────────────────────────────
   const { data: terms } = useSWR("/api/calendar-events?type=term", fetcher, { revalidateOnFocus: false });
   const [selectedTermId, setSelectedTermId] = useState(null);
+  // Academic-year filter: many terms are the SAME semester/year but split per
+  // cohort (CHÍNH QUY / 26DKD / 24VLH…), which clutters the term dropdown. Pick a
+  // year first to collapse the list to that year's terms.
+  const [selectedYear, setSelectedYear] = useState("");
+  // Distinct academic years present, newest first.
+  const years = useMemo(() => {
+    const s = new Set();
+    (terms ?? []).forEach((tm) => { const y = termYear(tm.title); if (y) s.add(y); });
+    return [...s].sort((a, b) => b.localeCompare(a));
+  }, [terms]);
   // Default = the term most of the lecturer's courses belong to.
   useEffect(() => {
     if (selectedTermId || !course?.length) return;
@@ -440,11 +451,30 @@ export default function BookingSingle({ email }) {
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
     if (top) setSelectedTermId(top);
   }, [course, selectedTermId]);
+  const selectedTermObj = useMemo(() => (terms ?? []).find((t) => String(t._id) === selectedTermId), [terms, selectedTermId]);
+  // Default the year filter from the selected term (or the newest year).
+  useEffect(() => {
+    if (selectedYear) return;
+    const y = selectedTermObj ? termYear(selectedTermObj.title) : years[0];
+    if (y) setSelectedYear(y);
+  }, [selectedTermObj, years, selectedYear]);
+  // Terms shown in the "Học kỳ" dropdown = only those in the chosen year.
+  const termsInYear = useMemo(
+    () => (selectedYear ? (terms ?? []).filter((tm) => termYear(tm.title) === selectedYear) : (terms ?? [])),
+    [terms, selectedYear]
+  );
+  const onChangeYear = useCallback((y) => {
+    setSelectedYear(y);
+    // If the selected term isn't in the new year, jump to that year's first term.
+    const inYear = (terms ?? []).filter((tm) => termYear(tm.title) === y);
+    if (!inYear.some((tm) => String(tm._id) === selectedTermId)) {
+      setSelectedTermId(inYear[0] ? String(inYear[0]._id) : null);
+    }
+  }, [terms, selectedTermId]);
   const filteredCourses = useMemo(
     () => (selectedTermId ? (course ?? []).filter((c) => String(c.term) === selectedTermId) : (course ?? [])),
     [course, selectedTermId]
   );
-  const selectedTermObj = useMemo(() => (terms ?? []).find((t) => String(t._id) === selectedTermId), [terms, selectedTermId]);
   const selectedTermStart = selectedTermObj?.start ? new Date(selectedTermObj.start).getTime() : undefined;
 
   const [booking, setBooking] = useState();
@@ -810,15 +840,29 @@ export default function BookingSingle({ email }) {
   // ── Desktop sidebar: tabs (uses lifted sidebarTab state) ──────────────────
   const TermFilter = () => (
     (terms ?? []).length > 0 && (
-      <div data-tour="tour-term" className="p-2 border-b border-default-100 shrink-0">
+      <div data-tour="tour-term" className="p-2 border-b border-default-100 shrink-0 flex flex-col gap-2">
+        {years.length > 1 && (
+          <Select
+            size="sm"
+            label={t("booking.academicYear")}
+            selectedKeys={selectedYear ? [selectedYear] : []}
+            onChange={(e) => e.target.value && onChangeYear(e.target.value)}
+          >
+            {years.map((y) => (
+              <SelectItem key={y} value={y}>{y}</SelectItem>
+            ))}
+          </Select>
+        )}
         <Select
           size="sm"
           label={t("cm.term") || "Học kỳ"}
           selectedKeys={selectedTermId ? [selectedTermId] : []}
           onChange={(e) => setSelectedTermId(e.target.value || null)}
         >
-          {(terms ?? []).map((tm) => (
-            <SelectItem key={String(tm._id)} value={String(tm._id)}>{tm.title}</SelectItem>
+          {termsInYear.map((tm) => (
+            <SelectItem key={String(tm._id)} value={String(tm._id)}>
+              {termYear(tm.title) ? tm.title.replace(termYear(tm.title), "").replace(/[\/\-–\s]+$/, "").trim() : tm.title}
+            </SelectItem>
           ))}
         </Select>
       </div>
