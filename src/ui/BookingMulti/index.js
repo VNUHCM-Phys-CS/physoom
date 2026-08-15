@@ -4,7 +4,7 @@ import { fetcher, fetcheroptions, defaultLoc, getClass, customSubtitle } from "@
 import { termWeeks } from "@/lib/occurrences";
 import Card from "../Card";
 import _ from "lodash";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CalendarByRoom from "../CalendarByRoom";
 import { Input, ScrollShadow, Tab, Tabs, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Switch, Select, SelectItem } from "@heroui/react";
 import CalendarByUser from "../CalendarByUser";
@@ -154,21 +154,22 @@ export default function BookingMulti() {
         },
       };
       setBooking(newBooking);
-      // Seed the scheduling-window controls. Prefer the course's assigned term
-      // (start/end); else fall back to the course's own start_date + duration.
+      // Seed the scheduling-window controls. Prefer the course's ACTUAL
+      // scheduled window (start_date + duration) so a course scheduled for fewer
+      // weeks than the term shows its real span (e.g. 1 week), NOT the full term.
+      // The term is only a fallback for a course with no schedule yet.
       const termId = String(course.term?._id || course.term || "");
       setSchedTermId(termId);
       const tm = (terms ?? []).find((x) => String(x._id) === termId);
-      if (tm) {
+      if (course.start_date && course.duration) {
+        setSchedStart(moment(course.start_date).format("YYYY-MM-DD"));
+        setSchedEnd(moment(course.start_date).add(course.duration - 1, "weeks").format("YYYY-MM-DD"));
+      } else if (tm) {
         setSchedStart(moment(tm.start).format("YYYY-MM-DD"));
         setSchedEnd(moment(tm.end).format("YYYY-MM-DD"));
       } else if (course.start_date) {
         setSchedStart(moment(course.start_date).format("YYYY-MM-DD"));
-        setSchedEnd(
-          course.duration
-            ? moment(course.start_date).add(course.duration - 1, "weeks").format("YYYY-MM-DD")
-            : ""
-        );
+        setSchedEnd("");
       } else {
         setSchedStart("");
         setSchedEnd("");
@@ -193,6 +194,11 @@ export default function BookingMulti() {
     const ready = !!(schedTermId && schedStart && schedEnd && weeks > 0);
     return { start_date: schedStart, end_date, weeks, ready };
   }, [schedTermId, schedStart, schedEnd]);
+  // Total weeks of the selected term (denominator for the "X/Y tuần" chip).
+  const termTotalWeeks = useMemo(() => {
+    const tm = (terms ?? []).find((t) => String(t._id) === String(schedTermId));
+    return tm ? termWeeks(tm.start, tm.end) : undefined;
+  }, [terms, schedTermId]);
   // Feed the resolved window into the booking passed to the room calendar so a
   // click schedules across the right dates even for a never-scheduled course.
   const bookingForCal = useMemo(() => {
@@ -219,6 +225,26 @@ export default function BookingMulti() {
     },
     [terms]
   );
+
+  // Once the selected course's real bookings load, snap the window to what was
+  // ACTUALLY scheduled (earliest session + week count from the events), not the
+  // term default — a course booked for 1 week must show 1 week when reselected.
+  // Runs once per selection (guarded by ref) so it never fights manual edits.
+  const syncedCourseRef = useRef(null);
+  useEffect(() => {
+    const cid = booking?.course?._id ? String(booking.course._id) : null;
+    if (!cid || currentbooking === undefined) return; // wait for load
+    if (syncedCourseRef.current === cid) return; // already synced this selection
+    const withDates = (currentbooking ?? []).filter((e) => e?.time_slot?.start_date);
+    if (withDates.length) {
+      const startTs = Math.min(...withDates.map((e) => new Date(e.time_slot.start_date).valueOf()));
+      const weeks = Math.max(...withDates.map((e) => e.sessions || 1));
+      const startM = moment(startTs);
+      setSchedStart(startM.format("YYYY-MM-DD"));
+      setSchedEnd(startM.clone().add(weeks - 1, "weeks").format("YYYY-MM-DD"));
+    }
+    syncedCourseRef.current = cid; // mark done (also for unscheduled → keep seeded)
+  }, [booking?.course?._id, currentbooking]);
 
   const { data: _events, mutate: mutateUserEvent } = useSWR(
     [
@@ -362,9 +388,11 @@ export default function BookingMulti() {
         setSchedTermId(tid);
         const tm = (terms ?? []).find((x) => String(x._id) === tid);
         const evStart = time_slot?.start_date || fullCourse.start_date;
-        if (tm) {
-          setSchedStart(moment(tm.start).format("YYYY-MM-DD"));
-          setSchedEnd(moment(tm.end).format("YYYY-MM-DD"));
+        // Prefer the actual scheduled window (course start_date + duration), then
+        // the clicked event's start, and only fall back to the term range.
+        if (fullCourse.start_date && fullCourse.duration) {
+          setSchedStart(moment(fullCourse.start_date).format("YYYY-MM-DD"));
+          setSchedEnd(moment(fullCourse.start_date).add(fullCourse.duration - 1, "weeks").format("YYYY-MM-DD"));
         } else if (evStart) {
           setSchedStart(moment(evStart).format("YYYY-MM-DD"));
           setSchedEnd(
@@ -372,6 +400,9 @@ export default function BookingMulti() {
               ? moment(evStart).add(fullCourse.duration - 1, "weeks").format("YYYY-MM-DD")
               : ""
           );
+        } else if (tm) {
+          setSchedStart(moment(tm.start).format("YYYY-MM-DD"));
+          setSchedEnd(moment(tm.end).format("YYYY-MM-DD"));
         }
       }
     }
@@ -544,7 +575,9 @@ export default function BookingMulti() {
                       className="mb-1.5"
                     >
                       {schedWindow.weeks
-                        ? `${schedWindow.weeks} ${t("booking.weeksUnit")}`
+                        ? termTotalWeeks
+                          ? `${schedWindow.weeks}/${termTotalWeeks} ${t("booking.weeksUnit")}`
+                          : `${schedWindow.weeks} ${t("booking.weeksUnit")}`
                         : `— ${t("booking.weeksUnit")}`}
                     </Chip>
                   </div>
