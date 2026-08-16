@@ -49,6 +49,19 @@ export const PUT = async (request, { params }) => {
     if (body.end) update.end = new Date(body.end);
     if (body.roomId) update.room = body.roomId;
 
+    // Don't allow moving an event into the past (or an invalid window).
+    if (timeChanged) {
+      const s = update.start ?? event.start;
+      const e = update.end ?? event.end;
+      const sd = new Date(s), ed = new Date(e);
+      if (isNaN(sd.getTime()) || isNaN(ed.getTime()) || ed <= sd) {
+        return NextResponse.json({ success: false, message: "Khoảng thời gian không hợp lệ." }, { status: 400 });
+      }
+      if (sd.getTime() < Date.now()) {
+        return NextResponse.json({ success: false, message: "Không thể đặt phòng cho thời gian trong quá khứ." }, { status: 400 });
+      }
+    }
+
     // Non-privileged users editing time or room → back to pending
     if (!isPrivileged && (timeChanged || roomChanged)) {
       update.status = "pending";
@@ -149,6 +162,42 @@ export const PATCH = async (request, { params }) => {
       });
     } catch (e) {
       console.error("notify(decision) failed:", e);
+    }
+
+    // Approving one request frees no one else: auto-reject any OTHER pending
+    // requests that overlap the same room/time (they can never be approved now)
+    // and notify their owners, so they don't linger unresolved.
+    if (status === "approved") {
+      try {
+        const roomId = updated.room?._id ?? updated.room;
+        const losers = await CalendarEvent.find({
+          _id: { $ne: updated._id },
+          room: roomId,
+          status: "pending",
+          isCancelled: { $ne: true },
+          start: { $lt: updated.end },
+          end: { $gt: updated.start },
+        }).lean();
+        if (losers.length) {
+          await CalendarEvent.updateMany(
+            { _id: { $in: losers.map((l) => l._id) } },
+            { $set: { status: "rejected" } }
+          );
+          for (const l of losers) {
+            const recips = [...(l.teacher_email ?? []), ...(l.host ?? [])];
+            const when = `${moment(l.start).format("DD/MM HH:mm")}–${moment(l.end).format("HH:mm")}`;
+            await notify(recips, {
+              type: "rejected",
+              title: "Yêu cầu mượn phòng bị từ chối (trùng lịch)",
+              message: `"${l.title}" · ${updated.room?.title || "phòng"} · ${when} — phòng đã được duyệt cho một yêu cầu khác.`,
+              link: "/booking?tab=event_booking",
+              event: l._id,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("auto-reject conflicting pendings failed:", e);
+      }
     }
 
     return NextResponse.json({ success: true, event: updated }, { status: 200 });

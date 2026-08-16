@@ -99,6 +99,21 @@ export const POST = async (request) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
+    // Reject invalid / past time windows — can't book a room for a time that has
+    // already passed.
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate <= startDate) {
+      return NextResponse.json(
+        { success: false, message: "Khoảng thời gian không hợp lệ." },
+        { status: 400 }
+      );
+    }
+    if (startDate.getTime() < Date.now()) {
+      return NextResponse.json(
+        { success: false, message: "Không thể đặt phòng cho thời gian trong quá khứ." },
+        { status: 400 }
+      );
+    }
+
     // Check for conflicts: approved events that overlap
     const conflict = await CalendarEvent.findOne({
       room: roomId,
