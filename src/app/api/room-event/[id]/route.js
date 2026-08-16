@@ -57,7 +57,8 @@ export const PUT = async (request, { params }) => {
       if (isNaN(sd.getTime()) || isNaN(ed.getTime()) || ed <= sd) {
         return NextResponse.json({ success: false, message: "Khoảng thời gian không hợp lệ." }, { status: 400 });
       }
-      if (sd.getTime() < Date.now()) {
+      // Admins may set past times (backfill); everyone else is blocked.
+      if (!session.user.isAdmin && sd.getTime() < Date.now()) {
         return NextResponse.json({ success: false, message: "Không thể đặt phòng cho thời gian trong quá khứ." }, { status: 400 });
       }
     }

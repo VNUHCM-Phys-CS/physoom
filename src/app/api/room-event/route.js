@@ -107,7 +107,8 @@ export const POST = async (request) => {
         { status: 400 }
       );
     }
-    if (startDate.getTime() < Date.now()) {
+    // Admins may backfill past bookings; everyone else is blocked.
+    if (!isAdmin && startDate.getTime() < Date.now()) {
       return NextResponse.json(
         { success: false, message: "Không thể đặt phòng cho thời gian trong quá khứ." },
         { status: 400 }

@@ -15,6 +15,7 @@ import {
 } from "@heroui/react";
 import { fetcher } from "@/lib/ulti";
 import moment from "moment";
+import { useSession } from "next-auth/react";
 import { useI18n } from "@/i18n/I18nProvider";
 
 // ─── UserPicker ────────────────────────────────────────────────────────────────
@@ -137,6 +138,15 @@ export function RoomEventModal({
   const { t } = useI18n();
   const isEdit = !!event;
   const { data: users } = useSWR("/api/user/list", fetcher);
+  const { data: session } = useSession();
+  const isAdmin = !!session?.user?.isAdmin;
+  // Earliest selectable time = now (admins may pick past for backfill). Set on
+  // the client when the modal opens to avoid an SSR/CSR hydration mismatch.
+  const [minDT, setMinDT] = useState("");
+  useEffect(() => {
+    if (isOpen) setMinDT(moment().format("YYYY-MM-DDTHH:mm"));
+  }, [isOpen]);
+  const timeMin = isAdmin ? undefined : minDT || undefined;
 
   const [form, setForm] = useState({ roomId: "", title: "", start: "", end: "", duration: "", note: "" });
   const [roomInput, setRoomInput] = useState("");
@@ -238,6 +248,14 @@ export function RoomEventModal({
       setError("Please fill all required fields.");
       return;
     }
+    if (new Date(form.end) <= new Date(form.start)) {
+      setError(t("re.invalidRange") || "Giờ kết thúc phải sau giờ bắt đầu.");
+      return;
+    }
+    if (!isAdmin && new Date(form.start).getTime() < Date.now()) {
+      setError(t("re.noPast") || "Không thể đặt phòng cho thời gian trong quá khứ.");
+      return;
+    }
     setLoading(true);
     try {
       const url = isEdit ? `/api/room-event/${event._id}` : "/api/room-event";
@@ -315,7 +333,7 @@ export function RoomEventModal({
               </Autocomplete>
 
               <Input label={t("re.title")} isRequired value={form.title} onValueChange={(v) => setForm((f) => ({ ...f, title: v }))} />
-              <Input label={t("re.start")} type="datetime-local" isRequired value={form.start} onValueChange={handleStartChange} />
+              <Input label={t("re.start")} type="datetime-local" isRequired min={timeMin} value={form.start} onValueChange={handleStartChange} />
               <Input
                 label={t("re.durationMin")}
                 type="number"
@@ -325,7 +343,7 @@ export function RoomEventModal({
                 description={formatDuration(form.duration) || undefined}
                 placeholder={t("re.durationEg")}
               />
-              <Input label={t("re.end")} type="datetime-local" isRequired value={form.end} onValueChange={handleEndChange} />
+              <Input label={t("re.end")} type="datetime-local" isRequired min={form.start || timeMin} value={form.end} onValueChange={handleEndChange} />
               <UserPicker label={t("re.hostBy")} users={users} selectedEmails={host} onChange={setHost} multiple />
               <UserPicker label={t("re.members")} users={users} selectedEmails={attendees} onChange={setAttendees} multiple />
               <Input label={t("event.note")} value={form.note} onValueChange={(v) => setForm((f) => ({ ...f, note: v }))} />
