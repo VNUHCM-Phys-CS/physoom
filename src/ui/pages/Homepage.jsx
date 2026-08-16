@@ -27,19 +27,75 @@ const FEATURES = [
   { icon: UsersIcon, titleKey: "home.feat.manager.title", descKey: "home.feat.manager.desc", href: "/admin", auth: true, adminOnly: true },
 ];
 
-// ── Animated aurora background: soft drifting brand-purple orbs over a faint
-// physics-equation texture. Purely decorative; sits behind everything.
+// Deterministic particle field (no Math.random → no hydration mismatch). Each
+// dot bobs gently and pulses opacity on its own cadence.
+const PARTICLES = Array.from({ length: 26 }, (_, i) => ({
+  left: (i * 37 + 5) % 100,
+  top: (i * 53 + 9) % 100,
+  size: 3 + (i % 5) * 2.5,        // 3–13px
+  duration: 9 + (i % 7) * 1.8,    // 9–20.8s
+  delay: (i % 9) * 0.8,
+  drift: (i % 2 ? 1 : -1) * (8 + (i % 5) * 7), // px sideways
+}));
+
+// ── Animated aurora background: a slowly colour-shifting gradient, soft drifting
+// brand orbs, and a floating particle field over a faint physics texture.
 function Aurora() {
   const blob = "absolute rounded-full blur-3xl will-change-transform";
   return (
     <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-secondary-50/70 via-background to-background dark:from-secondary-900/25 dark:via-background dark:to-background" />
+      <style>{`
+        @keyframes physoomGradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes physoomFloat {
+          0%, 100% { transform: translate(0, 0); opacity: .25; }
+          50% { transform: translate(var(--drift), -26px); opacity: .7; }
+        }
+        .physoom-gradient {
+          background-image: linear-gradient(120deg,
+            hsla(270, 85%, 90%, .55),
+            hsla(210, 85%, 92%, .45),
+            hsla(300, 80%, 92%, .45),
+            hsla(258, 85%, 90%, .55));
+          background-size: 300% 300%;
+          animation: physoomGradient 20s ease infinite;
+        }
+        :root[data-theme="dark"] .physoom-gradient,
+        .dark .physoom-gradient {
+          background-image: linear-gradient(120deg,
+            hsla(270, 70%, 22%, .40),
+            hsla(220, 70%, 20%, .35),
+            hsla(300, 60%, 22%, .35),
+            hsla(258, 70%, 22%, .40));
+        }
+        .physoom-particle {
+          position: absolute;
+          border-radius: 9999px;
+          background: hsl(270 90% 60%);
+          animation: physoomFloat var(--dur) ease-in-out var(--delay) infinite;
+          will-change: transform, opacity;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .physoom-gradient, .physoom-particle { animation: none; }
+        }
+      `}</style>
+
+      {/* Base + animated colour-shifting gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-secondary-50/60 via-background to-background dark:from-secondary-900/20 dark:via-background dark:to-background" />
+      <div className="physoom-gradient absolute inset-0" />
+
+      {/* Faint physics texture */}
       <img
         src="/images/about/hero.jpg"
         alt=""
         aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover opacity-[0.05] dark:opacity-[0.09]"
       />
+
+      {/* Drifting brand orbs */}
       <motion.div
         className={`${blob} -top-24 -left-16 h-72 w-72 bg-secondary/35`}
         animate={{ x: [0, 40, 0], y: [0, 26, 0], scale: [1, 1.08, 1] }}
@@ -55,6 +111,23 @@ function Aurora() {
         animate={{ x: [0, 28, 0], y: [0, -22, 0], scale: [1, 1.1, 1] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* Floating particle field */}
+      {PARTICLES.map((p, i) => (
+        <span
+          key={i}
+          className="physoom-particle"
+          style={{
+            left: `${p.left}%`,
+            top: `${p.top}%`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            "--dur": `${p.duration}s`,
+            "--delay": `${p.delay}s`,
+            "--drift": `${p.drift}px`,
+          }}
+        />
+      ))}
     </div>
   );
 }
