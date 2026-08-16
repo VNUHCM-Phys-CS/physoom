@@ -790,28 +790,28 @@ export default function BookingSingle({ email }) {
         },
       },
       {
-        element: '[data-tour="tour-sidebar-list"]',
+        element: '[data-tour="tab-courses"]',
         onHighlightStarted: () => setSidebarTab("courses"),
         popover: {
-          side: "right",
-          align: "center",
+          side: "bottom",
+          align: "start",
           title: L("Chọn môn để xem lịch", "Pick a course"),
           description: L(
-            "Bấm một môn trong danh sách để xem lịch của môn đó ở khung bên phải. Gõ vào ô tìm kiếm để lọc nhanh.",
-            "Click a course to see its schedule on the right. Use the search box to filter quickly."
+            "Tab Môn học: bấm một môn để xem lịch của môn đó ở khung bên phải. Gõ vào ô tìm kiếm để lọc nhanh.",
+            "Courses tab: click a course to see its schedule on the right. Use the search box to filter quickly."
           ),
         },
       },
       {
-        element: '[data-tour="tour-sidebar-list"]',
+        element: '[data-tour="tab-events"]',
         onHighlightStarted: () => setSidebarTab("events"),
         popover: {
-          side: "right",
-          align: "center",
-          title: L('"My Events"', '"My Events"'),
+          side: "bottom",
+          align: "start",
+          title: L("Sự kiện của tôi", "My Events"),
           description: L(
-            "Tab My Events: xem các buổi mượn phòng của bạn — trạng thái (chờ duyệt/đã duyệt), lọc, tìm kiếm và chỉ hiện sự kiện sắp tới.",
-            "The My Events tab: your room requests — status (pending/approved), filter, search, and show-only-upcoming."
+            "Tab Sự kiện của tôi: xem các buổi mượn phòng của bạn — trạng thái (chờ duyệt/đã duyệt), lọc, tìm kiếm và chỉ hiện sự kiện sắp tới.",
+            "My Events tab: your room requests — status (pending/approved), filter, search, and show-only-upcoming."
           ),
         },
       },
@@ -935,6 +935,7 @@ export default function BookingSingle({ email }) {
         ].map((t) => (
           <button
             key={t.key}
+            data-tour={t.key === "courses" ? "tab-courses" : "tab-events"}
             onClick={() => setSidebarTab(t.key)}
             className={`flex-1 py-2.5 text-xs font-semibold transition-colors
               ${sidebarTab === t.key
