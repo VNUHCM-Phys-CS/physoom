@@ -270,12 +270,16 @@ export default function Home() {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.div
-            className="relative rounded-2xl overflow-hidden shadow-xl shadow-secondary/10 border border-default-100 -rotate-1"
+            className="relative rounded-2xl overflow-hidden shadow-xl shadow-secondary/10 border border-default-200 bg-content1 -rotate-1"
             whileHover={{ rotate: 0, scale: 1.02 }}
             transition={{ type: "spring", stiffness: 200, damping: 18 }}
           >
-            <img src="/images/about/classroom.jpg" alt="" className="w-full h-56 md:h-64 object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-secondary/40 to-transparent mix-blend-multiply" />
+            <div className="flex items-center gap-1.5 px-3 py-2 border-b border-default-100 bg-default-50">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+            </div>
+            <img src="/images/demo2.png" alt="" className="block w-full h-auto" />
           </motion.div>
           <div className="flex flex-col gap-4 text-center md:text-left">
             <div className="inline-flex items-center gap-2 justify-center md:justify-start">
