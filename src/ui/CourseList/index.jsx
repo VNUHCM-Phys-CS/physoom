@@ -42,7 +42,7 @@ function WarnBadge({ warnings }) {
 }
 import { useI18n } from "@/i18n/I18nProvider";
 
-export default function CourseList({ course, onSelectionChange, userEvents, onUnschedule }) {
+export default function CourseList({ course, onSelectionChange, userEvents, onUnschedule, readOnly = false }) {
   const { t } = useI18n();
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
   const courseGroup = useMemo(() => {
@@ -99,6 +99,11 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                           falseIcon={<UnlockFill />}
                           falseText={"Unlock"}
                           trueText={"Locked"}
+                          // In the personal timetable this is a STATUS only —
+                          // dim it and make it non-clickable (lock is managed by
+                          // admin, not from here).
+                          isDisabled={readOnly}
+                          disableRipple={readOnly}
                         />
                       </div>
                       <h6 className="prose-lead:h6">
@@ -114,7 +119,7 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                           {credit} {t("common.credits")}
                         </Chip>
                       </div>
-                      {cg.key === "planned" && onUnschedule && (
+                      {cg.key === "planned" && onUnschedule && !readOnly && (
                         <Button
                           size="sm"
                           variant="flat"

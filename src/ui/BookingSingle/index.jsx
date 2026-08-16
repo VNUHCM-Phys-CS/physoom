@@ -948,7 +948,7 @@ export default function BookingSingle({ email }) {
       </div>
       <div data-tour="tour-sidebar-list" className="flex-1 min-h-0 overflow-y-auto">
         {sidebarTab === "courses" ? (
-          <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
+          <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} readOnly />
         ) : (
           <EventListSidebar
             events={myEvents}
@@ -978,7 +978,7 @@ export default function BookingSingle({ email }) {
           </button>
           {coursesOpen && (
             <div className="flex-1 min-h-0 overflow-y-auto">
-              <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} />
+              <CourseList course={filteredCourses} userEvents={userEvents} onSelectionChange={onSelectCourse} onUnschedule={handleUnschedule} readOnly />
             </div>
           )}
         </div>
