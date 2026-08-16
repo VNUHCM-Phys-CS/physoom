@@ -42,7 +42,7 @@ function WarnBadge({ warnings }) {
 }
 import { useI18n } from "@/i18n/I18nProvider";
 
-export default function CourseList({ course, onSelectionChange, userEvents, onUnschedule, readOnly = false }) {
+export default function CourseList({ course, onSelectionChange, userEvents, onUnschedule, readOnly = false, currentId }) {
   const { t } = useI18n();
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
   const courseGroup = useMemo(() => {
@@ -74,7 +74,9 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
         variant="flat"
         disallowEmptySelection
         selectionMode="single"
-        selectedKeys={selectedKeys}
+        // Highlight the course the parent currently has selected (robust even if
+        // the click landed on an inner control); fall back to internal state.
+        selectedKeys={currentId ? new Set([String(currentId)]) : selectedKeys}
         onSelectionChange={setSelectedKeys}
         disabledKeys={["empty"]}
         hideSelectedIcon
@@ -88,24 +90,36 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                   classNames={{ base: warnings?.length ? "bg-warning-50/60 rounded-lg" : "" }}
                   description={
                     <div>
-                      <div className="flex w-full">
-                        <StageButton
-                          name="lock"
-                          size="sm"
-                          variant="light"
-                          checked={isLock ?? false}
-                          color="danger"
-                          trueIcon={<LockFill />}
-                          falseIcon={<UnlockFill />}
-                          falseText={"Unlock"}
-                          trueText={"Locked"}
-                          // In the personal timetable this is a STATUS only —
-                          // dim it and make it non-clickable (lock is managed by
-                          // admin, not from here).
-                          isDisabled={readOnly}
-                          disableRipple={readOnly}
-                        />
-                      </div>
+                      {readOnly ? (
+                        // Personal timetable: lock is STATUS only. Show a small
+                        // chip when locked (nothing when unlocked) — no bulky
+                        // button, lock is managed from admin.
+                        isLock ? (
+                          <Chip
+                            size="sm"
+                            variant="flat"
+                            color="danger"
+                            startContent={<LockFill size={12} className="ml-0.5" />}
+                            classNames={{ base: "h-5", content: "text-[11px] pl-1 pr-0.5" }}
+                          >
+                            {t("course.locked")}
+                          </Chip>
+                        ) : null
+                      ) : (
+                        <div className="flex w-full">
+                          <StageButton
+                            name="lock"
+                            size="sm"
+                            variant="light"
+                            checked={isLock ?? false}
+                            color="danger"
+                            trueIcon={<LockFill />}
+                            falseIcon={<UnlockFill />}
+                            falseText={"Unlock"}
+                            trueText={"Locked"}
+                          />
+                        </div>
+                      )}
                       <h6 className="prose-lead:h6">
                         {teacher_email.map((d) => (
                           <div>{d}</div>
