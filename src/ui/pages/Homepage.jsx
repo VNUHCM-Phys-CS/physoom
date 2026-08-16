@@ -128,19 +128,25 @@ function FeatureCard({ icon: Icon, titleKey, descKey, href, locked, adminOnly })
   );
 }
 
-// A framed, floating image with a purple gradient wash + spinning atom badge.
+// A floating app-screenshot in a browser frame, with a purple glow + spinning
+// atom badge. Shows the full image (no crop/tint) since it's a product shot.
 function HeroVisual({ src, alt }) {
   return (
     <motion.div
       variants={fadeUp}
-      className="relative w-full max-w-md mx-auto"
+      className="relative w-full max-w-xl mx-auto"
       animate={{ y: [0, -10, 0] }}
       transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
     >
       <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-secondary/30 to-primary/20 blur-2xl" />
-      <div className="relative rounded-3xl overflow-hidden border border-white/40 shadow-2xl shadow-secondary/20 rotate-1">
-        <img src={src} alt={alt} className="w-full h-64 md:h-80 object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-secondary/50 via-secondary/10 to-transparent mix-blend-multiply" />
+      <div className="relative rounded-2xl overflow-hidden border border-default-200 shadow-2xl shadow-secondary/20 bg-content1">
+        {/* browser chrome */}
+        <div className="flex items-center gap-1.5 px-3 py-2 border-b border-default-100 bg-default-50">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+          <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+          <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+        </div>
+        <img src={src} alt={alt} className="block w-full h-auto" />
       </div>
       <AtomBadge className="absolute -top-5 -right-5 bg-content1 rounded-2xl p-1.5 shadow-lg border border-default-100" />
     </motion.div>
@@ -231,7 +237,7 @@ export default function Home() {
 
           {/* Right: floating hero image */}
           <div className="order-first md:order-last">
-            <HeroVisual src="/images/about/hero.jpg" alt={t("home.heroImageAlt")} />
+            <HeroVisual src="/images/demo1.png" alt={t("home.heroImageAlt")} />
           </div>
         </motion.div>
       </section>
