@@ -1,7 +1,7 @@
 "use server";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { connectGoogle, syncUserToGoogle } from "@/lib/googleCalendar";
+import { connectGoogle, syncEmailsInBackground } from "@/lib/googleCalendar";
 
 // OAuth callback: exchange the code, store the refresh token, then run an initial
 // sync so the user's schedule appears immediately.
@@ -18,7 +18,8 @@ export const GET = async (request) => {
   }
   try {
     await connectGoogle(code, email);
-    syncUserToGoogle(email).catch((e) => console.error("initial gcal sync failed:", e?.message));
+    // Initial sync runs after the redirect (via next/after) so it completes.
+    syncEmailsInBackground([email]);
     return back("/booking?gcal=connected");
   } catch (e) {
     console.error("google connect failed:", e?.message);

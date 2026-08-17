@@ -12,6 +12,7 @@ import moment from "moment";
 import { defaultGridLT, defaultGridNVC } from "@/lib/ulti";
 import { getOccurrences } from "@/lib/occurrences";
 import { canManageClasses } from "@/lib/scope";
+import { syncEmailsInBackground } from "@/lib/googleCalendar";
 
 /**
  * Convert a JS Date to minutes from midnight
@@ -366,6 +367,8 @@ export const POST = async (request) => {
     }
 
     revalidateTag("booking");
+    // Push the (re)scheduled class into the teachers' linked Google calendars.
+    syncEmailsInBackground([...new Set(data.flatMap((d) => d.teacher_email || []))]);
     return NextResponse.json(
       { success: true, created: allCreated, conflicts: allConflicts },
       { status: 201 }

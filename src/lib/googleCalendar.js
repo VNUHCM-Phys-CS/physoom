@@ -3,6 +3,7 @@
 // "Physoom" calendar. One-way sync (Physoom → Google) with full reconciliation:
 // changes/cancellations on Physoom are reflected in Google.
 import { google } from "googleapis";
+import { unstable_after as after } from "next/server";
 import moment from "moment";
 import CalendarEvent from "@/models/calendarEvent";
 import User from "@/models/user";
@@ -182,10 +183,28 @@ export async function syncUserToGoogle(email) {
   return { inserted, updated, deleted, total: evs.length };
 }
 
-/** Fire-and-forget sync for a set of emails (used by mutation routes). */
+/**
+ * Sync a set of emails to Google AFTER the response is sent. Uses Next's
+ * post-response hook so the work runs to completion on Vercel serverless
+ * (a bare fire-and-forget gets killed when the handler returns). Falls back to
+ * inline best-effort if the hook isn't available.
+ */
 export function syncEmailsInBackground(emails) {
   const uniq = [...new Set((emails || []).filter(Boolean))];
-  uniq.forEach((email) => {
-    syncUserToGoogle(email).catch((e) => console.error("bg sync failed:", email, e?.message));
-  });
+  if (!uniq.length) return;
+  const run = async () => {
+    for (const email of uniq) {
+      try {
+        await syncUserToGoogle(email);
+      } catch (e) {
+        console.error("bg sync failed:", email, e?.message);
+      }
+    }
+  };
+  try {
+    after(run);
+  } catch {
+    // after() unavailable outside a request scope — best effort.
+    run();
+  }
 }
