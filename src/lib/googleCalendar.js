@@ -3,7 +3,6 @@
 // "Physoom" calendar. One-way sync (Physoom → Google) with full reconciliation:
 // changes/cancellations on Physoom are reflected in Google.
 import { google } from "googleapis";
-import { unstable_after as after } from "next/server";
 import moment from "moment";
 import CalendarEvent from "@/models/calendarEvent";
 import User from "@/models/user";
@@ -27,6 +26,27 @@ function baseUrl() {
 
 function oauthClient() {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, `${baseUrl()}/api/google/callback`);
+}
+
+// Calendar client authorised as a specific user (by refresh token).
+function calFor(refreshToken) {
+  const client = oauthClient();
+  client.setCredentials({ refresh_token: refreshToken });
+  return google.calendar({ version: "v3", auth: client });
+}
+
+// Only sync a bounded window: recent-past through the future. Past events beyond
+// this are frozen (never touched) — bounds volume + avoids re-churning history.
+const WINDOW_PAST_DAYS = 7;
+function windowStart() {
+  return new Date(Date.now() - WINDOW_PAST_DAYS * 24 * 60 * 60 * 1000);
+}
+
+// Participants of an event who might have a linked calendar.
+function eventParticipants(ev) {
+  return [
+    ...new Set([...(ev.teacher_email || []), ...(ev.host || []), ...(ev.attendees || [])].filter(Boolean)),
+  ];
 }
 
 /** Consent URL — offline + consent so we always get a refresh token. */
@@ -107,6 +127,7 @@ async function userEvents(email) {
     type: { $nin: ["holiday", "term"] },
     status: "approved",
     isCancelled: { $ne: true },
+    end: { $gte: windowStart() }, // only recent-past → future; freeze older history
     $or: [{ teacher_email: email }, { host: email }, { attendees: email }],
   })
     .populate("course room")
@@ -125,11 +146,9 @@ export async function syncUserToGoogle(email) {
   const calendarId = user?.google?.calendarId;
   if (!refreshToken || !calendarId) return { skipped: "not-connected" };
 
-  const client = oauthClient();
-  client.setCredentials({ refresh_token: refreshToken });
-  const cal = google.calendar({ version: "v3", auth: client });
+  const cal = calFor(refreshToken);
 
-  // Existing Physoom-tagged Google events → map physoomId → googleEventId.
+  // Existing Physoom-tagged Google events → map physoomId → { gid, start }.
   const existing = new Map();
   let pageToken;
   do {
@@ -142,7 +161,7 @@ export async function syncUserToGoogle(email) {
     });
     (res.data.items || []).forEach((it) => {
       const pid = it.extendedProperties?.private?.physoomId;
-      if (pid) existing.set(pid, it.id);
+      if (pid) existing.set(pid, { gid: it.id, start: it.start?.dateTime || it.start?.date });
     });
     pageToken = res.data.nextPageToken;
   } while (pageToken);
@@ -172,9 +191,9 @@ export async function syncUserToGoogle(email) {
   await runPool(evs, async (ev) => {
     const pid = String(ev._id);
     const body = toGoogleEvent(ev);
-    const gid = existing.get(pid);
-    if (gid) {
-      await cal.events.patch({ calendarId, eventId: gid, requestBody: body });
+    const hit = existing.get(pid);
+    if (hit) {
+      await cal.events.patch({ calendarId, eventId: hit.gid, requestBody: body });
       counts.updated++;
     } else {
       await cal.events.insert({ calendarId, requestBody: body });
@@ -182,38 +201,96 @@ export async function syncUserToGoogle(email) {
     }
   });
 
-  // Delete Google events that no longer exist in Physoom.
-  const stale = [...existing].filter(([pid]) => !seen.has(pid));
-  await runPool(stale, async ([, gid]) => {
-    await cal.events.delete({ calendarId, eventId: gid });
-    counts.deleted++;
-  });
+  // Delete Google events no longer in Physoom — but only inside the active
+  // window (past events beyond the window are frozen, never deleted). Guard:
+  // if Physoom returned nothing yet Google has many tagged events, treat it as
+  // a suspicious/empty query and skip deletes entirely (avoids mass-wipe).
+  const cutoff = windowStart();
+  const stale = [...existing].filter(
+    ([pid, info]) => !seen.has(pid) && (!info.start || new Date(info.start) >= cutoff)
+  );
+  const suspicious = evs.length === 0 && existing.size >= 3;
+  if (!suspicious) {
+    await runPool(stale, async ([, info]) => {
+      await cal.events.delete({ calendarId, eventId: info.gid });
+      counts.deleted++;
+    });
+  }
 
-  return { ...counts, total: evs.length };
+  return { ...counts, total: evs.length, ...(suspicious ? { guarded: true } : {}) };
 }
 
 /**
- * Sync a set of emails to Google AFTER the response is sent. Uses Next's
- * post-response hook so the work runs to completion on Vercel serverless
- * (a bare fire-and-forget gets killed when the handler returns). Falls back to
- * inline best-effort if the hook isn't available.
+ * Push ONE event into every connected participant's Physoom calendar
+ * (insert or patch). Cheap + awaited → reliable on serverless without any
+ * post-response hook. Used for meetings/events, which sync immediately.
+ * If the event isn't syncable anymore (rejected/cancelled), it's removed.
  */
-export function syncEmailsInBackground(emails) {
-  const uniq = [...new Set((emails || []).filter(Boolean))];
-  if (!uniq.length) return;
-  const run = async () => {
-    for (const email of uniq) {
+export async function pushEventToGoogle(eventOrId) {
+  if (!isGoogleConfigured()) return;
+  await connectToDb();
+  const ev =
+    eventOrId && eventOrId.start
+      ? eventOrId
+      : await CalendarEvent.findById(eventOrId?._id || eventOrId).populate("course room").lean();
+  if (!ev) return;
+  const pid = String(ev._id);
+  const emails = eventParticipants(ev);
+  const syncable = ev.status === "approved" && !ev.isCancelled && !["holiday", "term"].includes(ev.type);
+  if (!syncable) return removeEventFromGoogle(pid, emails);
+
+  const users = await User.find(
+    { email: { $in: emails }, "google.refreshToken": { $exists: true } },
+    "email google"
+  ).lean();
+  const body = toGoogleEvent(ev);
+  await Promise.all(
+    users.map(async (u) => {
       try {
-        await syncUserToGoogle(email);
+        const cal = calFor(u.google.refreshToken);
+        const cid = u.google.calendarId;
+        const found = await cal.events.list({
+          calendarId: cid,
+          privateExtendedProperty: [`physoomId=${pid}`],
+          maxResults: 1,
+        });
+        const gid = found.data.items?.[0]?.id;
+        if (gid) await cal.events.patch({ calendarId: cid, eventId: gid, requestBody: body });
+        else await cal.events.insert({ calendarId: cid, requestBody: body });
       } catch (e) {
-        console.error("bg sync failed:", email, e?.message);
+        console.error("pushEvent failed for", u.email, e?.message);
       }
-    }
-  };
-  try {
-    after(run);
-  } catch {
-    // after() unavailable outside a request scope — best effort.
-    run();
-  }
+    })
+  );
+}
+
+/** Remove ONE event (by Physoom id) from the given participants' calendars. */
+export async function removeEventFromGoogle(physoomId, emails) {
+  if (!isGoogleConfigured() || !physoomId) return;
+  await connectToDb();
+  const pid = String(physoomId);
+  const list = [...new Set((emails || []).filter(Boolean))];
+  if (!list.length) return;
+  const users = await User.find(
+    { email: { $in: list }, "google.refreshToken": { $exists: true } },
+    "email google"
+  ).lean();
+  await Promise.all(
+    users.map(async (u) => {
+      try {
+        const cal = calFor(u.google.refreshToken);
+        const cid = u.google.calendarId;
+        const found = await cal.events.list({
+          calendarId: cid,
+          privateExtendedProperty: [`physoomId=${pid}`],
+          maxResults: 5,
+        });
+        for (const it of found.data.items || []) {
+          await cal.events.delete({ calendarId: cid, eventId: it.id });
+        }
+      } catch (e) {
+        console.error("removeEvent failed for", u.email, e?.message);
+      }
+    })
+  );
 }

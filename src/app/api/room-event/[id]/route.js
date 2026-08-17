@@ -1,12 +1,17 @@
-"use server";
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
 import Room from "@/models/room";
 import { auth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
-import { syncEmailsInBackground } from "@/lib/googleCalendar";
+import { pushEventToGoogle, removeEventFromGoogle } from "@/lib/googleCalendar";
 import moment from "moment";
+
+// Immediate, awaited event sync may hit the Google API for several participants.
+export const maxDuration = 60;
+
+// Every participant an event could touch (for cleanup across old + new members).
+const partsOf = (e) => [...(e?.teacher_email ?? []), ...(e?.host ?? []), ...(e?.attendees ?? [])];
 
 async function checkAuthorized(session, eventId) {
   if (!session?.user) return { authorized: false, isPrivileged: false, event: null };
@@ -92,11 +97,15 @@ export const PUT = async (request, { params }) => {
       console.error("notify(edit-invite) failed:", e);
     }
 
-    // Reflect the edit in participants' Google Calendars (old + new members).
-    syncEmailsInBackground([
-      ...(event.teacher_email ?? []), ...(event.host ?? []), ...(event.attendees ?? []),
-      ...(updated.host ?? []), ...(updated.attendees ?? []),
-    ]);
+    // Reflect the edit in participants' Google Calendars: clear the old copy
+    // everywhere (covers dropped members, room/time change, or going back to
+    // pending), then re-push to the current approved participants.
+    try {
+      await removeEventFromGoogle(id, partsOf(event));
+      await pushEventToGoogle(updated.toObject());
+    } catch (e) {
+      console.error("gcal push (edit) failed:", e?.message);
+    }
 
     return NextResponse.json({ success: true, event: updated });
   } catch (err) {
@@ -202,16 +211,27 @@ export const PATCH = async (request, { params }) => {
               event: l._id,
             });
           }
-          // Losers were removed from the free slot — refresh their Google too.
-          syncEmailsInBackground(losers.flatMap((l) => [...(l.teacher_email ?? []), ...(l.host ?? []), ...(l.attendees ?? [])]));
+          // Losers were rejected — make sure they're not on anyone's Google.
+          for (const l of losers) {
+            try {
+              await removeEventFromGoogle(l._id, partsOf(l));
+            } catch (e) {
+              console.error("gcal remove (loser) failed:", e?.message);
+            }
+          }
         }
       } catch (e) {
         console.error("auto-reject conflicting pendings failed:", e);
       }
     }
 
-    // Approve → event appears; reject → it disappears. Sync participants either way.
-    syncEmailsInBackground([...(updated.teacher_email ?? []), ...(updated.host ?? []), ...(updated.attendees ?? [])]);
+    // Approve → push it to participants' Google; reject → remove it.
+    try {
+      if (status === "approved") await pushEventToGoogle(updated.toObject());
+      else await removeEventFromGoogle(updated._id, partsOf(updated));
+    } catch (e) {
+      console.error("gcal push (decision) failed:", e?.message);
+    }
 
     return NextResponse.json({ success: true, event: updated }, { status: 200 });
   } catch (err) {
@@ -254,7 +274,11 @@ export const DELETE = async (request, { params }) => {
     }
 
     // Remove it from participants' Google Calendars.
-    syncEmailsInBackground([...(event.teacher_email ?? []), ...(event.host ?? []), ...(event.attendees ?? [])]);
+    try {
+      await removeEventFromGoogle(id, partsOf(event));
+    } catch (e) {
+      console.error("gcal remove (delete) failed:", e?.message);
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

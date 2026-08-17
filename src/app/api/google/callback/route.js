@@ -1,7 +1,6 @@
-"use server";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { connectGoogle, syncEmailsInBackground } from "@/lib/googleCalendar";
+import { connectGoogle, syncUserToGoogle } from "@/lib/googleCalendar";
 
 export const maxDuration = 60;
 
@@ -20,8 +19,8 @@ export const GET = async (request) => {
   }
   try {
     await connectGoogle(code, email);
-    // Initial sync runs after the redirect (via next/after) so it completes.
-    syncEmailsInBackground([email]);
+    // Initial full sync, awaited so the schedule appears right after connect.
+    await syncUserToGoogle(email);
     return back("/booking?gcal=connected");
   } catch (e) {
     console.error("google connect failed:", e?.message);

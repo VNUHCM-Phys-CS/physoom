@@ -12,7 +12,6 @@ import moment from "moment";
 import { defaultGridLT, defaultGridNVC } from "@/lib/ulti";
 import { getOccurrences } from "@/lib/occurrences";
 import { canManageClasses } from "@/lib/scope";
-import { syncEmailsInBackground } from "@/lib/googleCalendar";
 
 /**
  * Convert a JS Date to minutes from midnight
@@ -367,8 +366,11 @@ export const POST = async (request) => {
     }
 
     revalidateTag("booking");
-    // Push the (re)scheduled class into the teachers' linked Google calendars.
-    syncEmailsInBackground([...new Set(data.flatMap((d) => d.teacher_email || []))]);
+    // NOTE: class schedules are intentionally NOT auto-synced to Google here —
+    // while the department is scheduling a term, edits churn constantly. Classes
+    // reach Google only on an explicit teacher "Đồng bộ ngay" (or connect), so a
+    // published, stable timetable is what lands in their calendar. Events/meetings
+    // still sync immediately (see room-event routes).
     return NextResponse.json(
       { success: true, created: allCreated, conflicts: allConflicts },
       { status: 201 }

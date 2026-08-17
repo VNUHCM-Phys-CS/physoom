@@ -1,4 +1,3 @@
-"use server";
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import CalendarEvent from "@/models/calendarEvent";
@@ -6,8 +5,12 @@ import Room from "@/models/room";
 import User from "@/models/user";
 import { auth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
-import { syncEmailsInBackground } from "@/lib/googleCalendar";
+import { pushEventToGoogle } from "@/lib/googleCalendar";
 import moment from "moment";
+
+// Immediate event sync can hit the Google API for several participants — allow
+// a little more time than the default so the awaited push completes reliably.
+export const maxDuration = 60;
 
 export const GET = async (request) => {
   try {
@@ -200,9 +203,14 @@ export const POST = async (request) => {
     }
 
     // If the event is already approved, push it to the participants' linked
-    // Google Calendars right away (no-op for anyone not connected).
+    // Google Calendars right away (awaited, single-event → reliable; no-op for
+    // anyone not connected). Events sync immediately, unlike class schedules.
     if (autoApprove) {
-      syncEmailsInBackground([session.user.email, ...(newEvent.host ?? []), ...(newEvent.attendees ?? [])]);
+      try {
+        await pushEventToGoogle(newEvent.toObject());
+      } catch (e) {
+        console.error("gcal push (create) failed:", e?.message);
+      }
     }
 
     return NextResponse.json({ success: true, event: newEvent }, { status: 201 });
