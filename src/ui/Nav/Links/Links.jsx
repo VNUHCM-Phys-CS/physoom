@@ -33,7 +33,9 @@ const Links = ({ session }) => {
     user && { title: t("nav.booking"), path: "/booking" },
     { title: t("nav.roomSchedule"), path: "/view/room" },
     user?.isAdmin && { title: t("nav.adminDashboard"), path: "/admin" },
-    user && !user.isAdmin && { title: t("nav.roomManager"), path: "/room-manager" },
+    // Only actual room managers (email listed in a room's managers) — not every
+    // ordinary lecturer. Admins use the Admin dashboard instead.
+    user && !user.isAdmin && user.isRoomManager && { title: t("nav.roomManager"), path: "/room-manager" },
     { title: t("nav.about"), path: "/about" },
   ].filter(Boolean);
 

@@ -1,91 +1,101 @@
-# 🎬 Physoom — Kịch bản video hướng dẫn Giảng viên
+# 🎬 Physoom — Kịch bản quay video hướng dẫn Giảng viên (bản cập nhật)
 
-**Thời lượng:** ~2,5–3 phút
-**Tài khoản demo:** Thầy Huỳnh Văn Tuấn
-**Kiểu dựng:** screen recording + zoom/callout + voice-over. Mỗi thao tác **2–4 giây**, không click chậm từng bước.
-**3 lane:** 🎥 Hình/Thao tác · 🎙️ Voice-over · 📝 Chữ trên màn hình
+**Thời lượng:** ~2,5–3 phút · **Tài khoản demo:** Thầy Huỳnh Văn Tuấn
+**Xưng hô:** gọi người xem là **Thầy Cô**.
+**Cách quay:** Phần mềm quay màn hình thật (OBS Studio / ShareX / `Win + G`) → con trỏ của Thầy Cô, không có overlay tự động. Mỗi thao tác **2–4 giây**, dựng theo kiểu *screen recording + zoom/callout + voice-over*.
+**3 lane:** 🎥 Thao tác (làm theo để quay) · 🎙️ Voice-over · 📝 Chữ trên màn hình
+
+> ✅ Kịch bản khớp **giao diện hiện tại**: menu **Thời khóa biểu**, ô **Học kỳ – Tất cả**, **tự nhảy tới ngày bắt đầu**, **Thêm vào lịch** (Google/Apple/Outlook), sự kiện có **mã lớp**, trang **Lịch phòng** dùng **MSCB**.
 
 ---
 
 ## Phần 1 — Kịch bản quay/dựng (đầy đủ)
 
 ### 0:00 — Đăng nhập
-- 🎥 Google Login → chọn tài khoản → vào Thời khóa biểu.
-- 🎙️ "Đăng nhập bằng Google để vào ngay Thời khóa biểu của mình."
+- 🎥 Bấm **Đăng nhập với Google** → chọn tài khoản → vào ngay **Thời khóa biểu**.
+- 🎙️ "Thầy Cô đăng nhập bằng Google để vào ngay Thời khóa biểu của mình."
+- 📝 *(che/không quay danh sách email khi chọn tài khoản)*
 
 ### 0:15 — Xem lịch cá nhân
-- 🎥 Bấm **Tuần → Tháng → Ngày → Lịch biểu**; lướt **Trước / Sau / Hôm nay**.
-- 🎙️ "Xem lịch theo Tuần, Tháng, Ngày hoặc Lịch biểu. Dùng *Trước*, *Sau* và *Hôm nay* để di chuyển nhanh."
-- 🎥 Zoom/callout vào **một buổi học** → hộp chi tiết.
-- 🎙️ "Bấm vào một buổi học để xem môn, mã lớp, phòng và thời gian."
-- 🎥 Bấm **Thêm vào lịch** → highlight **Google / Apple / Outlook**.
-- 🎙️ "Bấm *Thêm vào lịch* và chọn ứng dụng lịch bạn đang sử dụng để lịch được đồng bộ với ứng dụng đó."
-- 📝 *(chữ nhỏ, giữ ~3s)* **Google Calendar** có thể hiển thị URL làm tên lịch — có thể đổi tên trong **Settings** nếu cần.
-- 📝 *(full-width, giữ ~2s, KHÔNG voice)* ⚠️ **Lưu ý:** Một số phòng tại **Linh Trung** hiện chưa được xếp lịch. Khi có cập nhật, Physoom sẽ thông báo.
+- 🎥 Chỉ vào lịch đã **tự mở đúng tuần có lớp sắp tới** (công tắc **Tự nhảy tới ngày bắt đầu** đang bật).
+- 🎙️ "Vào là Thầy Cô thấy ngay tuần học sắp tới — hệ thống tự nhảy tới đúng ngày có lịch."
+- 🎥 Bấm **Tuần → Tháng → Ngày → Lịch biểu**; dùng **Trước / Sau / Hôm nay**.
+- 🎙️ "Thầy Cô xem theo Tuần, Tháng, Ngày hoặc Lịch biểu; dùng Trước, Sau và Hôm nay để di chuyển nhanh."
+- 🎥 Chỉ ô **Học kỳ – Tất cả** ở cột trái.
+- 🎙️ "Mặc định hiển thị toàn bộ lớp Thầy Cô dạy. Muốn xem riêng một học kỳ, Thầy Cô chọn ở ô Học kỳ."
+- 🎥 Zoom/callout vào **một buổi học** → hộp chi tiết (môn · **mã lớp** · phòng · giờ · giảng viên · trạng thái).
+- 🎙️ "Thầy Cô bấm vào một buổi để xem chi tiết: môn, mã lớp, phòng, thời gian và giảng viên."
 
-### 1:15 — Đặt phòng sự kiện
-- 🎥 Tab **Đặt phòng sự kiện** → chọn **phòng** → **ngày/giờ** → **nội dung** → **Gửi**.
-- 🎙️ "Để đặt phòng, chọn phòng, thời gian, nhập nội dung và gửi yêu cầu."
-- 🎥 **Sự kiện của tôi** → callout nhãn **Chờ duyệt**.
-- 🎙️ "Sau khi gửi, yêu cầu ở trạng thái *Chờ duyệt*. Bạn theo dõi tại *Sự kiện của tôi*."
-- 🎥 Chuông thông báo sáng → nhãn đổi **Đã duyệt** → sự kiện xuất hiện trên lịch cá nhân.
-- 🎙️ "Khi được duyệt, Physoom sẽ thông báo và sự kiện tự động được thêm vào lịch cá nhân."
+### 0:55 — Thêm vào lịch cá nhân
+- 🎥 Bấm **Thêm vào lịch** → hiện menu **Google / Apple / Outlook (cơ quan / cá nhân) / Tải .ics**.
+- 🎙️ "Thầy Cô bấm Thêm vào lịch và chọn ứng dụng lịch mình đang dùng, để lịch được đồng bộ với ứng dụng đó."
+- 📝 *(chữ nhỏ, ~3s)* **Google Calendar** có thể hiển thị URL làm tên lịch — đổi tên trong **Settings** nếu cần. **Apple/Outlook** hiện tên đúng sẵn.
+- 📝 *(full-width, ~2s, KHÔNG voice)* ⚠️ **Lưu ý:** Một số phòng tại **Linh Trung** hiện chưa được xếp lịch. Khi có cập nhật, Physoom sẽ thông báo.
 
-### 2:05 — Xem lịch phòng
-- 🎥 Menu **Lịch phòng** → chọn **phòng**.
-- 🎙️ "Muốn kiểm tra phòng trống, vào *Lịch phòng* và chọn phòng cần xem."
-- 🎥 Zoom nhẹ vào các khoảng trống trên lưới.
-- 🎙️ "Tại đây bạn xem được toàn bộ lịch sử dụng của phòng."
+### 1:25 — Đặt phòng sự kiện
+- 🎥 Bấm tab **Đặt phòng sự kiện** → chọn **phòng** → chọn **ngày/giờ** → nhập **nội dung** → **Gửi yêu cầu**.
+- 🎙️ "Khi cần mượn phòng cho sự kiện, Thầy Cô chọn phòng, thời gian, nhập nội dung rồi gửi yêu cầu."
+- 🎥 Mở tab **Sự kiện của tôi** (cột trái) → callout nhãn **Chờ duyệt**; chỉ ô lọc/tìm.
+- 🎙️ "Sau khi gửi, yêu cầu ở trạng thái Chờ duyệt — Thầy Cô theo dõi tại Sự kiện của tôi, có lọc và tìm kiếm."
+- 🎥 Chỉ **chuông thông báo** → nhãn đổi **Đã duyệt** → sự kiện xuất hiện trên lịch cá nhân.
+- 🎙️ "Khi được duyệt, Physoom sẽ thông báo và sự kiện tự động được thêm vào lịch cá nhân của Thầy Cô."
+
+### 2:05 — Xem lịch một phòng bất kỳ
+- 🎥 Bấm menu **Lịch phòng** → nhập **MSCB** → **Xác nhận** → lịch phòng hiện ra.
+- 🎙️ "Muốn kiểm tra phòng trống, Thầy Cô vào Lịch phòng, nhập mã cán bộ để xem toàn bộ lịch sử dụng của phòng."
+- 🎥 Đổi Tuần/Ngày, bấm một buổi để xem ai đang dùng.
+- 🎙️ "Thầy Cô xem được phòng đang bận hay trống theo từng khung giờ."
 
 ### 2:35 — Kết
-- 🎥 Ghép nhanh 4 khung: **Lịch cá nhân → Đồng bộ → Đặt phòng → Lịch phòng**.
-- 🎙️ "Vậy là bạn đã có thể xem lịch, đồng bộ với ứng dụng lịch, đặt phòng và kiểm tra lịch sử dụng phòng trên Physoom."
-- 🎙️ "Cần xem lại hướng dẫn? Bấm **Hướng dẫn trang này** ngay trên Physoom."
+- 🎥 Ghép nhanh 4 khung: **Lịch cá nhân → Đồng bộ → Đặt phòng → Lịch phòng**; chỉ nút **Hướng dẫn trang này**.
+- 🎙️ "Vậy là quý Thầy Cô đã có thể xem lịch, đồng bộ với ứng dụng lịch, đặt phòng và kiểm tra lịch sử dụng phòng trên Physoom."
+- 🎙️ "Khi cần xem lại, Thầy Cô bấm Hướng dẫn trang này ngay trên Physoom."
 
 ---
 
-## Phần 2 — Kịch bản lồng tiếng (voice-over, đọc liền một lần)
+## Phần 2 — Kịch bản lồng tiếng (đọc liền một lần)
 
-> Đọc thong thả, giọng thân thiện. `[…]` là ghi chú nhịp, **không đọc**. Chữ trên màn hình (Google/Linh Trung) **không lồng tiếng**.
+> Đọc thong thả, trang trọng, thân thiện. `[…]` là ghi chú nhịp, **không đọc**. Chữ màn hình (Google/Linh Trung) **không lồng tiếng**.
 
-**[Mở — Đăng nhập]**
-Đăng nhập bằng Google để vào ngay Thời khóa biểu của mình.
+**[Đăng nhập]**
+Thầy Cô đăng nhập bằng Google để vào ngay Thời khóa biểu của mình.
 
-`[chuyển cảnh — lịch cá nhân]`
+`[lịch cá nhân]`
+Vào là Thầy Cô thấy ngay tuần học sắp tới — hệ thống tự nhảy tới đúng ngày có lịch.
 
-Xem lịch theo Tuần, Tháng, Ngày hoặc Lịch biểu. Dùng Trước, Sau và Hôm nay để di chuyển nhanh.
+Thầy Cô xem theo Tuần, Tháng, Ngày hoặc Lịch biểu; dùng Trước, Sau và Hôm nay để di chuyển nhanh.
 
-Bấm vào một buổi học để xem môn, mã lớp, phòng và thời gian.
+Mặc định hiển thị toàn bộ lớp Thầy Cô dạy. Muốn xem riêng một học kỳ, Thầy Cô chọn ở ô Học kỳ.
 
-Bấm Thêm vào lịch và chọn ứng dụng lịch bạn đang sử dụng để lịch được đồng bộ với ứng dụng đó.
+Thầy Cô bấm vào một buổi để xem chi tiết: môn, mã lớp, phòng, thời gian và giảng viên.
 
-`[giữ 2–3s cho chữ Lưu ý Linh Trung xuất hiện — im lặng]`
+`[thêm vào lịch]`
+Thầy Cô bấm Thêm vào lịch và chọn ứng dụng lịch mình đang dùng, để lịch được đồng bộ với ứng dụng đó.
 
-`[chuyển cảnh — đặt phòng]`
+`[giữ 2–3s cho chữ Lưu ý Linh Trung — im lặng]`
 
-Để đặt phòng, chọn phòng, thời gian, nhập nội dung và gửi yêu cầu.
+`[đặt phòng]`
+Khi cần mượn phòng cho sự kiện, Thầy Cô chọn phòng, thời gian, nhập nội dung rồi gửi yêu cầu.
 
-Sau khi gửi, yêu cầu ở trạng thái Chờ duyệt. Bạn theo dõi tại Sự kiện của tôi.
+Sau khi gửi, yêu cầu ở trạng thái Chờ duyệt — Thầy Cô theo dõi tại Sự kiện của tôi, có lọc và tìm kiếm.
 
-Khi được duyệt, Physoom sẽ thông báo và sự kiện tự động được thêm vào lịch cá nhân.
+Khi được duyệt, Physoom sẽ thông báo và sự kiện tự động được thêm vào lịch cá nhân của Thầy Cô.
 
-`[chuyển cảnh — lịch phòng]`
+`[lịch phòng]`
+Muốn kiểm tra phòng trống, Thầy Cô vào Lịch phòng, nhập mã cán bộ để xem toàn bộ lịch sử dụng của phòng.
 
-Muốn kiểm tra phòng trống, vào Lịch phòng và chọn phòng cần xem.
+Thầy Cô xem được phòng đang bận hay trống theo từng khung giờ.
 
-Tại đây bạn xem được toàn bộ lịch sử dụng của phòng.
+`[kết]`
+Vậy là quý Thầy Cô đã có thể xem lịch, đồng bộ với ứng dụng lịch, đặt phòng và kiểm tra lịch sử dụng phòng trên Physoom.
 
-`[chuyển cảnh — kết, ghép 4 khung]`
-
-Vậy là bạn đã có thể xem lịch, đồng bộ với ứng dụng lịch, đặt phòng và kiểm tra lịch sử dụng phòng trên Physoom.
-
-Cần xem lại hướng dẫn? Bấm Hướng dẫn trang này ngay trên Physoom.
+Khi cần xem lại, Thầy Cô bấm Hướng dẫn trang này ngay trên Physoom.
 
 ---
 
 ## Ghi chú sản xuất
-- **Không** quay bước gõ mật khẩu — chỉ cảnh chọn tài khoản Google.
-- **Làm mờ email** người khác nếu lộ trong lịch phòng.
-- Nhạc nền nhẹ; **phụ đề** khớp từng bước; nhịp cắt đều 2–4s.
+- Quay bằng **OBS/ShareX/Win+G** để có con trỏ thật, không overlay tự động.
+- **Không** quay bước gõ mật khẩu; che **email/MSCB** nhạy cảm nếu lộ.
+- Nhịp cắt đều **2–4s**; thêm zoom/callout ở các bước bấm nút; phụ đề khớp từng bước.
 - Nút giao diện có **song ngữ Việt/Anh** nếu cần bản tiếng Anh.
-- Tổng ~11 câu voice-over → đọc thong thả vẫn gọn trong ~2,5–3 phút.
+- Giọng đọc ≈ 12 câu → thong thả vẫn gọn trong ~2,5–3 phút.
