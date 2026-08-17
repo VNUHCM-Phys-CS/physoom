@@ -845,8 +845,34 @@ export default function BookingSingle({ email }) {
           align: "start",
           title: L("Mẹo ở Lịch cá nhân", "Tip: Personal schedule"),
           description: L(
-            'Bật "Tự nhảy tới ngày bắt đầu" để nhảy tới buổi đầu của môn đang chọn; "Chế độ gọn" để xem dạng danh sách; nút Xuất .ics để đưa lịch vào Google/Outlook.',
-            'Toggle auto-jump to jump to the selected course\'s first session; compact mode for a list view; Export .ics to add your schedule to Google/Outlook.'
+            'Bật "Tự nhảy tới ngày bắt đầu" để nhảy tới buổi đầu của môn đang chọn; "Chế độ gọn" để xem dạng danh sách.',
+            'Toggle auto-jump to jump to the selected course\'s first session; compact mode for a list view.'
+          ),
+        },
+      },
+      {
+        element: '[data-tour="gcal-sync"]',
+        onHighlightStarted: () => setMainTab("personal"),
+        popover: {
+          side: "bottom",
+          align: "end",
+          title: L("Đồng bộ Google Calendar", "Sync to Google Calendar"),
+          description: L(
+            'Kết nối một lần để đẩy thời khoá biểu sang lịch "Physoom" trên Google — tự cập nhật và nhắc trên điện thoại. Khi đã kết nối, bấm "Đồng bộ ngay" để cập nhật thủ công.',
+            'Connect once to push your timetable to a dedicated "Physoom" Google calendar — it stays updated and reminds you on your phone. Once connected, use "Sync now" to refresh manually.'
+          ),
+        },
+      },
+      {
+        element: '[data-tour="cal-export"]',
+        onHighlightStarted: () => setMainTab("personal"),
+        popover: {
+          side: "bottom",
+          align: "end",
+          title: L("Lưu / Thêm vào lịch", "Save / Add to calendar"),
+          description: L(
+            "Thêm nhanh vào Google/Apple/Outlook, hoặc tải file .ics để nhập vào ứng dụng lịch bất kỳ.",
+            "Quick-add to Google/Apple/Outlook, or download an .ics file to import into any calendar app."
           ),
         },
       },
@@ -1078,8 +1104,8 @@ export default function BookingSingle({ email }) {
                   <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <GoogleCalendarButton />
-                  <ExportIcsButton email={email} />
+                  <span data-tour="gcal-sync" className="inline-flex"><GoogleCalendarButton /></span>
+                  <span data-tour="cal-export" className="inline-flex"><ExportIcsButton email={email} /></span>
                 </div>
               </div>
               {compactMode ? (
