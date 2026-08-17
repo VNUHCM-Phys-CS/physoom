@@ -28,6 +28,7 @@
       "formidable": "^3.5.2",
       "framer-motion": "^11.3.24",
       "fs": "^0.0.1-security",
+      "googleapis": "^174.0.1",
       "ics": "^3.9.0",
       "lodash": "^4.17.21",
       "lucide-react": "^0.469.0",

@@ -5,6 +5,7 @@ import CalendarEvent from "@/models/calendarEvent";
 import Room from "@/models/room";
 import { auth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
+import { syncEmailsInBackground } from "@/lib/googleCalendar";
 import moment from "moment";
 
 async function checkAuthorized(session, eventId) {
@@ -90,6 +91,12 @@ export const PUT = async (request, { params }) => {
     } catch (e) {
       console.error("notify(edit-invite) failed:", e);
     }
+
+    // Reflect the edit in participants' Google Calendars (old + new members).
+    syncEmailsInBackground([
+      ...(event.teacher_email ?? []), ...(event.host ?? []), ...(event.attendees ?? []),
+      ...(updated.host ?? []), ...(updated.attendees ?? []),
+    ]);
 
     return NextResponse.json({ success: true, event: updated });
   } catch (err) {
@@ -195,11 +202,16 @@ export const PATCH = async (request, { params }) => {
               event: l._id,
             });
           }
+          // Losers were removed from the free slot — refresh their Google too.
+          syncEmailsInBackground(losers.flatMap((l) => [...(l.teacher_email ?? []), ...(l.host ?? []), ...(l.attendees ?? [])]));
         }
       } catch (e) {
         console.error("auto-reject conflicting pendings failed:", e);
       }
     }
+
+    // Approve → event appears; reject → it disappears. Sync participants either way.
+    syncEmailsInBackground([...(updated.teacher_email ?? []), ...(updated.host ?? []), ...(updated.attendees ?? [])]);
 
     return NextResponse.json({ success: true, event: updated }, { status: 200 });
   } catch (err) {
@@ -240,6 +252,9 @@ export const DELETE = async (request, { params }) => {
     } catch (e) {
       console.error("notify(delete) failed:", e);
     }
+
+    // Remove it from participants' Google Calendars.
+    syncEmailsInBackground([...(event.teacher_email ?? []), ...(event.host ?? []), ...(event.attendees ?? [])]);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

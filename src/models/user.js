@@ -38,6 +38,13 @@ const userSchema = new Schema({
   degree: {
     type: String, // học vị (VD: GS, PGS, TS, ThS, CN)
   },
+  // Google Calendar link (OAuth). refreshToken lets Physoom push the user's
+  // schedule into a dedicated "Physoom" calendar in their Google account.
+  google: {
+    refreshToken: { type: String },
+    calendarId: { type: String },
+    connectedAt: { type: Date },
+  },
 });
 userSchema.index({ email: 1 }, { unique: true });
 

@@ -6,6 +6,7 @@ import Room from "@/models/room";
 import User from "@/models/user";
 import { auth } from "@/lib/auth";
 import { notify } from "@/lib/notify";
+import { syncEmailsInBackground } from "@/lib/googleCalendar";
 import moment from "moment";
 
 export const GET = async (request) => {
@@ -196,6 +197,12 @@ export const POST = async (request) => {
       } catch (e) {
         console.error("notify(create) failed:", e);
       }
+    }
+
+    // If the event is already approved, push it to the participants' linked
+    // Google Calendars right away (no-op for anyone not connected).
+    if (autoApprove) {
+      syncEmailsInBackground([session.user.email, ...(newEvent.host ?? []), ...(newEvent.attendees ?? [])]);
     }
 
     return NextResponse.json({ success: true, event: newEvent }, { status: 201 });

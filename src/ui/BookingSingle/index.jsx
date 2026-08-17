@@ -13,6 +13,7 @@ import CourseList from "../CourseList";
 import { useConfirm } from "../ConfirmDialog";
 import { useI18n } from "@/i18n/I18nProvider";
 import ExportIcsButton from "../ExportIcsButton";
+import GoogleCalendarButton from "../GoogleCalendarButton";
 import { toast } from "react-toastify";
 import Card from "../Card";
 import _ from "lodash";
@@ -417,6 +418,13 @@ export default function BookingSingle({ email }) {
   const [mainTab, setMainTab] = useState(() => searchParams.get("tab") || "personal");
   const [eventRoomId, setEventRoomId] = useState(() => searchParams.get("room") || null);
   const initialCourseId = useRef(searchParams.get("course") || null);
+
+  // Toast the Google-Calendar OAuth result (redirected back with ?gcal=…).
+  useEffect(() => {
+    const g = searchParams.get("gcal");
+    if (g === "connected") toast.success(t("gcal.synced"));
+    else if (g === "error") toast.error(t("gcal.syncFailed"));
+  }, [searchParams, t]);
 
   // Sidebar tab + event selection (shared with EventBookingTab)
   const [sidebarTab, setSidebarTab] = useState("courses");
@@ -1057,7 +1065,10 @@ export default function BookingSingle({ email }) {
                   <Switch size="sm" isSelected={autoJump} onValueChange={toggleAutoJump}>{t("booking.autoJump")}</Switch>
                   <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
                 </div>
-                <ExportIcsButton email={email} />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <GoogleCalendarButton />
+                  <ExportIcsButton email={email} />
+                </div>
               </div>
               {compactMode ? (
                 <CompactSchedule
