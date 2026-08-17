@@ -12,7 +12,11 @@ import { connectToDb } from "@/lib/mongodb";
 
 const CLIENT_ID = process.env.NEXT_GOOGLE_ID;
 const CLIENT_SECRET = process.env.NEXT_GOOGLE_SECRET;
-const SCOPES = ["https://www.googleapis.com/auth/calendar.events", "https://www.googleapis.com/auth/calendar"];
+// Least-privilege scope: Physoom can create AND manage events on ONLY the
+// secondary calendars IT creates (the dedicated "Physoom" calendar). It cannot
+// see, edit, or delete any of the user's other calendars — so the consent screen
+// no longer shows the alarming "manage all your calendars" wording.
+const SCOPES = ["https://www.googleapis.com/auth/calendar.app.created"];
 const CAL_NAME = "Physoom";
 const TAG = "physoom"; // extendedProperties.private.physoomSource
 
