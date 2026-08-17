@@ -14,6 +14,7 @@ import { useConfirm } from "../ConfirmDialog";
 import { useI18n } from "@/i18n/I18nProvider";
 import ExportIcsButton from "../ExportIcsButton";
 import GoogleCalendarButton from "../GoogleCalendarButton";
+import GoogleCalendarBanner from "../GoogleCalendarBanner";
 import { toast } from "react-toastify";
 import Card from "../Card";
 import _ from "lodash";
@@ -1017,6 +1018,10 @@ export default function BookingSingle({ email }) {
   if (email)
     return (
       <>
+      {/* Soft, dismissible reminder to link Google Calendar (hidden once connected) */}
+      <div className="pt-2">
+        <GoogleCalendarBanner />
+      </div>
       {/* Page toolbar: a guide button specific to this Timetable page */}
       <div className="flex items-center justify-end px-2 pt-1">
         <GuideTour
