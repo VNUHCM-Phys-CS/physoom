@@ -22,7 +22,11 @@ export default function UserCalendarProvider({children, email}) {
           },
         ],
         fetcheroptions,
-        { tags: ["booking"], revalidate: 60 }
+        // Poll in the background so a status/color change made elsewhere (e.g. an
+        // admin approving a room request) shows up without a manual refresh. SWR
+        // pauses this while the tab is hidden, so it's cheap. (The old tags/
+        // revalidate keys weren't valid SWR options and did nothing.)
+        { refreshInterval: 15000 }
       );
 
     return <UserCalendarContext.Provider value={{ userEvents:_events, mutateUserEvent }}>

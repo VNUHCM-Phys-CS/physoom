@@ -85,7 +85,9 @@ export default function CalendarByRoom({
       },
     ],
     fetcheroptions,
-    { tags: ["booking"], revalidate: 60 }
+    // Poll so room occupancy/colour reflects approvals made elsewhere without a
+    // manual refresh (SWR pauses while the tab is hidden).
+    { refreshInterval: 15000 }
   );
   const [gridObject, setGridObject] = useState(defaultGridNVC);
   const events = useMemo(() => {

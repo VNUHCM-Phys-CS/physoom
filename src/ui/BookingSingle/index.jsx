@@ -286,7 +286,10 @@ function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick,
   const selectedRoom = useMemo(() => accessibleRooms.find((r) => String(r._id) === roomFilter) ?? null, [accessibleRooms, roomFilter]);
 
   const { data: roomEvents, mutate: mutateRoomEvents } = useSWR(
-    roomFilter ? `/api/room-event?room=${roomFilter}` : null, fetcher, { revalidateOnFocus: false }
+    roomFilter ? `/api/room-event?room=${roomFilter}` : null, fetcher,
+    // Poll so an approval/rejection (status → color change) elsewhere reflects
+    // here without a manual refresh. SWR pauses polling while the tab is hidden.
+    { revalidateOnFocus: false, refreshInterval: 15000 }
   );
   const { data: classEvents } = useSWR(
     roomFilter ? `/api/calendar-events?type=class&rooms=${roomFilter}` : null, fetcher, { revalidateOnFocus: false }
@@ -549,7 +552,8 @@ export default function BookingSingle({ email }) {
   const { data: myEvents, mutate: mutateMyEvents } = useSWR(
     email ? "/api/room-event?mine=true" : null,
     fetcher,
-    { revalidateOnFocus: false }
+    // Poll so approval status (pending → approved) updates live without refresh.
+    { revalidateOnFocus: false, refreshInterval: 15000 }
   );
 
   const { mutate: globalMutate } = useSWRConfig();
