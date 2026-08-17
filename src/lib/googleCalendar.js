@@ -148,39 +148,48 @@ export async function syncUserToGoogle(email) {
   } while (pageToken);
 
   const evs = await userEvents(email);
-  const seen = new Set();
-  let inserted = 0, updated = 0, deleted = 0;
+  const seen = new Set(evs.map((ev) => String(ev._id)));
+  const counts = { inserted: 0, updated: 0, deleted: 0 };
 
-  for (const ev of evs) {
+  // Run Google API calls with bounded concurrency so a full re-sync (dozens of
+  // sessions) doesn't run for tens of seconds and hit the serverless timeout.
+  const runPool = async (items, worker, limit = 6) => {
+    let i = 0;
+    const next = async () => {
+      while (i < items.length) {
+        const item = items[i++];
+        try {
+          await worker(item);
+        } catch (e) {
+          console.error("gcal op failed:", e?.message);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, next));
+  };
+
+  // Insert new / patch changed events.
+  await runPool(evs, async (ev) => {
     const pid = String(ev._id);
-    seen.add(pid);
     const body = toGoogleEvent(ev);
     const gid = existing.get(pid);
-    try {
-      if (gid) {
-        await cal.events.patch({ calendarId, eventId: gid, requestBody: body });
-        updated++;
-      } else {
-        await cal.events.insert({ calendarId, requestBody: body });
-        inserted++;
-      }
-    } catch (e) {
-      console.error("gcal upsert failed for", pid, e?.message);
+    if (gid) {
+      await cal.events.patch({ calendarId, eventId: gid, requestBody: body });
+      counts.updated++;
+    } else {
+      await cal.events.insert({ calendarId, requestBody: body });
+      counts.inserted++;
     }
-  }
+  });
 
   // Delete Google events that no longer exist in Physoom.
-  for (const [pid, gid] of existing) {
-    if (!seen.has(pid)) {
-      try {
-        await cal.events.delete({ calendarId, eventId: gid });
-        deleted++;
-      } catch (e) {
-        console.error("gcal delete failed for", pid, e?.message);
-      }
-    }
-  }
-  return { inserted, updated, deleted, total: evs.length };
+  const stale = [...existing].filter(([pid]) => !seen.has(pid));
+  await runPool(stale, async ([, gid]) => {
+    await cal.events.delete({ calendarId, eventId: gid });
+    counts.deleted++;
+  });
+
+  return { ...counts, total: evs.length };
 }
 
 /**

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectGoogle, syncEmailsInBackground } from "@/lib/googleCalendar";
 
+export const maxDuration = 60;
+
 // OAuth callback: exchange the code, store the refresh token, then run an initial
 // sync so the user's schedule appears immediately.
 export const GET = async (request) => {

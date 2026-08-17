@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { syncUserToGoogle } from "@/lib/googleCalendar";
 
+// A full re-sync makes many Google API calls — allow more time than the default.
+export const maxDuration = 60;
+
 // Manual "sync now" — push the current user's schedule to their Google calendar.
 export const POST = async () => {
   const session = await auth();
