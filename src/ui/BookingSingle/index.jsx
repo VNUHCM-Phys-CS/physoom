@@ -936,7 +936,7 @@ export default function BookingSingle({ email }) {
 
   const DesktopSidebar = () => (
     <div className="flex flex-col h-full">
-      <TermFilter />
+      {TermFilter()}
       <div className="flex border-b border-default-200 shrink-0">
         {[
           { key: "courses", label: `${t("booking.tabCourses")}${filteredCourses?.length ? ` (${filteredCourses.length})` : ""}` },
@@ -1045,9 +1045,16 @@ export default function BookingSingle({ email }) {
           </Button>
         </div>
 
-        {/* Desktop sidebar - tabs layout, fixed height */}
+        {/* Desktop sidebar - tabs layout, fixed height.
+            Rendered as a function call — NOT <DesktopSidebar /> — on purpose:
+            DesktopSidebar is defined inline in this render, so as a JSX element it
+            gets a fresh component type every render and React REMOUNTS the whole
+            sidebar on each state change (e.g. switching the Courses/Events tab).
+            That remount detached the guided-tour anchor (data-tour="tab-courses"),
+            making the tour popover jump to the top-left corner. Calling it inlines
+            the JSX so the nodes reconcile in place and the anchor stays put. */}
         <Card data-tour="booking-sidebar" className="hidden sm:flex sm:flex-col sm:w-1/4 !p-0 overflow-hidden" style={{ height: "640px" }}>
-          <DesktopSidebar />
+          {DesktopSidebar()}
         </Card>
 
         {/* Mobile Drawer - collapsible layout */}

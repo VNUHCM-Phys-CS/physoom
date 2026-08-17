@@ -4,6 +4,7 @@ import { Button } from "@heroui/react";
 import { PlayCircleIcon } from "lucide-react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
+import "./tour.css"; // Physoom theme overrides (must come after driver.css)
 import { useI18n } from "@/i18n/I18nProvider";
 
 // Bilingual tour content. Element-anchored steps target stable data-tour hooks
@@ -79,6 +80,11 @@ export default function GuideTour({ className, variant = "app", label, size, but
 
     driver({
       showProgress: true,
+      popoverClass: "physoom-tour",
+      overlayColor: "#000",
+      overlayOpacity: 0.55,
+      stagePadding: 6,
+      stageRadius: 10,
       nextBtnText: t("tour.next"),
       prevBtnText: t("tour.prev"),
       doneBtnText: t("tour.done"),
