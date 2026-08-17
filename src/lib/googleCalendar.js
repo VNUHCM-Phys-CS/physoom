@@ -53,14 +53,16 @@ function eventParticipants(ev) {
   ];
 }
 
-/** Consent URL — offline + consent so we always get a refresh token. */
+/** Consent URL — offline + consent so we always get a refresh token.
+ * NOT incremental: we deliberately omit include_granted_scopes so Google asks
+ * ONLY for our minimal calendar.app.created scope and never silently re-attaches
+ * broader calendar scopes a user may have granted in the past. */
 export function googleAuthUrl(state) {
   return oauthClient().generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: SCOPES,
     state,
-    include_granted_scopes: true,
   });
 }
 
