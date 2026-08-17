@@ -73,7 +73,10 @@ export async function connectGoogle(code, email) {
   if (!refreshToken) throw new Error("No refresh token returned (revoke access and retry with prompt=consent).");
   client.setCredentials(tokens);
 
-  const calendarId = await ensureCalendar(client);
+  // Reuse a previously created Physoom calendar (if still there) so reconnecting
+  // never spawns a duplicate.
+  const existing = await User.findOne({ email }, "google").lean();
+  const calendarId = await ensureCalendar(client, existing?.google?.calendarId);
   await User.updateOne(
     { email },
     { $set: { "google.refreshToken": refreshToken, "google.calendarId": calendarId, "google.connectedAt": new Date() } }
@@ -86,16 +89,54 @@ export async function disconnectGoogle(email) {
   await User.updateOne({ email }, { $unset: { google: "" } });
 }
 
-/** Find (or create) the dedicated "Physoom" secondary calendar. */
-async function ensureCalendar(authClient) {
+/** Find (or create) the dedicated "Physoom" secondary calendar, and make sure
+ * it's shown in the user's calendar list so its events appear automatically —
+ * the user never has to hunt for it and tick it on. */
+async function ensureCalendar(authClient, existingId) {
   const cal = google.calendar({ version: "v3", auth: authClient });
-  const list = await cal.calendarList.list({ maxResults: 250 });
-  const found = (list.data.items || []).find((c) => c.summary === CAL_NAME && c.accessRole === "owner");
-  if (found) return found.id;
-  const created = await cal.calendars.insert({
-    requestBody: { summary: CAL_NAME, description: "Lịch giảng dạy & sự kiện đồng bộ từ Physoom", timeZone: "Asia/Ho_Chi_Minh" },
-  });
-  return created.data.id;
+  let calendarId;
+
+  // 1) Reuse the previously created calendar if it still exists.
+  if (existingId) {
+    try {
+      await cal.calendars.get({ calendarId: existingId });
+      calendarId = existingId;
+    } catch {
+      // gone (user deleted it) — fall through to find/create
+    }
+  }
+
+  // 2) Otherwise look for an existing "Physoom" calendar we own.
+  if (!calendarId) {
+    try {
+      const list = await cal.calendarList.list({ maxResults: 250 });
+      const found = (list.data.items || []).find((c) => c.summary === CAL_NAME && c.accessRole === "owner");
+      if (found) calendarId = found.id;
+    } catch (e) {
+      console.error("calendarList.list failed:", e?.message);
+    }
+  }
+
+  // 3) Create it if we still don't have one.
+  if (!calendarId) {
+    const created = await cal.calendars.insert({
+      requestBody: { summary: CAL_NAME, description: "Lịch giảng dạy & sự kiện đồng bộ từ Physoom", timeZone: "Asia/Ho_Chi_Minh" },
+    });
+    calendarId = created.data.id;
+  }
+
+  // Force it visible + selected in the user's calendar list so events overlay on
+  // their grid right after connecting — no manual "tick the Physoom calendar".
+  try {
+    await cal.calendarList.patch({
+      calendarId,
+      requestBody: { selected: true, hidden: false },
+    });
+  } catch (e) {
+    console.error("calendarList visibility patch failed:", e?.message);
+  }
+
+  return calendarId;
 }
 
 /** Build a Google event body from a Physoom CalendarEvent. */
