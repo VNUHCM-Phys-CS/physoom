@@ -96,21 +96,21 @@ function toGoogleEvent(ev) {
   };
 }
 
-/** All approved Physoom events that belong to a user (teaching + their events). */
+/**
+ * All approved events that belong to a user — the same set their personal
+ * calendar shows (classes they teach + meetings/events they host or are invited
+ * to), minus holidays/terms. A single $or on teacher/host/attendees matches how
+ * the personal calendar fetches, so no event type is accidentally dropped.
+ */
 async function userEvents(email) {
-  const classes = await CalendarEvent.find({
-    type: "class",
-    teacher_email: email,
-    status: "approved",
-    isCancelled: { $ne: true },
-  }).populate("course room").lean();
-  const events = await CalendarEvent.find({
-    type: { $in: ["custom", "exam", "other"] },
+  return CalendarEvent.find({
+    type: { $nin: ["holiday", "term"] },
     status: "approved",
     isCancelled: { $ne: true },
     $or: [{ teacher_email: email }, { host: email }, { attendees: email }],
-  }).populate("course room").lean();
-  return [...classes, ...events];
+  })
+    .populate("course room")
+    .lean();
 }
 
 /**
