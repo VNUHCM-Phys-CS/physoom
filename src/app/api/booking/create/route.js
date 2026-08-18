@@ -1,4 +1,3 @@
-"use server";
 import { connectToDb } from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
@@ -12,6 +11,9 @@ import moment from "moment";
 import { defaultGridLT, defaultGridNVC } from "@/lib/ulti";
 import { getOccurrences } from "@/lib/occurrences";
 import { canManageClasses } from "@/lib/scope";
+
+// Scheduling an imported term inserts many series; allow more than the default.
+export const maxDuration = 60;
 
 /**
  * Convert a JS Date to minutes from midnight
@@ -210,15 +212,34 @@ export const POST = async (request) => {
       // both get approved). Rejected/cancelled events don't block.
       const BLOCKING = { $in: ['approved', 'pending'] };
 
+      // Batch conflict detection: fetch every blocking event overlapping the
+      // whole term window ONCE (3 queries), then test each occurrence in memory.
+      // Previously this ran 3 DB queries PER occurrence — dozens per course and
+      // >1000 sequential Atlas round-trips for a full import, which made the
+      // "Xếp lịch" step crawl and look frozen.
+      const winStart = occurrences.reduce((m, o) => (o.start < m ? o.start : m), occurrences[0].start);
+      const winEnd = occurrences.reduce((m, o) => (o.end > m ? o.end : m), occurrences[0].end);
+      const winOverlap = { start: { $lt: winEnd }, end: { $gt: winStart } };
+      const [roomBlocking, teacherBlocking, classBlocking] = await Promise.all([
+        CalendarEvent.find({
+          room: roomId, course: { $ne: courseId }, status: BLOCKING, isCancelled: { $ne: true }, ...winOverlap,
+        }).populate("course", "class_id title").lean(),
+        d.teacher_email?.length
+          ? CalendarEvent.find({
+              teacher_email: { $in: d.teacher_email }, course: { $ne: courseId }, status: BLOCKING, isCancelled: { $ne: true }, ...winOverlap,
+            }).populate("course", "class_id title").lean()
+          : Promise.resolve([]),
+        classConflictCourseIds.length
+          ? CalendarEvent.find({
+              course: { $in: classConflictCourseIds }, type: 'class', status: BLOCKING, isCancelled: { $ne: true }, ...winOverlap,
+            }).populate("course", "class_id title").lean()
+          : Promise.resolve([]),
+      ]);
+      // In-memory overlap test (same semantics as the old per-occurrence query).
+      const overlaps = (arr, occ) => arr.find((e) => e.start < occ.end && e.end > occ.start);
+
       for (const occ of occurrences) {
-        const roomOverlap = await CalendarEvent.findOne({
-          room: roomId,
-          course: { $ne: courseId }, // ignore the course's own events (overwrite, not conflict)
-          status: BLOCKING,
-          isCancelled: { $ne: true },
-          start: { $lt: occ.end },
-          end: { $gt: occ.start }
-        }).populate("course", "class_id title").lean();
+        const roomOverlap = overlaps(roomBlocking, occ);
 
         if (roomOverlap) {
           const dayStr = weekdayNames[roomOverlap.weekday] || `Thứ ${roomOverlap.weekday}`;
@@ -234,14 +255,7 @@ export const POST = async (request) => {
         }
 
         if (d.teacher_email?.length) {
-          const teacherOverlap = await CalendarEvent.findOne({
-            teacher_email: { $in: d.teacher_email },
-            course: { $ne: courseId }, // ignore the course's own events (overwrite, not conflict)
-            status: BLOCKING,
-            isCancelled: { $ne: true },
-            start: { $lt: occ.end },
-            end: { $gt: occ.start }
-          }).populate("course", "class_id title").lean();
+          const teacherOverlap = overlaps(teacherBlocking, occ);
 
           if (teacherOverlap) {
             const dayStr = weekdayNames[teacherOverlap.weekday] || `Thứ ${teacherOverlap.weekday}`;
@@ -264,14 +278,7 @@ export const POST = async (request) => {
         }
 
         if (classConflictCourseIds.length) {
-          const classOverlap = await CalendarEvent.findOne({
-            course: { $in: classConflictCourseIds },
-            type: 'class',
-            status: BLOCKING,
-            isCancelled: { $ne: true },
-            start: { $lt: occ.end },
-            end: { $gt: occ.start }
-          }).populate("course", "class_id title").lean();
+          const classOverlap = overlaps(classBlocking, occ);
 
           if (classOverlap) {
             const dayStr = weekdayNames[classOverlap.weekday] || `Thứ ${classOverlap.weekday}`;
