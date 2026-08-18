@@ -384,6 +384,12 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
                                 </ModalHeader>
                                 <ModalBody className="text-sm">
                                     <div className="flex flex-col gap-1.5">
+                                        {(() => {
+                                            const cls = Array.isArray(info?.course?.class_id)
+                                                ? info.course.class_id.filter(Boolean).join(", ")
+                                                : (info?.course?.class_id || "");
+                                            return cls ? <p><span className="text-default-500">{t("event.class")}:</span> {cls}</p> : null;
+                                        })()}
                                         {roomTitle && <p><span className="text-default-500">{t("event.room")}:</span> {roomTitle}</p>}
                                         {when && <p><span className="text-default-500">{t("event.time")}:</span> {when}</p>}
                                         {canSee ? (

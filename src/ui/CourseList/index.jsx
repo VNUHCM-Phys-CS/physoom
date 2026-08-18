@@ -95,15 +95,15 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                         // chip when locked (nothing when unlocked) — no bulky
                         // button, lock is managed from admin.
                         isLock ? (
-                          <Chip
-                            size="sm"
-                            variant="flat"
-                            color="danger"
-                            startContent={<LockFill size={12} className="ml-0.5" />}
-                            classNames={{ base: "h-5", content: "text-[11px] pl-1 pr-0.5" }}
+                          // Icon-only lock badge (no text) — compact, fixed size so
+                          // it never wraps to its own line.
+                          <span
+                            title={t("course.locked")}
+                            aria-label={t("course.locked")}
+                            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-danger-100 text-danger-500"
                           >
-                            {t("course.locked")}
-                          </Chip>
+                            <LockFill size={12} />
+                          </span>
                         ) : null
                       ) : (
                         <div className="flex w-full">
