@@ -166,6 +166,8 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
             backgroundColor = '#ef4444'; // Red
         } else if (type === 'personal') {
             backgroundColor = '#ec4899'; // Pink
+        } else if (type === 'duty') {
+            backgroundColor = '#6366f1'; // Indigo — Ca trực (read-only, from Offisoom)
         } else {
             backgroundColor = '#10b981'; // Emerald (Other/Custom)
         }
@@ -190,7 +192,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
     const canDragResize = useCallback((event) => {
         if (readOnly) return false;
         if (event.resource?.isHoliday || event.resource?.type === 'holiday') return false;
-        if (event.resource?.type === 'class') return false;
+        if (event.resource?.type === 'class' || event.resource?.type === 'duty') return false;
         if (session?.user?.isAdmin) return true;
         const email = session?.user?.email;
         if (!email) return false;
@@ -203,7 +205,7 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
     const onEventDrop = useCallback(
         ({ event, start, end }) => {
             if (event.resource?.isHoliday || event.resource?.type === 'holiday') return;
-            if (event.resource?.type === 'class') return;
+            if (event.resource?.type === 'class' || event.resource?.type === 'duty') return;
             setPendingDrop({ event, start, end });
         },
         []

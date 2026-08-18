@@ -767,11 +767,30 @@ export default function BookingSingle({ email }) {
     if (!times.length) return { from: undefined, to: undefined };
     return { from: new Date(Math.min(...times)), to: new Date(Math.max(...times)) };
   }, []);
+  // Duty shifts (ca trực) from Offisoom — read-only overlay on the personal
+  // calendar. Best-effort: empty if the integration isn't configured / reachable.
+  const { data: dutyData } = useSWR(email ? "/api/duties" : null, fetcher, {
+    revalidateOnFocus: false,
+    refreshInterval: 60000,
+  });
+  const dutyEvents = useMemo(
+    () =>
+      (dutyData?.duties ?? []).map((d, i) => ({
+        _id: `duty-${i}`,
+        start: d.start,
+        end: d.end,
+        title: d.title || "Trực",
+        type: "duty",
+      })),
+    [dutyData]
+  );
+
   // Personal calendar events filtered to the selected term (so the view matches
-  // the term picker). "Tất cả" → all teaching + personal events.
+  // the term picker). "Tất cả" → all teaching + personal events. Duty shifts are
+  // overlaid on top (they're weekly, not term-scoped).
   const personalEvents = useMemo(
-    () => (userEvents ?? []).filter(inSelectedTerm),
-    [userEvents, inSelectedTerm]
+    () => [...(userEvents ?? []).filter(inSelectedTerm), ...dutyEvents],
+    [userEvents, inSelectedTerm, dutyEvents]
   );
   const lecturerRange = useMemo(() => rangeOf(personalEvents), [personalEvents, rangeOf]);
   const classRange = useMemo(() => rangeOf(classEvents), [classEvents, rangeOf]);
