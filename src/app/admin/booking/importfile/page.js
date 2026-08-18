@@ -432,6 +432,10 @@ const Page = () => {
         if (!(_booking.cleanRoomTitle && +_booking["Tiết bắt đầu"] && +_booking["Thứ"])) {
           if (_booking["Mã mh"])
             add(index, _booking, "skipped", "Thiếu thông tin phòng/thứ/tiết — không xếp lịch");
+          // Advance the bar for skipped rows too — otherwise a skipped LAST row
+          // (e.g. an internship line with no room/thứ/tiết) leaves the bar under
+          // 100% forever and the "done" UI never shows (looks frozen).
+          setProgressBooking({ value: ((index + 1) / data.length) * 100 });
           continue;
         }
         try {
@@ -584,6 +588,12 @@ const Page = () => {
         }
         setProgressBooking({ value: ((index + 1) / data.length) * 100 });
       }
+
+      // Loop finished — force the bar to 100% and clear the live row so the
+      // results / "Xong" UI always appears, even if the final row(s) were skipped
+      // (e.g. an internship line with no room/GV).
+      setProgressBooking({ value: 100 });
+      setCurrentBooking(null);
 
       // Save conflict reasons onto the affected courses' track (⚠).
       const warnItems = Object.entries(conflictByCourse).map(([id, set]) => ({
