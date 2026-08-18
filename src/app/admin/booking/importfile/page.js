@@ -79,6 +79,7 @@ const Page = () => {
   const [progressCourse, setProgressCourse] = useState({ value: 0 });
   const [progressRoom, setProgressRoom] = useState({ value: 0 });
   const [progressBooking, setProgressBooking] = useState({ value: 0 });
+  const [currentBooking, setCurrentBooking] = useState(null); // live 'now scheduling' row
   const [selectedTerm, setSelectedTerm] = useState("");
   const [conflictLog, setConflictLog] = useState([]);
   const { data: terms } = useSWR("/api/terms", fetcher);
@@ -415,6 +416,17 @@ const Page = () => {
       }
 
       for (const [index, _booking] of data.entries()) {
+        // Live "now scheduling" indicator so the admin sees exactly which row
+        // is being processed (and where it stalls, if it ever does).
+        setCurrentBooking({
+          row: index + 1,
+          code: _booking["Mã mh"],
+          name: _booking["Tên môn học"],
+          ext: _booking["mã lớp 2"],
+          cls: _booking["Lớp"],
+          gv: _booking["Giảng viên"],
+          tg: _booking["Trợ giảng"],
+        });
         // Rows without room/thứ/tiết carry no schedule (e.g. an extra-teacher
         // row) — record them so the report is truly complete.
         if (!(_booking.cleanRoomTitle && +_booking["Tiết bắt đầu"] && +_booking["Thứ"])) {
@@ -775,6 +787,16 @@ const Page = () => {
                   </div>
                 ))}
               </div>
+
+              {currentBooking && progressBooking.value > 0 && progressBooking.value < 100 && (
+                <div className="text-xs rounded-lg border border-primary-200 bg-primary-50 p-2 max-w-md">
+                  <div className="font-semibold text-primary-700 mb-0.5">Đang xếp lịch · dòng {currentBooking.row}</div>
+                  <div><b>{currentBooking.code || "?"}</b>{currentBooking.ext ? ` · lớp 2: ${currentBooking.ext}` : ""} — {currentBooking.name || ""}</div>
+                  <div className="text-default-600">
+                    {currentBooking.cls ? `Lớp ${currentBooking.cls} · ` : ""}GV: {currentBooking.gv || "—"}{currentBooking.tg ? ` · TG: ${currentBooking.tg}` : ""}
+                  </div>
+                </div>
+              )}
 
               {progressBooking.value >= 100 && conflictLog.length > 0 && (() => {
                 const count = (s) => conflictLog.filter((r) => r.status === s).length;
