@@ -786,11 +786,14 @@ export default function BookingSingle({ email }) {
   );
 
   // Personal calendar events filtered to the selected term (so the view matches
-  // the term picker). "Tất cả" → all teaching + personal events. Duty shifts are
-  // overlaid on top (they're weekly, not term-scoped).
+  // the term picker). "Tất cả" → all teaching + personal events.
+  // NOTE: duty shifts are NOT merged here on purpose — this list also drives the
+  // compact-view default range and the compact list, and the far-future duty
+  // window would balloon both. Duties are passed to CalendarByUser as a separate
+  // read-only overlay instead.
   const personalEvents = useMemo(
-    () => [...(userEvents ?? []).filter(inSelectedTerm), ...dutyEvents],
-    [userEvents, inSelectedTerm, dutyEvents]
+    () => (userEvents ?? []).filter(inSelectedTerm),
+    [userEvents, inSelectedTerm]
   );
   const lecturerRange = useMemo(() => rangeOf(personalEvents), [personalEvents, rangeOf]);
   const classRange = useMemo(() => rangeOf(classEvents), [classEvents, rangeOf]);
@@ -1140,6 +1143,7 @@ export default function BookingSingle({ email }) {
               ) : (
                 <CalendarByUser
                   _events={personalEvents}
+                  overlayEvents={dutyEvents}
                   customSubtitle={customSubtitle}
                   selectedID={booking?.course?._id}
                   jumpTo={lecturerJump}

@@ -7,7 +7,7 @@ import LoadingWrapper from "../LoadingWrapper";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import moment from "moment";
-import { Trash2Icon } from "lucide-react";
+import { Trash2Icon, LockIcon } from "lucide-react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./custom-calendar.css";
@@ -78,7 +78,7 @@ function DragConfirmModal({ isOpen, event, newStart, newEnd, onConfirm, onCancel
     );
 }
 
-export default function CalendarByUser({_events=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week", jumpTo, onEditDates}) {
+export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,selectedID, onClickEvent, onDoubleClick, onEventUpdate, readOnly = false, onDelete, defaultView = "week", jumpTo, onEditDates}) {
     const { data: session } = useSession();
     const { t } = useI18n();
     const [date, setDate] = useState(new Date());
@@ -149,8 +149,22 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
             resource: { ...h, isHoliday: true },
         }));
 
-        return [...hol, ...base];
-    }, [_events, timeOverrides, holidays]);
+        // Read-only overlays (e.g. Offisoom duty shifts). Same shape as _events
+        // but never editable — kept separate so they don't affect the parent's
+        // ranges/compact view.
+        const overlay = (overlayEvents ?? [])
+            .filter((e) => e?.start && e?.end)
+            .map((e) => ({
+                id: e._id,
+                title: e.title || "",
+                start: new Date(e.start),
+                end: new Date(e.end),
+                resource: e,
+            }))
+            .filter((e) => !isNaN(e.start) && !isNaN(e.end));
+
+        return [...hol, ...base, ...overlay];
+    }, [_events, timeOverrides, holidays, overlayEvents]);
 
     const eventStyleGetter = useCallback((event) => {
         const type = event.resource?.type || 'class';
@@ -317,11 +331,11 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                             `${loc.format(start, "HH:mm", culture)}–${loc.format(end, "HH:mm", culture)}`,
                     }}
                     onSelectEvent={(e, ...rest) => {
-                        if (e?.resource?.isHoliday) return;
+                        if (e?.resource?.isHoliday || e?.resource?.type === 'duty') return;
                         if (onClickEvent) { onClickEvent(e, ...rest); return; }
                         setInfo(e.resource || e); // read-only view → built-in popup
                     }}
-                    onDoubleClickEvent={(e, ...rest) => { if (e?.resource?.isHoliday) return; onDoubleClick?.(e, ...rest); }}
+                    onDoubleClickEvent={(e, ...rest) => { if (e?.resource?.isHoliday || e?.resource?.type === 'duty') return; onDoubleClick?.(e, ...rest); }}
                     onEventDrop={!readOnly ? onEventDrop : undefined}
                     onEventResize={!readOnly ? onEventDrop : undefined}
                     resizable={!readOnly}
@@ -398,9 +412,23 @@ export default function CalendarByUser({_events=[],isLoading,selectedID, onClick
                                 <ModalFooter>
                                     <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>
                                     {onEditDates && canSee && info?.course && info?.type !== "custom" && info?.time_slot?.start_time != null && (
-                                        <Button color="secondary" variant="flat" onPress={() => { onClose(); onEditDates(info); }}>
-                                            {t("sched.editDates")}
-                                        </Button>
+                                        info.course.isLock ? (
+                                            // Locked course → schedule is frozen; show the action
+                                            // disabled with a lock so it's clear WHY it's unavailable.
+                                            <Button
+                                                color="default"
+                                                variant="flat"
+                                                isDisabled
+                                                startContent={<LockIcon size={16} />}
+                                                title={t("booking.lockedFrozen")}
+                                            >
+                                                {t("sched.editDates")}
+                                            </Button>
+                                        ) : (
+                                            <Button color="secondary" variant="flat" onPress={() => { onClose(); onEditDates(info); }}>
+                                                {t("sched.editDates")}
+                                            </Button>
+                                        )
                                     )}
                                 </ModalFooter>
                             </>
