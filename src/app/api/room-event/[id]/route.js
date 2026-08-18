@@ -132,6 +132,14 @@ export const PATCH = async (request, { params }) => {
       return NextResponse.json({ success: false }, { status: 401 });
     }
 
+    // Idempotent: already in the requested state (double-click, retry, a second
+    // approver, or a duplicate request) → don't re-run side effects or re-send
+    // the decision notification. This is what caused two identical "đã được
+    // duyệt" notifications for a single approval.
+    if (event.status === status) {
+      return NextResponse.json({ success: true, event, alreadyInState: true }, { status: 200 });
+    }
+
     // Re-check conflicts at approval time: a slot free when the request was made
     // may have been taken since. Refuse to approve into an occupied slot.
     if (status === "approved" && event?.start && event?.end && event?.room) {
@@ -156,14 +164,18 @@ export const PATCH = async (request, { params }) => {
       }
     }
 
-    const updated = await CalendarEvent.findByIdAndUpdate(
-      id,
+    // Only transition if it isn't already in the target state — makes two
+    // concurrent approvals race-safe: only the one that actually flips the
+    // status proceeds to notify; the loser no-ops.
+    const updated = await CalendarEvent.findOneAndUpdate(
+      { _id: id, status: { $ne: status } },
       { status },
       { new: true }
     ).populate("room");
 
     if (!updated) {
-      return NextResponse.json({ success: false, message: "Event not found" }, { status: 404 });
+      // Someone else just set the same status (race) — no-op, don't re-notify.
+      return NextResponse.json({ success: true, alreadyInState: true }, { status: 200 });
     }
 
     // Notify the requester of the decision.
