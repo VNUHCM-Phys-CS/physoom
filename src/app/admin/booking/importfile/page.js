@@ -63,6 +63,14 @@ const validCredit = (v) => {
   return Number.isFinite(n) && n > 0;
 };
 
+// fetch with a hard timeout so a single slow/hung request can never freeze the
+// whole import — it aborts, the row is reported, and the loop moves on.
+const fetchT = (url, opts = {}, ms = 30000) => {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
+};
+
 const Page = () => {
   const { data: session } = useSession();
   const router = useRouter();
@@ -418,11 +426,11 @@ const Page = () => {
           const location = _booking.cleanRoomTitle
             ? rooms.find((r) => r.title === _booking.cleanRoomTitle)?.location
             : locationList.default;
-          const room = await fetch("/api/room", {
+          const room = await fetchT("/api/room", {
             method: "POST",
             body: JSON.stringify({ filter: { title: _booking.cleanRoomTitle, location } }),
           }).then((d) => d.json());
-          const course = await fetch("/api/course", {
+          const course = await fetchT("/api/course", {
             method: "POST",
             body: JSON.stringify({
               filter: {
@@ -508,7 +516,7 @@ const Page = () => {
           if (!clearedCourses.has(_cid)) {
             clearedCourses.add(_cid);
             try {
-              const delRes = await fetch("/api/booking/delete", {
+              const delRes = await fetchT("/api/booking/delete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ mode: "course", id: _cid }),
@@ -517,11 +525,11 @@ const Page = () => {
             } catch { /* ignore — fall through to create */ }
           }
 
-          const res = await fetch("/api/booking/create", {
+          const res = await fetchT("/api/booking/create", {
             method: "POST",
             headers: { "Content-Type": "application/json", email: session?.user?.email },
             body: JSON.stringify([booking]),
-          });
+          }, 45000);
           const resData = await res.json();
           const madeCount = resData.created?.[0]?.created || 0;
           const wasOverwrite = !!resData.created?.[0]?.overwritten;
@@ -557,7 +565,10 @@ const Page = () => {
           }
         } catch (e) {
           console.log(`Fail to add row#`, index + 1, e);
-          add(index, _booking, "error", String(e));
+          const msg = e?.name === "AbortError"
+            ? "Quá thời gian chờ máy chủ (timeout) — bỏ qua dòng này, hãy import lại hoặc xếp tay môn này."
+            : String(e);
+          add(index, _booking, "error", msg);
         }
         setProgressBooking({ value: ((index + 1) / data.length) * 100 });
       }
