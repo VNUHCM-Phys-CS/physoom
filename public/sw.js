@@ -17,9 +17,20 @@ self.addEventListener("push", (event) => {
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     tag: data.tag || undefined,
+    renotify: false,
     data: { link: data.link || "/" },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  // Don't pop an OS notification when the app is already open & visible — the
+  // in-app bell already shows it, otherwise the user sees it TWICE (OS popup +
+  // in-app). Only show the OS notification when no tab is focused/visible.
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const visible = clients.some((c) => c.visibilityState === "visible" || c.focused);
+      if (visible) return;
+      return self.registration.showNotification(title, options);
+    })()
+  );
 });
 
 // Focus an existing tab (or open one) and navigate to the notification's link.
