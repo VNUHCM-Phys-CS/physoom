@@ -47,7 +47,13 @@ import CompactSchedule from "../CompactSchedule";
 import EditScheduleModal from "../EditScheduleModal";
 import GuideTour from "../GuideTour";
 import { UserCalendarContext } from "../CalendarByUser/wrapper";
-import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon, SearchIcon } from "lucide-react";
+import { MenuIcon, ChevronDown, ChevronUp, AlertTriangleIcon, SearchIcon, CalendarClockIcon } from "lucide-react";
+
+// Full duty roster (ca trực) lives in Offisoom; the personal calendar only shows
+// a read-only overlay, so link out to manage/see the whole roster.
+const DUTY_ROSTER_URL =
+  (process.env.NEXT_PUBLIC_OFFISOOM_URL || "https://offisoom.vercel.app").replace(/\/$/, "") +
+  "/roster/duty";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import moment from "moment";
@@ -1130,6 +1136,18 @@ export default function BookingSingle({ email }) {
                   <Switch size="sm" isSelected={compactMode} onValueChange={toggleCompact}>{t("booking.compactMode")}</Switch>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    as="a"
+                    href={DUTY_ROSTER_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    size="sm"
+                    variant="flat"
+                    color="secondary"
+                    startContent={<CalendarClockIcon size={16} />}
+                  >
+                    {t("booking.dutyRoster")}
+                  </Button>
                   <span data-tour="gcal-sync" className="inline-flex"><GoogleCalendarButton /></span>
                   <span data-tour="cal-export" className="inline-flex"><ExportIcsButton email={email} /></span>
                 </div>
