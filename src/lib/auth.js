@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import User from "@/models/user";
-import Room from "@/models/room";
 // import GitHub from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
@@ -24,7 +23,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.adminScope = token.adminScope || [];
         session.user.teacher_id = token.teacher_id;
-        session.user.isRoomManager = !!token.isRoomManager;
         session.error = token.error;
         session.accessToken = token.accessToken;
       }
@@ -63,17 +61,6 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             token.user.isSuperAdmin = token.isSuperAdmin;
             token.user.adminScope = token.adminScope;
             token.user.teacher_id = token.teacher_id;
-            // Room-manager status: true only if this user manages at least one
-            // room. Refreshed every request (like roles) so granting/revoking a
-            // manager takes effect without a re-login. Drives the "Quản lý phòng"
-            // nav link — which must NOT show for ordinary lecturers.
-            try {
-              const managedCount = await Room.countDocuments({ managers: token.user.email });
-              token.isRoomManager = managedCount > 0;
-              token.user.isRoomManager = token.isRoomManager;
-            } catch {
-              token.isRoomManager = token.isRoomManager || false;
-            }
           }
         } catch (e) {
           console.error("jwt role refresh failed", e);
