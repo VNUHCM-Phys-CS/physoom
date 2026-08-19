@@ -181,22 +181,30 @@ export const POST = async (request) => {
       console.error("notify(invite) failed:", e);
     }
 
-    // Notify room managers + admins when a request needs approval.
+    // Notify room managers + admins when a request needs approval. The two roles
+    // use DIFFERENT approval pages, so send each the link they can actually open:
+    // admins → /admin/room-booking, room managers → /room-manager. (A non-admin
+    // manager can't access the /admin page, and an admin who manages no rooms
+    // sees nothing on /room-manager.) De-dup so an admin-who-is-also-a-manager
+    // gets a single notification (the admin one).
     if (!autoApprove) {
       try {
+        const creator = session.user.email;
         const room = await Room.findById(roomId, "title managers").lean();
         const admins = await User.find({ isAdmin: true }, "email").lean();
-        const recipients = [
-          ...(room?.managers ?? []),
-          ...admins.map((a) => a.email),
-        ].filter((e) => e && e !== session.user.email);
-        await notify(recipients, {
+        const adminSet = new Set(admins.map((a) => String(a.email).toLowerCase()));
+        const common = {
           type: "approval",
           title: "Yêu cầu mượn phòng cần duyệt",
-          message: `${session.user.email} yêu cầu mượn ${room?.title || "phòng"} — ${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}: "${title}"`,
-          link: "/room-manager",
+          message: `${creator} yêu cầu mượn ${room?.title || "phòng"} — ${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}: "${title}"`,
           event: newEvent._id,
-        });
+        };
+        const adminRecips = admins.map((a) => a.email).filter((e) => e && e !== creator);
+        const managerRecips = (room?.managers ?? []).filter(
+          (e) => e && e !== creator && !adminSet.has(String(e).toLowerCase())
+        );
+        await notify(adminRecips, { ...common, link: "/admin/room-booking" });
+        await notify(managerRecips, { ...common, link: "/room-manager" });
       } catch (e) {
         console.error("notify(create) failed:", e);
       }
