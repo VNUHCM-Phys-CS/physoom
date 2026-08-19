@@ -84,7 +84,7 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
         {courseGroup.map((cg) => (
           <ListboxSection key={cg.key} title={cg.title} showDivider>
             {cg.data.map(
-              ({ title, location, teacher_email, credit, _id, isLock, warnings }) => (
+              ({ title, location, teacher_email, credit, _id, isLock, warnings, class_id }) => (
                 <ListboxItem
                   key={_id}
                   classNames={{ base: warnings?.length ? "bg-warning-50/60 rounded-lg" : "" }}
@@ -123,13 +123,21 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                           <div>{d}</div>
                         ))}
                       </h6>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         <Chip size="sm" color="primary">
                           {location}
                         </Chip>
                         <Chip size="sm" variant="shadow">
                           {credit} {t("common.credits")}
                         </Chip>
+                        {(() => {
+                          const cls = Array.isArray(class_id)
+                            ? class_id.filter(Boolean).join(", ")
+                            : (class_id || "");
+                          return cls ? (
+                            <Chip size="sm" variant="flat" color="secondary">{cls}</Chip>
+                          ) : null;
+                        })()}
                       </div>
                       {cg.key === "planned" && onUnschedule && !readOnly && (
                         <Button
