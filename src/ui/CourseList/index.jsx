@@ -88,24 +88,22 @@ export default function CourseList({ course, onSelectionChange, userEvents, onUn
                 <ListboxItem
                   key={_id}
                   classNames={{ base: warnings?.length ? "bg-warning-50/60 rounded-lg" : "" }}
+                  endContent={
+                    // Personal timetable (read-only): lock is STATUS only — show a
+                    // small icon at the item's right edge (like the admin lock) so
+                    // it takes no extra vertical space. Nothing when unlocked.
+                    readOnly && isLock ? (
+                      <LockFill
+                        size={14}
+                        className="text-danger-500 shrink-0"
+                        title={t("course.locked")}
+                      />
+                    ) : undefined
+                  }
                   description={
                     <div>
-                      {readOnly ? (
-                        // Personal timetable: lock is STATUS only. Show a small
-                        // chip when locked (nothing when unlocked) — no bulky
-                        // button, lock is managed from admin.
-                        isLock ? (
-                          // Icon-only lock badge (no text) — compact, fixed size so
-                          // it never wraps to its own line.
-                          <span
-                            title={t("course.locked")}
-                            aria-label={t("course.locked")}
-                            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-danger-100 text-danger-500"
-                          >
-                            <LockFill size={12} />
-                          </span>
-                        ) : null
-                      ) : (
+                      {!readOnly && (
+                        // Admin: interactive lock/unlock toggle.
                         <div className="flex w-full">
                           <StageButton
                             name="lock"
