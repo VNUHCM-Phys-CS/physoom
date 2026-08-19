@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "react-toastify";
-import { RoomEventModal, UserPicker } from "@/ui/RoomEventModal";
+import { RoomEventModal } from "@/ui/RoomEventModal";
 import {
   Tabs,
   Tab,
@@ -45,73 +45,6 @@ const statusColorMap = {
   rejected: "danger",
 };
 
-
-// ---- Edit Managers Modal ----
-function EditManagersModal({ isOpen, onOpenChange, room, onSuccess }) {
-  const { t } = useI18n();
-  const { data: users } = useSWR("/api/user/list", fetcher);
-  const [managers, setManagers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (isOpen) {
-      setManagers(room?.managers ?? []);
-      setError("");
-    }
-  }, [isOpen, room]);
-
-  const handleSave = async (onClose) => {
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/room/${room._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ managers }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || "Failed to update managers.");
-      } else {
-        onSuccess();
-        onClose();
-      }
-    } catch {
-      setError("Server error.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader>{t("rb.colManagers")} — {room?.title}</ModalHeader>
-            <ModalBody>
-              {error && <p className="text-danger text-sm">{error}</p>}
-              <UserPicker
-                label={t("rb.colManagers")}
-                users={users}
-                selectedEmails={managers}
-                onChange={setManagers}
-                multiple
-              />
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="light" onPress={onClose}>{t("common.cancel")}</Button>
-              <Button color="primary" isLoading={loading} onPress={() => handleSave(onClose)}>
-                {t("common.save")}
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
-  );
-}
 
 // ---- Events Table (shared between Pending and All Events tabs) ----
 function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter, rooms }) {
@@ -291,8 +224,6 @@ function EventsTable({ events, actionLoading, onAction, onDelete, showRoomFilter
 // ---- Rooms Tab with Managers ----
 function RoomsTab({ rooms, mutateRooms }) {
   const { t } = useI18n();
-  const [editingRoom, setEditingRoom] = useState(null);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [search, setSearch] = useState("");
   const [bookableFilter, setBookableFilter] = useState("all");
   const [copiedRoomId, setCopiedRoomId] = useState(null);
@@ -305,12 +236,6 @@ function RoomsTab({ rooms, mutateRooms }) {
     });
   }, []);
   const [locationFilter, setLocationFilter] = useState("");
-  const { data: users } = useSWR("/api/user/list", fetcher);
-
-  const openEditManagers = (room) => {
-    setEditingRoom(room);
-    onOpen();
-  };
 
   const toggleBookable = useCallback(async (room) => {
     const newValue = !room.isBookable;
@@ -337,7 +262,6 @@ function RoomsTab({ rooms, mutateRooms }) {
     { key: "location", label: t("rb.location") },
     { key: "limit", label: t("rb.colLimit") },
     { key: "isBookable", label: t("rb.publicBooking") },
-    { key: "managers", label: t("rb.colManagers") },
     { key: "actions", label: t("common.actions") },
   ];
 
@@ -351,34 +275,6 @@ function RoomsTab({ rooms, mutateRooms }) {
             onValueChange={() => toggleBookable(room)}
             aria-label="Toggle public booking"
           />
-        );
-      case "managers":
-        if (!(room.managers ?? []).length)
-          return <span className="text-default-400 text-sm italic">{t("common.noInfo")}</span>;
-        return (
-          <div className="flex flex-wrap gap-1">
-            {room.managers.map((email) => {
-              const user = (users ?? []).find((u) => u.email === email);
-              const name = user?.name;
-              const initials = name
-                ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
-                : email.slice(0, 2).toUpperCase();
-              return (
-                <div
-                  key={email}
-                  className="flex items-center gap-1.5 bg-default-100 rounded-full pl-1 pr-2.5 py-0.5"
-                  title={email}
-                >
-                  <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                    {initials}
-                  </span>
-                  <span className="text-xs font-medium truncate max-w-[120px]">
-                    {name || email}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
         );
       case "actions":
         return (
@@ -394,9 +290,6 @@ function RoomsTab({ rooms, mutateRooms }) {
                 {copiedRoomId === room._id ? t("rb.copied") : t("rb.share")}
               </Button>
             )}
-            <Button size="sm" variant="flat" onPress={() => openEditManagers(room)}>
-              {t("rb.colManagers")}
-            </Button>
           </div>
         );
       default:
@@ -412,7 +305,7 @@ function RoomsTab({ rooms, mutateRooms }) {
   const filteredRooms = useMemo(() => {
     const q = search.toLowerCase();
     return (rooms ?? []).filter((r) => {
-      if (q && !r.title?.toLowerCase().includes(q) && !r.location?.toLowerCase().includes(q) && !(r.managers ?? []).some((m) => m.toLowerCase().includes(q))) return false;
+      if (q && !r.title?.toLowerCase().includes(q) && !r.location?.toLowerCase().includes(q)) return false;
       if (bookableFilter === "public" && !r.isBookable) return false;
       if (bookableFilter === "private" && r.isBookable) return false;
       if (locationFilter && r.location !== locationFilter) return false;
@@ -471,14 +364,6 @@ function RoomsTab({ rooms, mutateRooms }) {
           )}
         </TableBody>
       </Table>
-      {editingRoom && (
-        <EditManagersModal
-          isOpen={isOpen}
-          onOpenChange={onOpenChange}
-          room={editingRoom}
-          onSuccess={mutateRooms}
-        />
-      )}
     </>
   );
 }
@@ -626,11 +511,6 @@ function CalendarTab({ customEvents, onAction, onDelete, actionLoading, onGoToCo
                 <Chip size="sm" variant="flat" color={room.isBookable ? "success" : "default"}>
                   {room.isBookable ? t("rb.public") : t("rb.private")}
                 </Chip>
-                {(room.managers ?? []).length > 0 && (
-                  <span className="text-default-400 text-xs hidden sm:block">
-                    {t("rb.colManagers")}: {room.managers.join(", ")}
-                  </span>
-                )}
               </div>
             );
           })()}

@@ -30,7 +30,6 @@ const roomSchema = new Schema(
     ],
     isBookable: { type: Boolean, default: false },
     note: String,
-    managers: { type: [String], default: [] },
   },
   { timestamps: true }
 );

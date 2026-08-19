@@ -22,24 +22,11 @@ export const PUT = async (req, { params }) => {
       return NextResponse.json({ message: "Room not found." }, { status: 404 });
     }
 
-    const isAdmin = user.isAdmin;
-    const isManager = Array.isArray(room.managers) && room.managers.includes(user.email);
-
-    if (!isAdmin && !isManager) {
+    if (!user.isAdmin) {
       return NextResponse.json({ success: false }, { status: 401 });
     }
 
     let roomData = await req.json();
-
-    // Managers can only update title, limit, note, isBookable — not managers field
-    if (!isAdmin) {
-      const { title, limit, note, isBookable } = roomData;
-      roomData = {};
-      if (title !== undefined) roomData.title = title;
-      if (limit !== undefined) roomData.limit = limit;
-      if (note !== undefined) roomData.note = note;
-      if (isBookable !== undefined) roomData.isBookable = isBookable;
-    }
 
     const updatedRoom = await Room.findByIdAndUpdate(
       id,

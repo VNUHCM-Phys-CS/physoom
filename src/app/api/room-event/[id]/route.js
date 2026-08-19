@@ -21,11 +21,7 @@ async function checkAuthorized(session, eventId) {
 
   if (session.user.isAdmin) return { authorized: true, isPrivileged: true, event };
 
-  const room = event.room;
-  const isManager = room && Array.isArray(room.managers) && room.managers.includes(session.user.email);
-  if (isManager) return { authorized: true, isPrivileged: true, event };
-
-  // Creator or host can also act on their own events
+  // Creator or host can also act on their own events (non-privileged)
   const isCreator = (event.teacher_email ?? []).includes(session.user.email);
   const isHost = (event.host ?? []).includes(session.user.email);
   return { authorized: isCreator || isHost, isPrivileged: false, event };

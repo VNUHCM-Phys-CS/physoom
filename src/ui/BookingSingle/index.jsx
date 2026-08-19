@@ -159,7 +159,7 @@ function EventListSidebar({ events, email, selectedId, onSelect }) {
 
 // ─── EventInfoModal ────────────────────────────────────────────────────────────
 
-function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRooms, rooms, onSuccess }) {
+function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, rooms, onSuccess }) {
   const { t } = useI18n();
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure();
   const { data: users } = useSWR("/api/user/list", fetcher);
@@ -183,9 +183,8 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
 
   const isCreator = (event.teacher_email ?? []).includes(email);
   const isHost = (event.host ?? []).includes(email);
-  const isManager = (managedRooms ?? []).some((r) => String(r._id) === String(event.room?._id ?? event.room));
-  const canEdit = isAdmin || isCreator || isHost || isManager;
-  const isPrivileged = isAdmin || isManager;
+  const canEdit = isAdmin || isCreator || isHost;
+  const isPrivileged = isAdmin;
   const contacts = [...new Set([...(event.teacher_email ?? []), ...(event.host ?? [])])].filter(Boolean);
 
   return (
@@ -267,7 +266,7 @@ function EventInfoModal({ isOpen, onOpenChange, event, email, isAdmin, managedRo
 
 // ─── EventBookingTab ──────────────────────────────────────────────────────────
 
-function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick, initialRoomId, onRoomChange }) {
+function EventBookingTab({ allRooms, isAdmin, email, onEventClick, initialRoomId, onRoomChange }) {
   const { t } = useI18n();
   const [roomInput, setRoomInput] = useState("");
   const [roomFilter, setRoomFilter] = useState(initialRoomId || null); // selected room _id
@@ -280,9 +279,8 @@ function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick,
   const accessibleRooms = useMemo(() => {
     if (!allRooms) return [];
     if (isAdmin) return allRooms;
-    const bookable = allRooms.filter((r) => r.isBookable);
-    return _.uniqBy([...bookable, ...(managedRooms ?? [])], "_id");
-  }, [allRooms, managedRooms, isAdmin]);
+    return allRooms.filter((r) => r.isBookable);
+  }, [allRooms, isAdmin]);
 
   const filteredRoomOptions = useMemo(() =>
     accessibleRooms.filter((r) => r.title?.toLowerCase().includes(roomInput.toLowerCase())),
@@ -403,7 +401,7 @@ function EventBookingTab({ allRooms, managedRooms, isAdmin, email, onEventClick,
         isOpen={isBookOpen}
         onOpenChange={onBookOpenChange}
         rooms={accessibleRooms}
-        isPrivileged={isAdmin || (managedRooms ?? []).some((r) => String(r._id) === roomFilter)}
+        isPrivileged={isAdmin}
         createdBy={email}
         onSuccess={() => mutateRoomEvents()}
         initialStart={slotStart}
@@ -536,21 +534,6 @@ export default function BookingSingle({ email }) {
   const { data: allRooms } = useSWR(
     email ? "/api/room" : null,
     fetcher,
-    { revalidateOnFocus: false }
-  );
-
-  // Fetch managed rooms via POST filter
-  const { data: managedRooms } = useSWR(
-    email
-      ? [
-          "/api/room",
-          {
-            method: "POST",
-            body: JSON.stringify({ filter: { managers: email } }),
-          },
-        ]
-      : null,
-    fetcheroptions,
     { revalidateOnFocus: false }
   );
 
@@ -1226,7 +1209,6 @@ export default function BookingSingle({ email }) {
             <Tab key="event_booking" title={t("booking.eventBooking")}>
               <EventBookingTab
                 allRooms={allRooms}
-                managedRooms={managedRooms}
                 isAdmin={isAdmin}
                 email={email}
                 onEventClick={handleCalendarEventClick}
@@ -1244,7 +1226,6 @@ export default function BookingSingle({ email }) {
           event={infoEvent}
           email={email}
           isAdmin={isAdmin}
-          managedRooms={managedRooms}
           rooms={allRooms}
           onSuccess={refreshRoomEvents}
         />

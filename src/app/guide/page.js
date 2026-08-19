@@ -182,15 +182,9 @@ const SECTIONS = {
     { id: "book", audience: "user", icon: CalendarPlusIcon, title: "Đặt phòng sự kiện", intro: "Trong trang Đặt lịch → tab Đặt phòng sự kiện.", fig: "grid", figCaption: "Lưới phòng: ô xanh là đã đặt, ô vàng cảnh báo khung trùng giờ lớp học đang diễn ra.", points: [
       "Chọn phòng, khung giờ và điền tiêu đề để gửi yêu cầu.",
       "Lịch phòng hiện sẵn cả các buổi lớp học đang chiếm chỗ để bạn tránh.",
-      "Nếu bạn không phải admin/quản lý phòng, yêu cầu ở trạng thái Chờ duyệt.",
+      "Nếu bạn không phải admin, yêu cầu ở trạng thái Chờ duyệt.",
       "Bạn sẽ nhận thông báo khi yêu cầu được duyệt, bị từ chối, hoặc bị xoá.",
     ], tips: [{ type: "warn", text: "Khi kéo chọn một khung đã có lớp, hệ thống cảnh báo ngay và không mở form — hãy chọn khung khác." }]},
-
-    { id: "room-manager", audience: "user", icon: ClipboardCheckIcon, title: "Quản lý phòng (duyệt mượn phòng)", intro: "Menu 'Quản lý phòng' khi đã đăng nhập.", points: [
-      "Xem các yêu cầu mượn phòng và trạng thái: Chờ duyệt / Đã duyệt / Từ chối.",
-      "Nếu bạn là người quản lý của phòng: duyệt hoặc từ chối yêu cầu mượn phòng đó.",
-      "Tạo nhanh một yêu cầu đặt phòng ngay trên trang.",
-    ], tips: [{ type: "note", text: "Người quản lý phòng và admin được thông báo khi có yêu cầu mới cần duyệt." }]},
 
     { id: "notify", audience: "user", icon: BellIcon, title: "Thông báo", intro: "Chuông thông báo ở góc phải thanh điều hướng (khi đã đăng nhập).", points: [
       "Người đặt: được báo khi yêu cầu được duyệt / bị từ chối / bị xoá.",
@@ -288,15 +282,9 @@ const SECTIONS = {
     { id: "book", audience: "user", icon: CalendarPlusIcon, title: "Book a room for an event", intro: "Booking page → Event booking tab.", fig: "grid", figCaption: "Room grid: blue = booked, amber = the slot you dragged overlaps an ongoing class.", points: [
       "Pick a room, time slot and title to submit a request.",
       "The room grid already shows class sessions occupying it, so you can avoid them.",
-      "If you're not an admin/room manager, the request stays Pending.",
+      "If you're not an admin, the request stays Pending.",
       "You get notified when it's approved, rejected, or deleted.",
     ], tips: [{ type: "warn", text: "Dragging over a slot that already has a class warns immediately and won't open the form — pick another slot." }]},
-
-    { id: "room-manager", audience: "user", icon: ClipboardCheckIcon, title: "Room manager (approve requests)", intro: "The 'Room manager' menu when logged in.", points: [
-      "See room requests and their status: Pending / Approved / Rejected.",
-      "If you manage a room: approve or reject requests for that room.",
-      "Quickly create a booking request from the same page.",
-    ], tips: [{ type: "note", text: "Room managers and admins are notified when a new request needs approval." }]},
 
     { id: "notify", audience: "user", icon: BellIcon, title: "Notifications", intro: "The bell at the top-right of the nav bar (when logged in).", points: [
       "Requester: notified when a request is approved / rejected / deleted.",
