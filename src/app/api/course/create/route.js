@@ -66,8 +66,10 @@ export const POST = async (request) => {
           .join(",");
         return `${String(course_id ?? "").trim()}|${cls}|${ext ?? ""}`;
       };
+      // "Ghi đè môn đã khóa" toggle from the import UI → update locked courses too.
+      const overrideLocked = new URL(request.url).searchParams.get("overrideLocked") === "true";
       const courseIds = [...new Set(cleaned.map((d) => d.course_id).filter(Boolean))];
-      const lockedExisting = courseIds.length
+      const lockedExisting = !overrideLocked && courseIds.length
         ? await Course.find(
             { course_id: { $in: courseIds }, isLock: true },
             "course_id class_id course_id_extend"

@@ -57,6 +57,7 @@ export const POST = async (request) => {
   try {
     await connectToDb();
     let data = await request.json();
+    const overrideLocked = new URL(request.url).searchParams.get("overrideLocked") === "true";
 
     const isAdmin = user && user.isAdmin;
 
@@ -164,9 +165,10 @@ export const POST = async (request) => {
         classIds = Array.isArray(c?.class_id) ? c.class_id : (c?.class_id ? [c.class_id] : []);
       }
 
-      // Locked course → its schedule is frozen; never create/overwrite it.
+      // Locked course: frozen unless the import explicitly overrides ("Ghi đè
+      // môn đã khóa"). Otherwise skip + report so the admin knows it wasn't updated.
       const lockDoc = d.course?.isLock !== undefined ? d.course : await Course.findById(courseId, "isLock").lean();
-      if (lockDoc?.isLock) {
+      if (lockDoc?.isLock && !overrideLocked) {
         allConflicts.push({ course: courseId, reason: "Môn đang khoá — lịch được giữ nguyên (mở khoá để đổi)." });
         continue;
       }

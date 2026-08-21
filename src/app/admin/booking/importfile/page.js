@@ -29,6 +29,7 @@ import {
   RadioGroup,
   Radio,
   Chip,
+  Switch,
 } from "@heroui/react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
@@ -81,6 +82,7 @@ const Page = () => {
   const [progressBooking, setProgressBooking] = useState({ value: 0 });
   const [currentBooking, setCurrentBooking] = useState(null); // live 'now scheduling' row
   const [selectedTerm, setSelectedTerm] = useState("");
+  const [overrideLocked, setOverrideLocked] = useState(false); // "Ghi đè môn đã khóa"
   const [conflictLog, setConflictLog] = useState([]);
   const { data: terms } = useSWR("/api/terms", fetcher);
 
@@ -287,7 +289,7 @@ const Page = () => {
           warnings, // always set so re-import clears stale warnings
         };
       });
-      const courseResponse = await fetch("/api/course/create", {
+      const courseResponse = await fetch(`/api/course/create${overrideLocked ? "?overrideLocked=true" : ""}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", email: session?.user?.email },
         body: JSON.stringify(courses),
@@ -323,7 +325,7 @@ const Page = () => {
           const wipeRes = await fetch("/api/booking/delete", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mode: "courseKeys", courseKeys: importCourseKeys }),
+            body: JSON.stringify({ mode: "courseKeys", courseKeys: importCourseKeys, overrideLocked }),
           });
           const wipeData = await wipeRes.json().catch(() => ({}));
           wipedClassEvents = wipeData?.count ?? null;
@@ -535,13 +537,13 @@ const Page = () => {
               const delRes = await fetchT("/api/booking/delete", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mode: "course", id: _cid }),
+                body: JSON.stringify({ mode: "course", id: _cid, overrideLocked }),
               });
               _wasCleared = delRes.ok;
             } catch { /* ignore — fall through to create */ }
           }
 
-          const res = await fetchT("/api/booking/create", {
+          const res = await fetchT(`/api/booking/create${overrideLocked ? "?overrideLocked=true" : ""}`, {
             method: "POST",
             headers: { "Content-Type": "application/json", email: session?.user?.email },
             body: JSON.stringify([booking]),
@@ -550,6 +552,13 @@ const Page = () => {
           const madeCount = resData.created?.[0]?.created || 0;
           const wasOverwrite = !!resData.created?.[0]?.overwritten;
 
+          // Locked course (not overridden) → schedule kept as-is. Report it as a
+          // distinct "locked" row, not a scheduling conflict.
+          if (resData.conflicts?.some((c) => /kho[áa]/i.test(c.reason || ""))) {
+            add(index, _booking, "locked", "Môn đang khoá — KHÔNG cập nhật lịch (bật 'Ghi đè môn đã khóa' để đổi, hoặc mở khoá môn).", title);
+            setProgressBooking({ value: ((index + 1) / data.length) * 100 });
+            continue;
+          }
           if (resData.conflicts?.length > 0) {
             // Dedupe: the API returns up to 3 example occurrences per conflict —
             // the same weekday+tiết clash on consecutive weeks. Collapse them by
@@ -694,6 +703,16 @@ const Page = () => {
             <SelectItem key={term._id} value={term._id}>{term.title}</SelectItem>
           ))}
         </Select>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-default-200 bg-default-50 px-3 py-2">
+          <div>
+            <p className="text-sm font-medium">Ghi đè môn đã khoá</p>
+            <p className="text-xs text-default-500">
+              Tắt (mặc định): môn đang khoá 🔒 được giữ nguyên, không cập nhật — sẽ liệt kê trong báo cáo.
+              Bật: import ghi đè cả lịch/số tiết của môn đã khoá.
+            </p>
+          </div>
+          <Switch size="sm" color="danger" isSelected={overrideLocked} onValueChange={setOverrideLocked} />
+        </div>
         <div className="flex justify-end">
           <Button size="sm" variant="flat" startContent={<DownloadIcon size={14} />}
             onPress={() => downloadTemplate(
@@ -810,11 +829,11 @@ const Page = () => {
 
               {progressBooking.value >= 100 && conflictLog.length > 0 && (() => {
                 const count = (s) => conflictLog.filter((r) => r.status === s).length;
-                const label = { dupkey: "Trùng mã môn", created: "Tạo mới", overwrite: "Ghi đè", conflict: "Trùng lịch", skipped: "Bỏ qua", error: "Lỗi" };
-                const rowBg = { dupkey: "bg-warning-50", conflict: "bg-danger-50", error: "bg-danger-50", overwrite: "bg-primary-50", skipped: "bg-warning-50", created: "bg-success-50" };
-                const chipColor = { dupkey: "warning", conflict: "danger", error: "danger", overwrite: "primary", skipped: "warning", created: "success" };
+                const label = { dupkey: "Trùng mã môn", created: "Tạo mới", overwrite: "Ghi đè", conflict: "Trùng lịch", skipped: "Bỏ qua", error: "Lỗi", locked: "Đã khoá" };
+                const rowBg = { dupkey: "bg-warning-50", conflict: "bg-danger-50", error: "bg-danger-50", overwrite: "bg-primary-50", skipped: "bg-warning-50", created: "bg-success-50", locked: "bg-secondary-50" };
+                const chipColor = { dupkey: "warning", conflict: "danger", error: "danger", overwrite: "primary", skipped: "warning", created: "success", locked: "secondary" };
                 // Show problems first, then overwrites, then created.
-                const order = { dupkey: 0, conflict: 1, error: 2, skipped: 3, overwrite: 4, created: 5 };
+                const order = { locked: 0, dupkey: 1, conflict: 2, error: 3, skipped: 4, overwrite: 5, created: 6 };
                 const rows = [...conflictLog].sort((a, b) => (order[a.status] - order[b.status]) || (a.row - b.row));
                 return (
                   <div>
@@ -825,6 +844,7 @@ const Page = () => {
                       <Chip size="sm" color="warning" variant="flat">Bỏ qua: {count("skipped")}</Chip>
                       {count("dupkey") > 0 && <Chip size="sm" color="warning" variant="flat">Trùng mã môn: {count("dupkey")}</Chip>}
                       {count("error") > 0 && <Chip size="sm" color="danger" variant="flat">Lỗi: {count("error")}</Chip>}
+                      {count("locked") > 0 && <Chip size="sm" color="secondary" variant="flat">Đã khoá (không đổi): {count("locked")}</Chip>}
                     </div>
                     <div className="max-h-72 overflow-y-auto text-xs space-y-1 pr-1">
                       {rows.map((r, i) => (

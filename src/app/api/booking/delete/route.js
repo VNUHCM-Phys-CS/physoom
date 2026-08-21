@@ -15,7 +15,7 @@ export const POST = async (request) => {
 
   try {
     await connectToDb();
-    const { id, series_id, start, end, classIds, courseKeys, mode } = await request.json();
+    const { id, series_id, start, end, classIds, courseKeys, mode, overrideLocked } = await request.json();
 
     if (!mode) {
       return NextResponse.json({ success: false, message: "Missing deletion mode" }, { status: 400 });
@@ -50,7 +50,7 @@ export const POST = async (request) => {
       }
       // A LOCKED course's schedule is protected — unlock it first.
       const co = await Course.findById(id, "isLock").lean();
-      if (co?.isLock) {
+      if (co?.isLock && !overrideLocked) {
         return NextResponse.json(
           { success: false, locked: true, message: "Môn đang khoá — mở khoá trước khi xoá/đổi lịch." },
           { status: 409 }
@@ -70,7 +70,7 @@ export const POST = async (request) => {
         return NextResponse.json({ success: false, message: "Missing classIds for class deletion" }, { status: 400 });
       }
       // Never wipe a locked course's schedule.
-      const courses = await Course.find({ class_id: { $in: ids }, isLock: { $ne: true } }, "_id").lean();
+      const courses = await Course.find({ class_id: { $in: ids }, ...(overrideLocked ? {} : { isLock: { $ne: true } }) }, "_id").lean();
       const courseIds = courses.map((c) => c._id);
       const q = { course: { $in: courseIds }, type: 'class' };
       if (start && end) {
@@ -104,7 +104,7 @@ export const POST = async (request) => {
         return NextResponse.json({ success: false, message: "Missing courseKeys for deletion" }, { status: 400 });
       }
       // Never wipe a locked course's schedule (re-import preserves locked courses).
-      const courses = await Course.find({ $or: or, isLock: { $ne: true } }, "_id").lean();
+      const courses = await Course.find({ $or: or, ...(overrideLocked ? {} : { isLock: { $ne: true } }) }, "_id").lean();
       const ckIds = courses.map((c) => c._id);
       result = await CalendarEvent.deleteMany({ course: { $in: ckIds }, type: "class" });
     } else {
