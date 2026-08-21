@@ -1,14 +1,19 @@
-// SSO authorize endpoint — makes Physoom a lightweight identity provider for
-// Offisoom (a separate app/repo). Flow:
-//   1. Offisoom redirects the browser here with ?redirect_uri=&state=
+// SSO authorize endpoint — makes Physoom a lightweight identity provider for the
+// sibling apps (Offisoom, ACADsoom), each a separate repo/database. Flow:
+//   1. The client redirects the browser here with ?client=&redirect_uri=&state=
 //   2. If the user isn't logged into Physoom, send them through Physoom's normal
-//      Google sign-in, then return here.
-//   3. Once authenticated, mint a short-lived signed token and 302 back to
-//      Offisoom's redirect_uri with ?token=&state=.
+//      sign-in, then return here.
+//   3. Once authenticated, mint a short-lived token signed with THAT client's
+//      secret and 302 back to its redirect_uri with ?token=&state=.
+//
+// Per-client secrets (see src/lib/ssoClients.js) mean a token minted for one app
+// cannot be replayed against another. Omitting ?client= still behaves exactly as
+// before — it resolves to "offisoom".
 // Only additive: does not touch any existing Physoom behaviour.
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { signSsoToken } from "@/lib/ssoToken";
+import { ssoClient, originAllowed } from "@/lib/ssoClients";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +33,11 @@ export const GET = async (request) => {
     return NextResponse.json({ error: "invalid redirect_uri" }, { status: 400 });
   }
 
-  // Allowlist: comma-separated origins in OFFISOOM_ORIGIN.
-  const allow = (process.env.OFFISOOM_ORIGIN || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const okOrigin = allow.some((a) => {
-    try {
-      return new URL(a).origin === target.origin;
-    } catch {
-      return false;
-    }
-  });
-  if (!okOrigin) {
+  const client = ssoClient(searchParams.get("client"));
+  if (!client) {
+    return NextResponse.json({ error: "unknown client" }, { status: 400 });
+  }
+  if (!originAllowed(client, target)) {
     return NextResponse.json({ error: "redirect_uri not allowed" }, { status: 403 });
   }
 
@@ -52,19 +49,24 @@ export const GET = async (request) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  const secret = process.env.OFFISOOM_SSO_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "SSO not configured" }, { status: 500 });
+  if (!client.secret) {
+    return NextResponse.json(
+      { error: `SSO not configured for ${client.name}` },
+      { status: 500 }
+    );
   }
 
   const token = signSsoToken(
     {
+      // `aud` lets the receiving app reject a token minted for a different
+      // client even if the two ever shared a secret by mistake.
+      aud: client.name,
       email: session.user.email,
       name: session.user.name || "",
       teacher_id: session.user.teacher_id ?? session.teacher_id ?? null,
       isAdmin: !!(session.user.isAdmin ?? session.isAdmin),
     },
-    secret,
+    client.secret,
     120
   );
 
