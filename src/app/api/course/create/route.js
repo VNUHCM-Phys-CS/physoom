@@ -52,9 +52,39 @@ export const POST = async (request) => {
         return out;
       };
 
-      const bulkOps = data.map((d0) => {
-        const d = clean(d0);
-        return {
+      const cleaned = data.map(clean);
+
+      // A locked course is FROZEN — re-import must not overwrite its fields
+      // (credit, etc.); otherwise the "số tiết" would change while its frozen
+      // calendar blocks stay the old length (a mismatch). Skip locked courses
+      // here; the scheduling step also reports them as "Môn đang khoá".
+      const keyOf = (course_id, class_id, ext) => {
+        const cls = (Array.isArray(class_id) ? class_id : [class_id])
+          .map((s) => String(s).trim())
+          .filter(Boolean)
+          .sort()
+          .join(",");
+        return `${String(course_id ?? "").trim()}|${cls}|${ext ?? ""}`;
+      };
+      const courseIds = [...new Set(cleaned.map((d) => d.course_id).filter(Boolean))];
+      const lockedExisting = courseIds.length
+        ? await Course.find(
+            { course_id: { $in: courseIds }, isLock: true },
+            "course_id class_id course_id_extend"
+          ).lean()
+        : [];
+      const lockedKeys = new Set(
+        lockedExisting.map((c) => keyOf(c.course_id, c.class_id, c.course_id_extend))
+      );
+
+      let lockedSkipped = 0;
+      const bulkOps = [];
+      for (const d of cleaned) {
+        if (lockedKeys.has(keyOf(d.course_id, d.class_id, d.course_id_extend))) {
+          lockedSkipped++;
+          continue;
+        }
+        bulkOps.push({
           updateOne: {
             filter: {
               course_id: d.course_id,
@@ -64,8 +94,17 @@ export const POST = async (request) => {
             update: { $set: d },
             upsert: true,
           },
-        };
-      });
+        });
+      }
+
+      // All incoming rows were locked → nothing to write (bulkWrite([]) throws).
+      if (!bulkOps.length) {
+        revalidateTag("course");
+        return NextResponse.json(
+          { success: true, course: {}, failed: 0, writeErrors: [], lockedSkipped },
+          { status: 201 }
+        );
+      }
 
       // ordered:false → a bad row is skipped and reported instead of aborting
       // the whole import.
@@ -82,7 +121,7 @@ export const POST = async (request) => {
 
       revalidateTag("course");
       return NextResponse.json(
-        { success: true, course, failed: writeErrors.length, writeErrors },
+        { success: true, course, failed: writeErrors.length, writeErrors, lockedSkipped },
         {
           status: 201,
         }

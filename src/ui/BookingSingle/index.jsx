@@ -450,7 +450,10 @@ export default function BookingSingle({ email }) {
       },
     ],
     fetcheroptions,
-    { tags: ["course"], revalidate: 60 }
+    // Poll so a re-import that changes số tiết / lock / class shows up in the
+    // sidebar without needing to interact with the course. (The old tags/
+    // revalidate keys weren't valid SWR options.)
+    { refreshInterval: 20000 }
   );
 
   // ── Term filter (left panel) ──────────────────────────────────────────────
