@@ -45,7 +45,12 @@ export const PUT = async (request, { params }) => {
     if (body.attendees !== undefined) update.attendees = body.attendees;
 
     const timeChanged = body.start !== undefined || body.end !== undefined;
-    const roomChanged = body.roomId !== undefined && String(body.roomId) !== String(event.room?._id ?? event.room);
+    // Normalise both sides to "" when empty so a no-room event edited with an
+    // empty roomId (e.g. a note-only change) is NOT seen as a room change — that
+    // would wrongly force re-approval.
+    const curRoom = event.room?._id ? String(event.room._id) : (event.room ? String(event.room) : "");
+    const newRoom = body.roomId ? String(body.roomId) : "";
+    const roomChanged = body.roomId !== undefined && newRoom !== curRoom;
 
     if (body.start) update.start = new Date(body.start);
     if (body.end) update.end = new Date(body.end);

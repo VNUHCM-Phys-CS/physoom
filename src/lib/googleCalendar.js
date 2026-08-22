@@ -280,10 +280,12 @@ export async function syncUserToGoogle(email) {
 export async function pushEventToGoogle(eventOrId) {
   if (!isGoogleConfigured()) return;
   await connectToDb();
-  const ev =
-    eventOrId && eventOrId.start
-      ? eventOrId
-      : await CalendarEvent.findById(eventOrId?._id || eventOrId).populate("course room").lean();
+  // Always load a fully-populated copy by id — the caller's object may have room/
+  // course as bare ObjectIds (e.g. a freshly-created doc), which would drop the
+  // room name (and course info) from the Google event. Also gives fresh status.
+  const ev = await CalendarEvent.findById(eventOrId?._id || eventOrId)
+    .populate("course room")
+    .lean();
   if (!ev) return;
   const pid = String(ev._id);
   const emails = eventParticipants(ev);
