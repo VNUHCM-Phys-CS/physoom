@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/ulti";
 import {
@@ -250,6 +250,100 @@ function DeleteConfirmModal({ isOpen, onClose, user, onConfirm }) {
   );
 }
 
+// ── FixEmailModal ─────────────────────────────────────────────────────────────
+
+function FixEmailModal({ isOpen, onClose, user, onDone }) {
+  const [newEmail, setNewEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+
+  // Reset each time it opens for a (possibly) different user.
+  const openedFor = user?._id;
+  useEffect(() => {
+    if (isOpen) { setNewEmail(user?.email || ""); setError(""); setResult(null); }
+  }, [isOpen, openedFor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submit = async () => {
+    const nv = newEmail.trim();
+    if (!nv || nv.toLowerCase() === String(user?.email || "").toLowerCase()) {
+      setError("Nhập một email mới, khác email hiện tại.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/user/rename-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldEmail: user.email, newEmail: nv }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(d.error || "Đổi email thất bại."); return; }
+      setResult(d.changed || {});
+      onDone?.();
+    } catch {
+      setError("Lỗi mạng.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="md">
+      <ModalContent>
+        <ModalHeader className="flex flex-col gap-0.5">
+          <span>Sửa email giảng viên</span>
+          {user && <span className="text-xs font-normal text-default-500">{user.name || user.email}</span>}
+        </ModalHeader>
+        <ModalBody>
+          {result ? (
+            <div className="text-sm flex flex-col gap-2">
+              <p className="text-success-600 font-medium">✓ Đã đổi email sang <b>{newEmail.trim()}</b></p>
+              <div className="flex flex-wrap gap-1.5">
+                <Chip size="sm" variant="flat">User: {result.user}</Chip>
+                <Chip size="sm" variant="flat">Môn: {result.courses}</Chip>
+                <Chip size="sm" variant="flat">Lịch (GV): {result.events}</Chip>
+                <Chip size="sm" variant="flat">Host: {result.hosts}</Chip>
+                <Chip size="sm" variant="flat">Khách mời: {result.attendees}</Chip>
+                <Chip size="sm" variant="flat">Alias: {result.aliases}</Chip>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Input isReadOnly size="sm" label="Email hiện tại" value={user?.email || ""} />
+              <Input
+                autoFocus
+                size="sm"
+                label="Email mới"
+                placeholder="bdthanh@hcmus.edu.vn"
+                value={newEmail}
+                onValueChange={setNewEmail}
+                isInvalid={!!error}
+                errorMessage={error}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+              />
+              <p className="text-xs text-default-500">
+                Cập nhật đồng loạt ở User, Môn, Lịch (GV/host/khách mời), Alias. Không gộp được vào email đã thuộc user khác.
+              </p>
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          {result ? (
+            <Button color="primary" onPress={onClose}>Xong</Button>
+          ) : (
+            <>
+              <Button variant="flat" onPress={onClose}>Huỷ</Button>
+              <Button color="primary" isLoading={loading} onPress={submit}>Đổi email</Button>
+            </>
+          )}
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
 // ── UserManagementPage ────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 15;
@@ -266,9 +360,11 @@ export default function UserManagementPage() {
   const { isOpen: isFormOpen, onOpen: openForm, onClose: closeForm } = useDisclosure();
   const { isOpen: isImportOpen, onOpen: openImport, onClose: closeImport } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: openDelete, onClose: closeDelete } = useDisclosure();
+  const { isOpen: isFixEmailOpen, onOpen: openFixEmail, onClose: closeFixEmail } = useDisclosure();
 
   const [editUser, setEditUser] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [emailTarget, setEmailTarget] = useState(null);
 
   // ── filtering + pagination ────────────────────────────────────────────────
 
@@ -307,32 +403,7 @@ export default function UserManagementPage() {
 
   const handleAdd = () => { setEditUser(null); openForm(); };
   const handleEdit = (u) => { setEditUser(u); openForm(); };
-  const handleFixEmail = async (u) => {
-    const nv = window.prompt(`Sửa email cho ${u.name || u.email}
-Hiện tại: ${u.email}
-Nhập email mới:`, u.email);
-    if (!nv) return;
-    const newEmail = nv.trim();
-    if (!newEmail || newEmail.toLowerCase() === String(u.email || "").toLowerCase()) return;
-    if (!window.confirm(`Đổi email:
-${u.email}
-→ ${newEmail}
-
-Sẽ cập nhật ở User, Môn, Lịch (GV/host/khách mời), Alias. Tiếp tục?`)) return;
-    try {
-      const res = await fetch("/api/admin/user/rename-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oldEmail: u.email, newEmail }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) { window.alert(d.error || "Đổi email thất bại."); return; }
-      const c = d.changed || {};
-      window.alert(`Đã đổi email.
-User: ${c.user} · Môn: ${c.courses} · Lịch(GV): ${c.events} · host: ${c.hosts} · khách mời: ${c.attendees} · alias: ${c.aliases}`);
-      mutate();
-    } catch (e) { window.alert("Lỗi mạng."); }
-  };
+  const handleFixEmail = (u) => { setEmailTarget(u); openFixEmail(); };
   const handleDeleteClick = (u) => { setDeleteTarget(u); openDelete(); };
 
   const handleSave = async (form) => {
@@ -499,6 +570,12 @@ User: ${c.user} · Môn: ${c.courses} · Lịch(GV): ${c.events} · host: ${c.ho
         onClose={closeDelete}
         user={deleteTarget}
         onConfirm={handleDelete}
+      />
+      <FixEmailModal
+        isOpen={isFixEmailOpen}
+        onClose={closeFixEmail}
+        user={emailTarget}
+        onDone={mutate}
       />
     </div>
   );
