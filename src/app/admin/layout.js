@@ -13,7 +13,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
-import { ChevronDownIcon, Share2Icon, SearchIcon } from "lucide-react";
+import { ChevronDownIcon, Share2Icon, SearchIcon, KeyRoundIcon } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 
 // Grouped admin navigation. A standalone "Tổng quan" plus three dropdown groups
@@ -46,6 +46,8 @@ const NAV = [
   // Sharing stands on its own with a share icon — it's a distinct action, not a
   // config category.
   { type: "link", key: "admin.nav.viewShare", path: "/admin/view-share", icon: Share2Icon },
+  // Super-admin only — registry of API keys/secrets across apps.
+  { type: "link", key: "admin.nav.apiKeys", path: "/admin/api-keys", icon: KeyRoundIcon, superOnly: true },
 ];
 
 // The dashboard ("/admin") must match EXACTLY — otherwise startsWith("/admin/")
@@ -93,7 +95,7 @@ export default function Layout({ children }) {
           <span className="font-bold text-secondary text-sm tracking-wide">Admin</span>
         </NavbarBrand>
         <NavbarContent className="gap-1 flex-nowrap" justify="start">
-          {NAV.map((node) => {
+          {NAV.filter((n) => !n.superOnly || session?.user?.isSuperAdmin).map((node) => {
             if (node.type === "link") {
               const active = isPathActive(pathname, node.path);
               const Icon = node.icon;
