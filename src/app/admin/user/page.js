@@ -10,7 +10,7 @@ import {
 } from "@heroui/react";
 import {
   PlusIcon, UploadIcon, DownloadIcon,
-  SearchIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon,
+  SearchIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, AtSignIcon,
 } from "lucide-react";
 import DragDropzone from "@/ui/CSVReader/DragDropzone";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -307,6 +307,32 @@ export default function UserManagementPage() {
 
   const handleAdd = () => { setEditUser(null); openForm(); };
   const handleEdit = (u) => { setEditUser(u); openForm(); };
+  const handleFixEmail = async (u) => {
+    const nv = window.prompt(`Sửa email cho ${u.name || u.email}
+Hiện tại: ${u.email}
+Nhập email mới:`, u.email);
+    if (!nv) return;
+    const newEmail = nv.trim();
+    if (!newEmail || newEmail.toLowerCase() === String(u.email || "").toLowerCase()) return;
+    if (!window.confirm(`Đổi email:
+${u.email}
+→ ${newEmail}
+
+Sẽ cập nhật ở User, Môn, Lịch (GV/host/khách mời), Alias. Tiếp tục?`)) return;
+    try {
+      const res = await fetch("/api/admin/user/rename-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldEmail: u.email, newEmail }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { window.alert(d.error || "Đổi email thất bại."); return; }
+      const c = d.changed || {};
+      window.alert(`Đã đổi email.
+User: ${c.user} · Môn: ${c.courses} · Lịch(GV): ${c.events} · host: ${c.hosts} · khách mời: ${c.attendees} · alias: ${c.aliases}`);
+      mutate();
+    } catch (e) { window.alert("Lỗi mạng."); }
+  };
   const handleDeleteClick = (u) => { setDeleteTarget(u); openDelete(); };
 
   const handleSave = async (form) => {
@@ -434,6 +460,11 @@ export default function UserManagementPage() {
                     <Tooltip content={t("common.edit")}>
                       <Button isIconOnly size="sm" variant="light" onPress={() => handleEdit(u)}>
                         <PencilIcon size={14} />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content="Sửa email">
+                      <Button isIconOnly size="sm" variant="light" onPress={() => handleFixEmail(u)}>
+                        <AtSignIcon size={14} />
                       </Button>
                     </Tooltip>
                     <Tooltip content={t("common.delete")} color="danger">
