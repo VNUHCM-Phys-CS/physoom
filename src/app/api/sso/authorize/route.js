@@ -61,6 +61,9 @@ export const GET = async (request) => {
       // `aud` lets the receiving app reject a token minted for a different
       // client even if the two ever shared a secret by mistake.
       aud: client.name,
+      // `sub` là _id của user bên Physoom — định danh bất biến. App nhận nên
+      // khoá hồ sơ vào đây; email đổi thì hồ sơ vẫn là một, không sinh bản sao.
+      sub: String(session.user.id ?? session.user._id ?? ""),
       email: session.user.email,
       name: session.user.name || "",
       teacher_id: session.user.teacher_id ?? session.teacher_id ?? null,

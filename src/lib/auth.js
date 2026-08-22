@@ -23,6 +23,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.adminScope = token.adminScope || [];
         session.user.teacher_id = token.teacher_id;
+        // Định danh bất biến của user, để app ngoài (Offisoom, ACADsoom) khoá hồ
+        // sơ vào đây thay vì vào email — email đổi thì hồ sơ vẫn là một.
+        if (token.uid) session.user.id = token.uid;
         session.error = token.error;
         session.accessToken = token.accessToken;
       }
@@ -53,6 +56,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             "isAdmin isSuperAdmin adminScope teacher_id"
           ).lean();
           if (dbUser) {
+            token.uid = String(dbUser._id);
+            if (token.user) token.user.id = token.uid;
             token.isAdmin = !!dbUser.isAdmin;
             token.isSuperAdmin = !!dbUser.isSuperAdmin;
             token.adminScope = Array.isArray(dbUser.adminScope) ? dbUser.adminScope.map((s) => String(s)) : [];
