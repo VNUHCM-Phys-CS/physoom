@@ -38,6 +38,8 @@ export const GET = async (request) => {
   const members = users
     .filter((u) => u.email)
     .map((u) => ({
+      // Immutable identity: e-mail addresses get corrected, this never changes.
+      id: String(u._id),
       email: String(u.email).toLowerCase(),
       name: u.name || "",
       department: u.department || "",
