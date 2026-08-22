@@ -40,8 +40,8 @@ export const GET = async (request) => {
     .map((u) => ({
       // Immutable identity: e-mail addresses get corrected, this never changes.
       id: String(u._id),
-      email: String(u.email).toLowerCase(),
-      name: u.name || "",
+      email: String(u.email).trim().toLowerCase(),
+      name: (u.name || "").trim(),
       department: u.department || "",
       teacher_id: u.teacher_id || "",
       rank: u.rank || "",
