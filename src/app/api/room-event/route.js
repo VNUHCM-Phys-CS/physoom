@@ -66,7 +66,9 @@ export const POST = async (request) => {
     await connectToDb();
     const { roomId, title, start, end, note, host, attendees } = await request.json();
 
-    if (!roomId || !title || !start || !end) {
+    // Room is OPTIONAL: an event may have no room (organiser will arrange one
+    // with the university directly — noted in the note). Title/time still required.
+    if (!title || !start || !end) {
       return NextResponse.json({ success: false, message: "Missing required fields" }, { status: 400 });
     }
 
@@ -92,13 +94,16 @@ export const POST = async (request) => {
       );
     }
 
-    // Check for conflicts: approved events that overlap
-    const conflict = await CalendarEvent.findOne({
-      room: roomId,
-      status: "approved",
-      start: { $lt: endDate },
-      end: { $gt: startDate },
-    }).populate("room");
+    // Room-clash only matters when a room is actually chosen (no room → nothing
+    // to double-book).
+    const conflict = roomId
+      ? await CalendarEvent.findOne({
+          room: roomId,
+          status: "approved",
+          start: { $lt: endDate },
+          end: { $gt: startDate },
+        }).populate("room")
+      : null;
 
     if (conflict) {
       return NextResponse.json(
@@ -122,7 +127,7 @@ export const POST = async (request) => {
       status: autoApprove ? "approved" : "pending",
       start: startDate,
       end: endDate,
-      room: roomId,
+      room: roomId || undefined,
       teacher_email: [session.user.email],
       tags: note ? [note] : [],
       host: Array.isArray(host) && host.length ? host : [],
@@ -139,12 +144,13 @@ export const POST = async (request) => {
         ...(newEvent.attendees ?? []),
       ].filter((e) => e && e !== session.user.email);
       if (invited.length) {
-        const room = await Room.findById(roomId, "title").lean();
+        const room = roomId ? await Room.findById(roomId, "title").lean() : null;
+        const where = room?.title || "(chưa gắn phòng)";
         const when = `${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}`;
         await notify(invited, {
           type: "info",
           title: autoApprove ? "Bạn được mời tham dự" : "Bạn được mời tham dự (chờ duyệt)",
-          message: `"${title}" tại ${room?.title || "phòng"} — ${when}`,
+          message: `"${title}" tại ${where} — ${when}`,
           link: "/booking",
           event: newEvent._id,
         });
@@ -158,13 +164,14 @@ export const POST = async (request) => {
     if (!autoApprove) {
       try {
         const creator = session.user.email;
-        const room = await Room.findById(roomId, "title").lean();
+        const room = roomId ? await Room.findById(roomId, "title").lean() : null;
         const admins = await User.find({ isAdmin: true }, "email").lean();
         const adminRecips = admins.map((a) => a.email).filter((e) => e && e !== creator);
+        const where = room?.title || "(chưa gắn phòng — xem ghi chú)";
         await notify(adminRecips, {
           type: "approval",
-          title: "Yêu cầu mượn phòng cần duyệt",
-          message: `${creator} yêu cầu mượn ${room?.title || "phòng"} — ${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}: "${title}"`,
+          title: "Yêu cầu sự kiện cần duyệt",
+          message: `${creator} tạo sự kiện tại ${where} — ${moment(startDate).format("DD/MM HH:mm")}–${moment(endDate).format("HH:mm")}: "${title}"`,
           link: "/admin/room-booking",
           event: newEvent._id,
         });

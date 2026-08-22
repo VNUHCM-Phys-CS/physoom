@@ -49,7 +49,8 @@ export const PUT = async (request, { params }) => {
 
     if (body.start) update.start = new Date(body.start);
     if (body.end) update.end = new Date(body.end);
-    if (body.roomId) update.room = body.roomId;
+    // Room is optional: an explicit empty roomId clears it (event with no room).
+    if (body.roomId !== undefined) update.room = body.roomId || null;
 
     // Don't allow moving an event into the past (or an invalid window).
     if (timeChanged) {

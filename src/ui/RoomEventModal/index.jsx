@@ -244,8 +244,8 @@ export function RoomEventModal({
 
   const handleSubmit = async (onClose) => {
     setError("");
-    if (!form.roomId || !form.title || !form.start || !form.end) {
-      setError("Please fill all required fields.");
+    if (!form.title || !form.start || !form.end) {
+      setError("Vui lòng nhập tiêu đề và thời gian.");
       return;
     }
     if (new Date(form.end) <= new Date(form.start)) {
@@ -314,7 +314,7 @@ export function RoomEventModal({
               {/* Room autocomplete */}
               <Autocomplete
                 label={t("rb.colRoom")}
-                isRequired
+                description="Có thể để trống nếu chưa gắn phòng — tự liên hệ trường & ghi vào Ghi chú."
                 items={filteredRooms}
                 inputValue={roomInput}
                 onInputChange={(v) => { setRoomInput(v); if (!v) setForm((f) => ({ ...f, roomId: "" })); }}
@@ -346,7 +346,7 @@ export function RoomEventModal({
               <Input label={t("re.end")} type="datetime-local" isRequired min={form.start || timeMin} value={form.end} onValueChange={handleEndChange} />
               <UserPicker label={t("re.hostBy")} users={users} selectedEmails={host} onChange={setHost} multiple />
               <UserPicker label={t("re.members")} users={users} selectedEmails={attendees} onChange={setAttendees} multiple />
-              <Input label={t("event.note")} value={form.note} onValueChange={(v) => setForm((f) => ({ ...f, note: v }))} />
+              <Input label={t("event.note")} placeholder="VD: Sẽ liên hệ trường mượn hội trường B — sẽ cập nhật phòng sau." description="Ghi chú được đồng bộ luôn vào Google Calendar." value={form.note} onValueChange={(v) => setForm((f) => ({ ...f, note: v }))} />
 
               {/* Created by (create mode only) */}
               {!isEdit && createdBy && (

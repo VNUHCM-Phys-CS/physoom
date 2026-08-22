@@ -146,12 +146,16 @@ function toGoogleEvent(ev) {
   const cls = Array.isArray(ev.course?.class_id) ? ev.course.class_id.filter(Boolean).join(", ") : ev.course?.class_id || "";
   const name = ev.course?.title || ev.title || "Sự kiện";
   const room = ev.room?.title || "";
+  // Room-event note lives in tags[]; it must ride along to Google (esp. for
+  // no-room events where the note says how the room will be arranged).
+  const note = Array.isArray(ev.tags) ? ev.tags.filter(Boolean).join("; ") : "";
   const summary = [name, cls, room].filter(Boolean).join(" · ");
   const desc = [
     ev.course?.title ? `Môn: ${ev.course.title}` : null,
     cls ? `Lớp: ${cls}` : null,
     room ? `Phòng: ${room}` : null,
     (ev.teacher_email || []).length ? `Giảng viên: ${(ev.teacher_email || []).join(", ")}` : null,
+    note ? `Ghi chú: ${note}` : null,
   ].filter(Boolean).join("\n");
   return {
     summary,
