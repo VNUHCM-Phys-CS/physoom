@@ -80,10 +80,24 @@ export default function EditScheduleModal({ isOpen, onClose, event, onSuccess })
         body: JSON.stringify([booking]),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 201 && data.success !== false) {
+      // The API replaces the series non-destructively: if the new dates clash on
+      // every session it creates nothing and KEEPS the old schedule. So "201
+      // success" alone isn't enough — check that something was actually created,
+      // otherwise the class would look "saved" while silently unchanged.
+      const createdOk =
+        Array.isArray(data.created) && data.created.some((c) => (c.created ?? 0) > 0);
+      if (res.status === 201 && data.success !== false && createdOk) {
         toast.success(t("sched.saved"));
         onSuccess?.();
         onClose();
+      } else if (res.status === 201 && data.success !== false) {
+        // Nothing created → new dates clashed entirely; old schedule was kept.
+        const reason =
+          data.conflicts?.[0]?.examples?.[0]?.reason ||
+          data.conflicts?.[0]?.reason ||
+          t("common.somethingWrong");
+        toast.warning(`Không dời được lịch (giữ nguyên lịch cũ): ${reason}`);
+        onSuccess?.(); // refresh so the unchanged schedule re-renders
       } else {
         toast.error(data.message || t("common.somethingWrong"));
       }

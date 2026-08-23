@@ -129,22 +129,13 @@ export const POST = async (request) => {
       });
       const isOverwrite = prevCount > 0;
 
-      // Delete old occurrences if we are replacing a series
-      if (d.series_id) {
-        await CalendarEvent.deleteMany({ series_id: d.series_id });
-      } else {
-        // Fallback or new booking: replace only the SAME slot (weekday + start
-        // tiết) for this course. Scoping by start_time is critical — a course
-        // with a lecture and its bài tập/thực hành on the same weekday must not
-        // have one session delete the other (which silently dropped sessions and
-        // caused phantom conflicts on re-import).
-        await CalendarEvent.deleteMany({
-          course: courseId,
-          type: 'class',
-          weekday: weekday,
-          'time_slot.start_time': start_time,
-        });
-      }
+      // IMPORTANT: do NOT delete the old series yet. A re-schedule that turns out
+      // to have zero valid occurrences (all on holidays, or every session clashes)
+      // must NOT wipe the existing schedule — that silently pushed the course back
+      // to "chờ xếp". We generate + validate first, and only delete right before
+      // inserting the replacement (see below). The conflict queries all exclude
+      // `course: { $ne: courseId }`, so the not-yet-deleted old events never
+      // self-conflict.
 
       // Generate occurrences
       const occurrences = getOccurrences(start_date, end_date, weekday, start_minutes, end_minutes, holidays);
@@ -331,6 +322,26 @@ export const POST = async (request) => {
           end_time: end_minutes
         }
       }));
+
+      // Now that we KNOW there is a clash-free set to insert, replace the old
+      // schedule. Deferring the delete to here makes a re-schedule non-destructive:
+      // if the new placement had failed (no valid occurrences), we'd have skipped
+      // above and the old series would still be intact.
+      if (d.series_id) {
+        await CalendarEvent.deleteMany({ series_id: d.series_id });
+      } else {
+        // Fallback or new booking: replace only the SAME slot (weekday + start
+        // tiết) for this course. Scoping by start_time is critical — a course
+        // with a lecture and its bài tập/thực hành on the same weekday must not
+        // have one session delete the other (which silently dropped sessions and
+        // caused phantom conflicts on re-import).
+        await CalendarEvent.deleteMany({
+          course: courseId,
+          type: 'class',
+          weekday: weekday,
+          'time_slot.start_time': start_time,
+        });
+      }
 
       await CalendarEvent.insertMany(eventDocs);
       allCreated.push({

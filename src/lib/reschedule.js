@@ -44,8 +44,6 @@ export async function regenerateCourseSchedule(courseId, newStartDate, teachers,
   const series = [...seriesMap.values()];
   if (!series.length) return;
 
-  await CalendarEvent.deleteMany({ course: courseId, type: "class" });
-
   const docs = [];
   for (const s of series) {
     const count = Math.max(1, s.count);
@@ -72,5 +70,11 @@ export async function regenerateCourseSchedule(courseId, newStartDate, teachers,
       });
     }
   }
-  if (docs.length) await CalendarEvent.insertMany(docs);
+  // Replace the old schedule only once we have a rebuilt one to insert, so a
+  // regeneration that produced nothing (e.g. every session on a holiday) can't
+  // silently wipe the course's schedule and drop it back to "chờ xếp".
+  if (docs.length) {
+    await CalendarEvent.deleteMany({ course: courseId, type: "class" });
+    await CalendarEvent.insertMany(docs);
+  }
 }
