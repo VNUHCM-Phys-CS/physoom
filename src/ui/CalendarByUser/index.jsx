@@ -261,7 +261,7 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
 
     return (
         <LoadingWrapper isLoading={isLoading}>
-            <div className="h-[600px] w-full bg-white dark:bg-zinc-900 p-4 rounded-xl">
+            <div className="h-[760px] w-full bg-white dark:bg-zinc-900 p-4 rounded-xl">
                 <DnDCalendar
                     localizer={localizer}
                     messages={{
@@ -344,6 +344,7 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
                     views={['month', 'week', 'day', 'agenda']}
                     min={new Date(0, 0, 0, 7, 0, 0)} // Start at 7 AM
                     max={new Date(0, 0, 0, 20, 0, 0)} // End at 8 PM
+                    scrollToTime={new Date(0, 0, 0, 7, 0, 0)} // pin view to 7 AM so 6–8 PM stays visible (no auto-scroll to now)
                 />
             </div>
             <DragConfirmModal
