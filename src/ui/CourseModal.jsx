@@ -268,20 +268,10 @@ const CourseModal = ({ data, isOpen, onOpenChange, onSave = () => {}, terms = []
                   />
                 )}
               />
-              <Controller
-                name="start_date"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="date"
-                    label={t("cm.startDate")}
-                    errorMessage={errors.start_date?.message}
-                    isInvalid={!!errors.start_date}
-                    required
-                  />
-                )}
-              />
+              {/* Start date is NOT editable here: it's set by scheduling/import and
+                  moving it re-generates the whole series. Editing it by hand in
+                  this form caused accidental reschedules, so the field is removed.
+                  The existing value is preserved unchanged on save. */}
               <Controller
                 name="credit"
                 control={control}
