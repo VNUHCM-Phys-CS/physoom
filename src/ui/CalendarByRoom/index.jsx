@@ -105,6 +105,7 @@ export default function CalendarByRoom({
       futureExtraByWeekday[e.weekday].push(e);
     });
 
+    const currentCourseId = booking?.course?._id?.toString();
     return (eventsByRoom ?? []).map((roomEvent) => {
       const calEvent = gridObject.booking2calendar(roomEvent);
       // Carry the session (week) count so the event can show a small badge.
@@ -113,6 +114,9 @@ export default function CalendarByRoom({
       const roomStart = roomEvent.time_slot?.start_time;
       const roomEnd = roomEvent.time_slot?.end_time;
       const roomCourseId = roomEvent.course?._id?.toString();
+      // Only the course currently being scheduled can be deleted here — never
+      // another course's booking in the same room.
+      calEvent.canDelete = !!currentCourseId && roomCourseId === currentCourseId;
 
       const roomTeachers = new Set(roomEvent.teacher_email || []);
       const seenCourses = new Set();
@@ -142,7 +146,7 @@ export default function CalendarByRoom({
         ? { ...calEvent, isOverlap: true, overlapWith }
         : calEvent;
     });
-  }, [eventsByRoom, gridObject, extraEvents, inWindow]);
+  }, [eventsByRoom, gridObject, extraEvents, inWindow, booking?.course?._id]);
   const eventBoundary = useMemo(() => {
     const _ids = {};
     const extraBoundary = [];

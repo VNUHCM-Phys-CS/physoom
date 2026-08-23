@@ -129,7 +129,7 @@ export default function CalendarEvent({
           {sessions}
         </div>
       )}
-      {onDelete && (
+      {onDelete && data?.canDelete && (
         <button
           className="delete-btn"
           onClick={(e) => {
