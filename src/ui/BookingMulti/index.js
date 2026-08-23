@@ -57,7 +57,7 @@ export default function BookingMulti() {
       },
     ],
     fetcheroptions,
-    { tags: ["course"], revalidate: 60 }
+    { refreshInterval: 20000 }
   );
   const courseSearchKey = useMemo(() => {
     return (course ?? []).map((d) => [
@@ -118,7 +118,7 @@ export default function BookingMulti() {
       },
     ],
     fetcheroptions,
-    { tags: ["booking"], revalidate: 60 }
+    { refreshInterval: 15000 }
   );
 
   // The room list is filtered by the course's location + capacity, so a course
@@ -255,7 +255,7 @@ export default function BookingMulti() {
       },
     ],
     fetcheroptions,
-    { tags: ["booking"], revalidate: 60 }
+    { refreshInterval: 15000 }
   );
   const {
     data: userEvents,
@@ -272,9 +272,9 @@ export default function BookingMulti() {
       },
     ],
     fetcheroptions,
-    { tags: ["booking"], revalidate: 60 }
+    { refreshInterval: 15000 }
   );
-  const { data: classEvents, isLoading: isLoadingclassEvent } = useSWR(
+  const { data: classEvents, isLoading: isLoadingclassEvent, mutate: mutateClassEvent } = useSWR(
     [
       booking ? "/api/calendar-events/fetch" : null,
       {
@@ -286,7 +286,7 @@ export default function BookingMulti() {
       },
     ],
     fetcheroptions,
-    { tags: ["booking"], revalidate: 60 }
+    { refreshInterval: 15000 }
   );
 
   // Distinct class_ids actually included in the class view (for the chips).
@@ -447,6 +447,7 @@ export default function BookingMulti() {
         mutateUserEvent();
         mutateBooking();
         mutateCurrentBooking();
+        mutateClassEvent();
         setSelectedEventForDelete(null);
       }
     } catch (err) {
@@ -479,6 +480,7 @@ export default function BookingMulti() {
         mutateUserEvent();
         mutateBooking();
         mutateCurrentBooking();
+        mutateClassEvent();
         toast.success(t("course.moveToPending"));
       } else {
         toast.error("Failed to move course to pending.");
@@ -486,7 +488,7 @@ export default function BookingMulti() {
     } catch {
       toast.error("Failed to move course to pending.");
     }
-  }, [confirm, t, mutateCourse, mutateUserEvent, mutateBooking, mutateCurrentBooking]);
+  }, [confirm, t, mutateCourse, mutateUserEvent, mutateBooking, mutateCurrentBooking, mutateClassEvent]);
 
   const intructionText = useCallback(() => {
     return <p className="text-gray-700 font-medium">
@@ -601,6 +603,7 @@ export default function BookingMulti() {
                         mutateUserEvent();
                         mutateBooking();
                         mutateCurrentBooking();
+                        mutateClassEvent();
                       }}
                       onClickEvent={onClickEvent}
                       onDoubleClick={onDoubleClick}
@@ -779,6 +782,7 @@ export default function BookingMulti() {
           mutateUserEvent();
           mutateBooking();
           mutateCurrentBooking();
+          mutateClassEvent();
         }}
       />
     </div>
