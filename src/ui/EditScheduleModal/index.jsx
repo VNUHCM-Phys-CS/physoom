@@ -12,6 +12,8 @@ import {
   Chip,
 } from "@heroui/react";
 import moment from "moment";
+import useSWR from "swr";
+import { fetcher } from "@/lib/ulti";
 import { toast } from "react-toastify";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -27,12 +29,22 @@ export default function EditScheduleModal({ isOpen, onClose, event, onSuccess })
   const [end, setEnd] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // End date defaults to the course's TERM end, so a re-schedule fills the whole
+  // term by default (falling back to the event's own end if the term is unknown).
+  const { data: terms } = useSWR("/api/terms", fetcher);
+  const termEnd = useMemo(() => {
+    const tid = event?.course?.term;
+    if (!tid || !terms) return null;
+    const term = terms.find((tm) => String(tm._id) === String(tid));
+    return term?.end || null;
+  }, [event?.course?.term, terms]);
+
   useEffect(() => {
     if (isOpen && event) {
       setStart(toInput(event.time_slot?.start_date || event.start));
-      setEnd(toInput(event.time_slot?.end_date || event.end || ""));
+      setEnd(toInput(termEnd || event.time_slot?.end_date || event.end || ""));
     }
-  }, [isOpen, event]);
+  }, [isOpen, event, termEnd]);
 
   // Rough week count preview (inclusive).
   const weeks = useMemo(() => {
@@ -95,7 +107,7 @@ export default function EditScheduleModal({ isOpen, onClose, event, onSuccess })
         <ModalBody className="gap-3">
           <p className="text-sm text-default-500">{t("sched.desc")}</p>
           <Input type="date" label={t("cm.startDate")} value={start} onChange={(e) => setStart(e.target.value)} />
-          <Input type="date" label={t("sched.endDate")} value={end} onChange={(e) => setEnd(e.target.value)} />
+          <Input type="date" label={t("sched.endDate")} value={end} onChange={(e) => setEnd(e.target.value)} description={termEnd ? "Mặc định = hết học kỳ" : undefined} />
           {weeks != null && (
             <Chip size="sm" variant="flat" color="secondary" className="w-fit">
               {t("sched.weeksInfo", { n: weeks })}
