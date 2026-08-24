@@ -4,6 +4,8 @@
 import { NextResponse } from "next/server";
 import { connectToDb } from "@/lib/mongodb";
 import CalendarEvent from "@/models/calendarEvent";
+import Room from "@/models/room";
+import { locationList } from "@/models/ulti";
 
 export const dynamic = "force-dynamic";
 
@@ -34,15 +36,30 @@ export const GET = async (request) => {
       start: { $lt: to },
       end: { $gt: from },
     },
-    "teacher_email start end title"
-  ).lean();
+    "teacher_email start end title room"
+  )
+    .populate("room", "title location")
+    .lean();
+
+  // Physoom stores campuses as LT / NVC; the faculty calls them CS2 / CS1.
+  // locationList.alternative is the authority for that pairing.
+  const campusCode = Object.fromEntries(
+    Object.entries(locationList.alternative || {}).map(([cs, loc]) => [loc, cs.toUpperCase()])
+  );
 
   const busy = {};
   for (const e of events) {
     for (const em of e.teacher_email || []) {
       const k = String(em).toLowerCase();
       if (!emails.includes(k)) continue;
-      (busy[k] ||= []).push({ start: e.start, end: e.end, title: e.title || "Lớp" });
+      (busy[k] ||= []).push({
+        start: e.start,
+        end: e.end,
+        title: e.title || "Lớp",
+        room: e.room?.title || "",
+        campus: e.room?.location || "", // LT | NVC
+        campusCode: campusCode[e.room?.location] || "", // CS2 | CS1
+      });
     }
   }
   return NextResponse.json({ busy });
