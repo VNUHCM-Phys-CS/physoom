@@ -6,7 +6,7 @@ import {
   Table, TableHeader, TableColumn, TableBody, TableRow, TableCell,
   Button, Input, Chip, Switch, Autocomplete, AutocompleteItem,
   Modal, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  useDisclosure, Pagination, Tooltip,
+  useDisclosure, Pagination, Tooltip, Spinner,
 } from "@heroui/react";
 import {
   PlusIcon, UploadIcon, DownloadIcon,
@@ -345,6 +345,102 @@ function FixEmailModal({ isOpen, onClose, user, onDone }) {
   );
 }
 
+// Xem trước đồng bộ web Khoa: hiện sẽ tạo/cập nhật/bỏ qua ai TRƯỚC khi ghi DB.
+function SyncWebkhoaModal({ isOpen, onClose, loading, preview, applying, onConfirm }) {
+  const c = preview?.counts;
+  const nothing = c && c.create === 0 && c.update === 0;
+  return (
+    <Modal isOpen={isOpen} onOpenChange={(o) => !o && onClose()} size="2xl" scrollBehavior="inside">
+      <ModalContent>
+        <ModalHeader className="flex flex-col gap-1">
+          <span>Đồng bộ từ web Khoa — xem trước</span>
+          <span className="text-xs font-normal text-default-400">
+            Chỉ đồng bộ email + tên + MSCB. Không đụng quyền/chức vị. Người đã nghỉ được bỏ qua.
+          </span>
+        </ModalHeader>
+        <ModalBody className="gap-3">
+          {loading || !preview ? (
+            <div className="flex items-center justify-center gap-3 py-10 text-default-500">
+              <Spinner size="sm" /> Đang lấy dữ liệu từ web Khoa…
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Chip color="success" variant="flat">Tạo mới: {c.create}</Chip>
+                <Chip color="primary" variant="flat">Cập nhật: {c.update}</Chip>
+                <Chip variant="flat">Không đổi: {c.unchanged}</Chip>
+                <Chip color="warning" variant="flat">Bỏ qua: {c.skipped}</Chip>
+                <Chip variant="flat" className="ml-auto">Tổng: {preview.total}</Chip>
+              </div>
+
+              {preview.toCreate?.length ? (
+                <div>
+                  <div className="mb-1 text-sm font-semibold text-success-600">
+                    Sẽ tạo mới ({preview.toCreate.length})
+                  </div>
+                  <div className="max-h-48 divide-y divide-default-100 overflow-auto rounded-lg border border-default-200">
+                    {preview.toCreate.map((u) => (
+                      <div key={u.email} className="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
+                        <span className="truncate">
+                          {u.name || <span className="text-default-400">(chưa có tên)</span>}
+                        </span>
+                        <span className="truncate text-default-400">{u.email}</span>
+                        {u.teacher_id ? <span className="text-xs text-default-400">MSCB {u.teacher_id}</span> : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {preview.toUpdate?.length ? (
+                <div>
+                  <div className="mb-1 text-sm font-semibold text-primary-600">
+                    Sẽ cập nhật ({preview.toUpdate.length})
+                  </div>
+                  <div className="max-h-48 divide-y divide-default-100 overflow-auto rounded-lg border border-default-200">
+                    {preview.toUpdate.map((u) => (
+                      <div key={u.email} className="px-3 py-1.5 text-sm">
+                        <div className="truncate text-default-500">{u.email}</div>
+                        {u.changes.name ? (
+                          <div className="text-xs">
+                            tên: <span className="text-default-400 line-through">{u.changes.name.from || "—"}</span>{" "}
+                            → <span className="text-primary-600">{u.changes.name.to}</span>
+                          </div>
+                        ) : null}
+                        {u.changes.teacher_id ? (
+                          <div className="text-xs">
+                            MSCB: <span className="text-default-400 line-through">{u.changes.teacher_id.from || "—"}</span>{" "}
+                            → <span className="text-primary-600">{u.changes.teacher_id.to}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {nothing ? (
+                <div className="py-2 text-sm text-default-500">Không có thay đổi nào để đồng bộ.</div>
+              ) : null}
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="flat" onPress={onClose}>Huỷ</Button>
+          <Button
+            color="primary"
+            isLoading={applying}
+            isDisabled={loading || !preview || nothing}
+            onPress={onConfirm}
+          >
+            Xác nhận đồng bộ
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
 // ── UserManagementPage ────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 15;
@@ -362,11 +458,14 @@ export default function UserManagementPage() {
   const { isOpen: isImportOpen, onOpen: openImport, onClose: closeImport } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: openDelete, onClose: closeDelete } = useDisclosure();
   const { isOpen: isFixEmailOpen, onOpen: openFixEmail, onClose: closeFixEmail } = useDisclosure();
+  const { isOpen: isSyncOpen, onOpen: openSync, onClose: closeSync } = useDisclosure();
 
   const [editUser, setEditUser] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [emailTarget, setEmailTarget] = useState(null);
-  const [syncing, setSyncing] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false); // đang lấy bản xem trước
+  const [syncPreview, setSyncPreview] = useState(null);
+  const [applying, setApplying] = useState(false);
 
   // ── filtering + pagination ────────────────────────────────────────────────
 
@@ -430,23 +529,50 @@ export default function UserManagementPage() {
     mutate();
   };
 
-  // Kéo danh sách nhân sự từ web Khoa về (chỉ định danh: email + tên + MSCB;
-  // không đụng quyền/chức vị). Đây cũng là bước làm đầy "danh sách cho phép"
-  // trước khi bật khóa đăng nhập.
-  const handleSyncWebkhoa = async () => {
-    setSyncing(true);
+  // Bước 1 — XEM TRƯỚC: kéo dữ liệu web Khoa và tính sẽ tạo/cập nhật/bỏ qua ai,
+  // KHÔNG ghi DB. Mở modal để admin duyệt.
+  const handleSyncPreview = async () => {
+    setSyncPreview(null);
+    setSyncLoading(true);
+    openSync();
     try {
-      const res = await fetch("/api/admin/user/sync-webkhoa", { method: "POST" });
+      const res = await fetch("/api/admin/user/sync-webkhoa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dryRun: true }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Lỗi xem trước");
+      setSyncPreview(data);
+    } catch (e) {
+      toast.error(`Xem trước lỗi: ${e.message}`);
+      closeSync();
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  // Bước 2 — ÁP DỤNG: chỉ chạy khi admin bấm xác nhận. Đồng bộ chỉ định danh
+  // (email + tên + MSCB), không đụng quyền/chức vị.
+  const handleSyncApply = async () => {
+    setApplying(true);
+    try {
+      const res = await fetch("/api/admin/user/sync-webkhoa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Đồng bộ thất bại");
       toast.success(
-        `Đồng bộ web Khoa: +${data.created} mới, ${data.updated} cập nhật, bỏ qua ${data.skipped} (tổng ${data.total}).`
+        `Đã đồng bộ: +${data.created} mới, ${data.updated} cập nhật, bỏ qua ${data.skipped}.`
       );
       mutate();
+      closeSync();
     } catch (e) {
-      toast.error(`Đồng bộ web Khoa lỗi: ${e.message}`);
+      toast.error(`Đồng bộ lỗi: ${e.message}`);
     } finally {
-      setSyncing(false);
+      setApplying(false);
     }
   };
 
@@ -464,7 +590,7 @@ export default function UserManagementPage() {
           </Button>
           {iAmSuper && (
             <>
-              <Button size="sm" variant="flat" startContent={<RefreshCwIcon size={14} />} onPress={handleSyncWebkhoa} isLoading={syncing}>
+              <Button size="sm" variant="flat" startContent={<RefreshCwIcon size={14} />} onPress={handleSyncPreview} isLoading={syncLoading && !isSyncOpen}>
                 Đồng bộ web Khoa
               </Button>
               <Button size="sm" variant="flat" startContent={<UploadIcon size={14} />} onPress={openImport}>
@@ -601,6 +727,14 @@ export default function UserManagementPage() {
         onClose={closeFixEmail}
         user={emailTarget}
         onDone={mutate}
+      />
+      <SyncWebkhoaModal
+        isOpen={isSyncOpen}
+        onClose={closeSync}
+        loading={syncLoading}
+        preview={syncPreview}
+        applying={applying}
+        onConfirm={handleSyncApply}
       />
     </div>
   );
