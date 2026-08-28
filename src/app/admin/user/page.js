@@ -10,8 +10,9 @@ import {
 } from "@heroui/react";
 import {
   PlusIcon, UploadIcon, DownloadIcon,
-  SearchIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, AtSignIcon,
+  SearchIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, AtSignIcon, RefreshCwIcon,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import DragDropzone from "@/ui/CSVReader/DragDropzone";
 import { useI18n } from "@/i18n/I18nProvider";
 import { DEPARTMENTS } from "@/lib/departments";
@@ -365,6 +366,7 @@ export default function UserManagementPage() {
   const [editUser, setEditUser] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [emailTarget, setEmailTarget] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
   // ── filtering + pagination ────────────────────────────────────────────────
 
@@ -428,6 +430,26 @@ export default function UserManagementPage() {
     mutate();
   };
 
+  // Kéo danh sách nhân sự từ web Khoa về (chỉ định danh: email + tên + MSCB;
+  // không đụng quyền/chức vị). Đây cũng là bước làm đầy "danh sách cho phép"
+  // trước khi bật khóa đăng nhập.
+  const handleSyncWebkhoa = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/admin/user/sync-webkhoa", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Đồng bộ thất bại");
+      toast.success(
+        `Đồng bộ web Khoa: +${data.created} mới, ${data.updated} cập nhật, bỏ qua ${data.skipped} (tổng ${data.total}).`
+      );
+      mutate();
+    } catch (e) {
+      toast.error(`Đồng bộ web Khoa lỗi: ${e.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Header */}
@@ -442,6 +464,9 @@ export default function UserManagementPage() {
           </Button>
           {iAmSuper && (
             <>
+              <Button size="sm" variant="flat" startContent={<RefreshCwIcon size={14} />} onPress={handleSyncWebkhoa} isLoading={syncing}>
+                Đồng bộ web Khoa
+              </Button>
               <Button size="sm" variant="flat" startContent={<UploadIcon size={14} />} onPress={openImport}>
                 {t("common.import")}
               </Button>

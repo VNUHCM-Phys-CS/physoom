@@ -102,6 +102,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (account.provider === "google") {
         await connectToDb();
         const existingUser = await User.findOne({ email: user.email });
+
+        // KHÓA ĐĂNG NHẬP theo danh sách cho phép.
+        //
+        // "Danh sách" = collection User (được đổ đầy từ web Khoa qua nút Đồng bộ,
+        // hoặc do super-admin thêm tay). Vì NextAuth ở đây KHÔNG có adapter và
+        // KHÔNG tự tạo user khi đăng nhập, chặn ngay tại đây cũng chặn luôn việc
+        // tự tạo tài khoản — không cần xử lý riêng.
+        //
+        // Bật/tắt bằng cờ ENFORCE_ALLOWLIST (mặc định TẮT). Quy trình an toàn:
+        // deploy khi TẮT → bấm "Đồng bộ từ web Khoa" → kiểm tra tài khoản admin
+        // hiện tại nằm trong danh sách → rồi mới đặt ENFORCE_ALLOWLIST=true.
+        if (process.env.ENFORCE_ALLOWLIST === "true" && !existingUser) {
+          return false; // NextAuth chặn phiên (trang AccessDenied)
+        }
+
         const isAdmin = existingUser && existingUser.isAdmin;
         const teacher_id = existingUser && existingUser.teacher_id;
         user.isAdmin = isAdmin;

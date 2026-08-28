@@ -6,6 +6,7 @@ import TeacherAlias from "@/models/teacherAlias";
 import { auth } from "@/lib/auth";
 import { normalizeDepartment } from "@/lib/departments";
 import { isSuperAdmin } from "@/lib/scope";
+import { pushUserToWebkhoa, webkhoaConfigured } from "@/lib/webkhoa";
 
 async function requireAdmin() {
   const session = await auth();
@@ -51,7 +52,27 @@ export const POST = async (request) => {
       rank: data.rank?.trim() || undefined,
       degree: data.degree?.trim() || undefined,
     });
-    return NextResponse.json({ success: true, user }, { status: 201 });
+
+    // Thêm ở Physoom → thêm luôn ở web Khoa (best-effort). Web Khoa lỗi/sập thì
+    // VẪN tạo ở Physoom, chỉ kèm cảnh báo để admin biết mà đồng bộ lại sau —
+    // không chặn admin chỉ vì bên kia tạm lỗi.
+    let webkhoa = null;
+    if (webkhoaConfigured()) {
+      try {
+        await pushUserToWebkhoa({
+          email: user.email,
+          name: user.name,
+          physoomId: user._id,
+          teacher_id: user.teacher_id,
+        });
+        webkhoa = { synced: true };
+      } catch (e) {
+        console.error("push user to webkhoa failed", e);
+        webkhoa = { synced: false, error: e.message };
+      }
+    }
+
+    return NextResponse.json({ success: true, user, webkhoa }, { status: 201 });
   } catch (err) {
     const msg = err.code === 11000 ? "Email already exists" : err.message;
     return NextResponse.json({ success: false, error: msg }, { status: 400 });
