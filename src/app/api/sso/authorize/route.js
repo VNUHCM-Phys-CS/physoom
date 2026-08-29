@@ -43,8 +43,8 @@ export const GET = async (request) => {
 
   const session = await auth();
   if (!session?.user?.email) {
-    // Not logged in → run Physoom's sign-in, then return to this same URL.
-    const signInUrl = new URL("/api/auth/signin", origin);
+    // Not logged in → send to Physoom's branded sign-in page, then return here.
+    const signInUrl = new URL("/login", origin);
     signInUrl.searchParams.set("callbackUrl", request.url);
     return NextResponse.redirect(signInUrl);
   }

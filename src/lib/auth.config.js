@@ -17,9 +17,12 @@ export const authConfig = {
     signing: true, // Enable token signing if needed
   },
   session: { strategy: "jwt" },
-  // pages: {
-  //   signIn: "/login",
-  // },
+  // Dùng trang đăng nhập có thương hiệu thay cho trang mặc định trơ trụi của
+  // NextAuth. Mọi lối vào đăng nhập (kể cả luồng SSO /api/sso/authorize khi chưa
+  // đăng nhập) đều đưa về đây, kèm callbackUrl để quay lại đúng chỗ.
+  pages: {
+    signIn: "/login",
+  },
   providers: [
     GoogleProvider({
       clientId: env.NEXT_GOOGLE_ID,

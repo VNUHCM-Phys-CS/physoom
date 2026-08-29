@@ -1,12 +1,9 @@
 import LoginForm from "@/ui/loginForm/loginForm";
 
 const LoginPage = () => {
-
   return (
-    <div className={"flex justify-center items-center"}>
-      <div className={"max-w-[500px] p-10 flex text-center gap-5 rounded-xl"}>
-        <LoginForm />
-      </div>
+    <div className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4 py-10">
+      <LoginForm />
     </div>
   );
 };
