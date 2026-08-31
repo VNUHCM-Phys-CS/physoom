@@ -24,48 +24,78 @@ export default function GoogleCalendarButton() {
   // Đồng bộ theo TỪNG LÔ (batch) và lặp cho tới khi xong: mỗi request chỉ xử lý
   // một số buổi giới hạn nên KHÔNG vượt thời gian cho phép của máy chủ, đồng thời
   // cập nhật một thanh tiến trình sống để người dùng thấy đang chạy tới đâu.
-  const BATCH = 40;
+  const BATCH = 25;
+  const MAX_PASSES = 4;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Chạy MỘT lượt quét toàn bộ (theo lô) và trả về tổng kết của lượt đó.
+  const runPass = async (tid, passLabel) => {
+    let offset = 0, guard = 0;
+    let inserted = 0, updated = 0, deleted = 0, skipped = 0, failedCount = 0, total = 0;
+    let firstErr = "", unsynced = null;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const res = await fetch("/api/google/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ offset, limit: BATCH }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.success) throw new Error(j.message || t("gcal.syncFailed"));
+
+      inserted += j.inserted || 0;
+      updated += j.updated || 0;
+      deleted += j.deleted || 0;
+      skipped += j.skipped || 0;
+      failedCount += j.failedCount || 0;
+      total = j.total || total;
+      if (!firstErr && j.failed?.[0]?.error) firstErr = j.failed[0].error;
+      if (offset === 0 && Array.isArray(j.unsynced)) unsynced = j.unsynced;
+
+      const processed = j.processed || 0;
+      const pct = total ? Math.round((processed / total) * 100) : 100;
+      toast.update(tid, { render: `Đang đồng bộ${passLabel}… ${processed}/${total} (${pct}%)`, isLoading: true });
+
+      if (j.done) break;
+      if (processed <= offset) { if (++guard > 2) break; } // không tiến → dừng
+      offset = processed;
+      await sleep(400); // giãn nhịp giữa các lô
+    }
+    return { inserted, updated, deleted, skipped, failedCount, total, firstErr, unsynced };
+  };
+
   const syncNow = async () => {
     setBusy(true);
     const tid = toast.loading("Đang đồng bộ… 0%");
-    let offset = 0;
-    let inserted = 0, updated = 0, deleted = 0, failedCount = 0, total = 0, firstErr = "";
-    let unsynced = []; // các môn hiện trên lịch cá nhân nhưng không đủ điều kiện đồng bộ
-    let guard = 0; // chặn vòng lặp vô hạn nếu server không tiến triển
     try {
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const res = await fetch("/api/google/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ offset, limit: BATCH }),
-        });
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok || !j.success) throw new Error(j.message || t("gcal.syncFailed"));
-
-        inserted += j.inserted || 0;
-        updated += j.updated || 0;
-        deleted += j.deleted || 0;
-        failedCount += j.failedCount || 0;
-        total = j.total || total;
-        if (!firstErr && j.failed?.[0]?.error) firstErr = j.failed[0].error;
-        if (offset === 0 && Array.isArray(j.unsynced)) unsynced = j.unsynced;
-
-        const processed = j.processed || 0;
-        const pct = total ? Math.round((processed / total) * 100) : 100;
-        toast.update(tid, { render: `Đang đồng bộ… ${processed}/${total} (${pct}%)`, isLoading: true });
-
-        if (j.done) break;
-        // An toàn: nếu offset không tiến, dừng để tránh lặp vô hạn.
-        if (processed <= offset) { if (++guard > 2) break; }
-        offset = processed;
+      let last = null;
+      let unsynced = [];
+      // Lặp NHIỀU LƯỢT trong MỘT lần bấm: sự kiện chưa lên Google (kể cả cái lượt
+      // trước bị rate-limit) luôn nằm ở nhóm "chèn mới" nên lượt sau tự bổ sung —
+      // KHÔNG mất gì. Giữa hai lượt còn lỗi, chờ ~30s cho quota Google/phút hồi lại
+      // rồi tự tiếp tục, tới khi hết lỗi hoặc không còn tiến triển.
+      for (let pass = 0; pass < MAX_PASSES; pass++) {
+        const label = pass === 0 ? "" : ` (lượt ${pass + 1})`;
+        last = await runPass(tid, label);
+        if (pass === 0 && Array.isArray(last.unsynced)) unsynced = last.unsynced;
+        if (last.failedCount === 0) break; // xong sạch
+        // Lượt sau không chèn/cập nhật được gì thêm → đang kẹt quota, dừng để khỏi chờ vô ích.
+        if (pass > 0 && last.inserted === 0 && last.updated === 0) break;
+        if (pass < MAX_PASSES - 1) {
+          toast.update(tid, {
+            render: `Chờ hạn mức Google (~30s) rồi tự tiếp tục… còn ${last.failedCount} chưa lên`,
+            isLoading: true,
+          });
+          await sleep(30000);
+        }
       }
 
-      const summary = `Đã đồng bộ: thêm ${inserted}, cập nhật ${updated}${deleted ? `, xoá ${deleted}` : ""} / tổng ${total}`;
-      if (failedCount > 0) {
+      const s = last || {};
+      const summary = `Đã đồng bộ: thêm ${s.inserted || 0}, cập nhật ${s.updated || 0}${s.deleted ? `, xoá ${s.deleted}` : ""}${s.skipped ? `, giữ nguyên ${s.skipped}` : ""} / tổng ${s.total || 0}`;
+      if (s.failedCount > 0) {
         toast.update(tid, {
-          render: `${summary}. ${failedCount} lỗi${firstErr ? ` — ${firstErr}` : ""} — bấm Đồng bộ lại để bổ sung.`,
-          type: "warning", isLoading: false, autoClose: 8000,
+          render: `${summary}. Còn ${s.failedCount} chưa lên${s.firstErr ? ` — ${s.firstErr}` : ""} — thử lại sau ít phút (quota Google).`,
+          type: "warning", isLoading: false, autoClose: 9000,
         });
       } else {
         toast.update(tid, { render: summary, type: "success", isLoading: false, autoClose: 5000 });

@@ -220,7 +220,19 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
     });
     (res.data.items || []).forEach((it) => {
       const pid = it.extendedProperties?.private?.physoomId;
-      if (pid) existing.set(pid, { gid: it.id, start: it.start?.dateTime || it.start?.date });
+      // Capture the fields we sync so we can SKIP patching events that haven't
+      // changed. These come free in the list response (no extra API calls), and
+      // skipping unchanged patches is what keeps us under Google's per-minute
+      // query quota on a re-sync (previously every existing event was re-patched).
+      if (pid)
+        existing.set(pid, {
+          gid: it.id,
+          summary: it.summary || "",
+          location: it.location || "",
+          description: it.description || "",
+          start: it.start?.dateTime || it.start?.date || "",
+          end: it.end?.dateTime || it.end?.date || "",
+        });
     });
     pageToken = res.data.nextPageToken;
   } while (pageToken);
@@ -272,9 +284,11 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
   const processed = Number.isFinite(limit) ? Math.min(offset + batch.length, total) : total;
   const done = processed >= total;
 
-  // Retry once on a TRANSIENT Google error (rate-limit / 5xx). A full-term first
-  // sync fires hundreds of calls; without this, a single 429 silently drops an
-  // event forever (until the next full re-sync).
+  // Retry a TRANSIENT Google error (rate-limit / 5xx) with EXPONENTIAL BACKOFF.
+  // Google Calendar caps "queries per minute per user", so a burst of inserts/
+  // patches gets 403/429 rateLimitExceeded. One quick retry isn't enough (the
+  // quota is per-minute); we back off 1s→2s→4s→8s and honour Retry-After.
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const isTransient = (e) => {
     const code = e?.code || e?.response?.status;
     const reason = e?.errors?.[0]?.reason || "";
@@ -282,18 +296,25 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
       reason === "rateLimitExceeded" || reason === "userRateLimitExceeded";
   };
   const withRetry = async (fn) => {
-    try {
-      return await fn();
-    } catch (e) {
-      if (!isTransient(e)) throw e;
-      await new Promise((r) => setTimeout(r, 600));
-      return fn();
+    let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        return await fn();
+      } catch (e) {
+        if (!isTransient(e) || attempt >= 4) throw e;
+        const retryAfter = Number(e?.response?.headers?.["retry-after"]) || 0;
+        const wait = retryAfter ? retryAfter * 1000 : Math.min(1000 * 2 ** attempt, 8000);
+        attempt++;
+        await sleep(wait);
+      }
     }
   };
 
-  // Run Google API calls with bounded concurrency so a full re-sync (dozens of
-  // sessions) doesn't run for tens of seconds and hit the serverless timeout.
-  const runPool = async (items, worker, limit = 8) => {
+  // Run Google API calls with LOW concurrency. High concurrency bursts past
+  // Google's "queries per minute per user" quota (→ 403/429). 3 in flight keeps
+  // throughput steady without tripping the limit; withRetry handles the rest.
+  const runPool = async (items, worker, limit = 3) => {
     let i = 0;
     const next = async () => {
       while (i < items.length) {
@@ -319,7 +340,33 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
   // converges over repeated syncs instead of stalling. (Previously inserts and
   // patches were interleaved, so a timeout could leave most events uncreated.)
   const toInsert = batch.filter((ev) => !existing.has(String(ev._id)));
-  const toPatch = batch.filter((ev) => existing.has(String(ev._id)));
+
+  // Patch ONLY events that actually changed. Comparing the fields we sync against
+  // what Google already has (captured free from the list above) means a steady-
+  // state re-sync makes ZERO patch calls — which is what stops the per-minute
+  // quota errors. `counts.skipped` = unchanged events left as-is.
+  // Compare start/end as INSTANTS, not strings: Google returns them with a
+  // +07:00 offset while toGoogleEvent emits UTC "…Z" — same moment, different
+  // text. A string compare would mark every event "changed" and defeat the skip.
+  const sameTime = (a, b) => {
+    const ta = a ? new Date(a).getTime() : NaN;
+    const tb = b ? new Date(b).getTime() : NaN;
+    return ta === tb;
+  };
+  const changed = (ev) => {
+    const hit = existing.get(String(ev._id));
+    const body = toGoogleEvent(ev);
+    return (
+      (hit.summary || "") !== (body.summary || "") ||
+      (hit.location || "") !== (body.location || "") ||
+      (hit.description || "") !== (body.description || "") ||
+      !sameTime(hit.start, body.start?.dateTime) ||
+      !sameTime(hit.end, body.end?.dateTime)
+    );
+  };
+  const toPatch = batch.filter((ev) => existing.has(String(ev._id)) && changed(ev));
+  counts.skipped =
+    batch.length - toInsert.length - toPatch.length; // existing & unchanged
 
   await runPool(toInsert, async (ev) => {
     await withRetry(() => cal.events.insert({ calendarId, requestBody: toGoogleEvent(ev) }));
