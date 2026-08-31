@@ -181,6 +181,7 @@ async function userEvents(email) {
     end: { $gte: windowStart() }, // only recent-past → future; freeze older history
     $or: [{ teacher_email: email }, { host: email }, { attendees: email }],
   })
+    .sort({ _id: 1 }) // stable order so paginated syncing (offset/limit) is consistent
     .populate("course room")
     .lean();
 }
@@ -189,7 +190,7 @@ async function userEvents(email) {
  * Reconcile a user's Physoom schedule into their Physoom Google calendar:
  * insert new, patch changed, delete removed. Returns counts.
  */
-export async function syncUserToGoogle(email) {
+export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } = {}) {
   if (!isGoogleConfigured()) return { skipped: "not-configured" };
   await connectToDb();
   const user = await User.findOne({ email }, "google").lean();
@@ -220,10 +221,39 @@ export async function syncUserToGoogle(email) {
   const evs = await userEvents(email);
   const seen = new Set(evs.map((ev) => String(ev._id)));
   const counts = { inserted: 0, updated: 0, deleted: 0 };
+  const failed = []; // { id, title, error } — surfaced so a partial sync isn't silent
+
+  // Paginated sync: the client processes the schedule in bounded batches
+  // (offset/limit) so a full term never exceeds the serverless time limit in one
+  // request, and can show a progress bar. `limit = Infinity` = sync everything in
+  // one call (used by the post-connect initial sync).
+  const total = evs.length;
+  const batch = Number.isFinite(limit) ? evs.slice(offset, offset + limit) : evs;
+  const processed = Number.isFinite(limit) ? Math.min(offset + batch.length, total) : total;
+  const done = processed >= total;
+
+  // Retry once on a TRANSIENT Google error (rate-limit / 5xx). A full-term first
+  // sync fires hundreds of calls; without this, a single 429 silently drops an
+  // event forever (until the next full re-sync).
+  const isTransient = (e) => {
+    const code = e?.code || e?.response?.status;
+    const reason = e?.errors?.[0]?.reason || "";
+    return code === 403 || code === 429 || (code >= 500 && code < 600) ||
+      reason === "rateLimitExceeded" || reason === "userRateLimitExceeded";
+  };
+  const withRetry = async (fn) => {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isTransient(e)) throw e;
+      await new Promise((r) => setTimeout(r, 600));
+      return fn();
+    }
+  };
 
   // Run Google API calls with bounded concurrency so a full re-sync (dozens of
   // sessions) doesn't run for tens of seconds and hit the serverless timeout.
-  const runPool = async (items, worker, limit = 6) => {
+  const runPool = async (items, worker, limit = 8) => {
     let i = 0;
     const next = async () => {
       while (i < items.length) {
@@ -232,43 +262,65 @@ export async function syncUserToGoogle(email) {
           await worker(item);
         } catch (e) {
           console.error("gcal op failed:", e?.message);
+          failed.push({
+            id: String(item?._id || ""),
+            title: item?.course?.title || item?.title || "",
+            error: e?.errors?.[0]?.message || e?.message || "unknown",
+          });
         }
       }
     };
     await Promise.all(Array.from({ length: Math.min(limit, items.length) }, next));
   };
 
-  // Insert new / patch changed events.
-  await runPool(evs, async (ev) => {
-    const pid = String(ev._id);
-    const body = toGoogleEvent(ev);
-    const hit = existing.get(pid);
-    if (hit) {
-      await cal.events.patch({ calendarId, eventId: hit.gid, requestBody: body });
-      counts.updated++;
-    } else {
-      await cal.events.insert({ calendarId, requestBody: body });
-      counts.inserted++;
-    }
+  // Split by insert vs patch and do INSERTS FIRST. On a large first sync that may
+  // exceed the serverless time budget, this guarantees MISSING events get created
+  // before any time is spent re-patching events that already exist — so coverage
+  // converges over repeated syncs instead of stalling. (Previously inserts and
+  // patches were interleaved, so a timeout could leave most events uncreated.)
+  const toInsert = batch.filter((ev) => !existing.has(String(ev._id)));
+  const toPatch = batch.filter((ev) => existing.has(String(ev._id)));
+
+  await runPool(toInsert, async (ev) => {
+    await withRetry(() => cal.events.insert({ calendarId, requestBody: toGoogleEvent(ev) }));
+    counts.inserted++;
+  });
+  await runPool(toPatch, async (ev) => {
+    const hit = existing.get(String(ev._id));
+    await withRetry(() =>
+      cal.events.patch({ calendarId, eventId: hit.gid, requestBody: toGoogleEvent(ev) })
+    );
+    counts.updated++;
   });
 
   // Delete Google events no longer in Physoom — but only inside the active
   // window (past events beyond the window are frozen, never deleted). Guard:
   // if Physoom returned nothing yet Google has many tagged events, treat it as
   // a suspicious/empty query and skip deletes entirely (avoids mass-wipe).
+  // Deletes run ONLY on the final chunk (done) — otherwise an early batch would
+  // delete every event the later batches haven't inserted yet. `seen` is the full
+  // schedule (not just this batch), so the final delete pass is correct.
   const cutoff = windowStart();
-  const stale = [...existing].filter(
-    ([pid, info]) => !seen.has(pid) && (!info.start || new Date(info.start) >= cutoff)
-  );
   const suspicious = evs.length === 0 && existing.size >= 3;
-  if (!suspicious) {
+  if (done && !suspicious) {
+    const stale = [...existing].filter(
+      ([pid, info]) => !seen.has(pid) && (!info.start || new Date(info.start) >= cutoff)
+    );
     await runPool(stale, async ([, info]) => {
       await cal.events.delete({ calendarId, eventId: info.gid });
       counts.deleted++;
     });
   }
 
-  return { ...counts, total: evs.length, ...(suspicious ? { guarded: true } : {}) };
+  return {
+    ...counts,
+    total,
+    processed,
+    done,
+    failedCount: failed.length,
+    failed: failed.slice(0, 10), // sample for the UI; full list is in server logs
+    ...(suspicious ? { guarded: true } : {}),
+  };
 }
 
 /**
