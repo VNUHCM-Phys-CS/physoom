@@ -176,10 +176,17 @@ function toGoogleEvent(ev) {
 async function userEvents(email) {
   return CalendarEvent.find({
     type: { $nin: ["holiday", "term"] },
-    status: "approved",
     isCancelled: { $ne: true },
+    status: { $ne: "rejected" }, // rejected never syncs
     end: { $gte: windowStart() }, // only recent-past → future; freeze older history
-    $or: [{ teacher_email: email }, { host: email }, { attendees: email }],
+    $and: [
+      { $or: [{ teacher_email: email }, { host: email }, { attendees: email }] },
+      // Lịch DẠY (class) LUÔN đồng bộ — đó là lịch giảng thật, kể cả khi bản ghi
+      // chưa ở trạng thái "approved" (một số lớp import/đặt lại nằm ở pending mà
+      // vẫn hiện trên lịch cá nhân → phải lên Google). Còn sự kiện/họp/đặt phòng
+      // thì CHỈ đồng bộ khi ĐÃ DUYỆT, để yêu cầu chưa duyệt không đẩy lên Google.
+      { $or: [{ type: "class" }, { status: "approved" }] },
+    ],
   })
     .sort({ _id: 1 }) // stable order so paginated syncing (offset/limit) is consistent
     .populate("course room")
@@ -222,6 +229,39 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
   const seen = new Set(evs.map((ev) => String(ev._id)));
   const counts = { inserted: 0, updated: 0, deleted: 0 };
   const failed = []; // { id, title, error } — surfaced so a partial sync isn't silent
+
+  // DIAGNOSTIC (chỉ tính ở lô đầu): những buổi ĐANG HIỆN trên lịch cá nhân của
+  // người dùng nhưng KHÔNG đủ điều kiện đồng bộ, kèm lý do. Đây là cách trả lời
+  // dứt điểm câu "vẫn thiếu lớp": nếu lớp thiếu nằm ở đây → do trạng thái/huỷ;
+  // nếu KHÔNG nằm ở đây và cũng không trên Google → lớp đó không gắn với email
+  // này (vấn đề dữ liệu, không phải đồng bộ).
+  let unsynced;
+  if (offset === 0) {
+    const cutoff2 = windowStart();
+    const onCalendar = await CalendarEvent.find(
+      {
+        type: { $nin: ["holiday", "term"] },
+        $or: [{ teacher_email: email }, { host: email }, { attendees: email }],
+      },
+      "title status isCancelled end course"
+    )
+      .populate("course", "title")
+      .lean();
+    const eligibleIds = new Set(evs.map((e) => String(e._id)));
+    const byTitle = new Map();
+    for (const ev of onCalendar) {
+      if (eligibleIds.has(String(ev._id))) continue; // đã đủ điều kiện, sẽ đồng bộ
+      if (new Date(ev.end) < cutoff2) continue; // đã qua (đóng băng theo thiết kế)
+      const reason = ev.isCancelled
+        ? "đã huỷ"
+        : ev.status !== "approved"
+        ? `chưa duyệt (${ev.status})`
+        : "khác";
+      const title = ev.course?.title || ev.title || "(không tên)";
+      if (!byTitle.has(title)) byTitle.set(title, reason); // gộp theo môn, khỏi lặp từng buổi
+    }
+    unsynced = [...byTitle].slice(0, 12).map(([title, reason]) => ({ title, reason }));
+  }
 
   // Paginated sync: the client processes the schedule in bounded batches
   // (offset/limit) so a full term never exceeds the serverless time limit in one
@@ -319,6 +359,7 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
     done,
     failedCount: failed.length,
     failed: failed.slice(0, 10), // sample for the UI; full list is in server logs
+    ...(unsynced ? { unsynced } : {}),
     ...(suspicious ? { guarded: true } : {}),
   };
 }

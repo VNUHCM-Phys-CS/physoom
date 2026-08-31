@@ -309,7 +309,7 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
                               )}
                               {/* Lecturer — smallest + lightest (secondary). */}
                               {teachers && <div className="text-[9px] font-light opacity-75 truncate">{teachers}</div>}
-                              {!readOnly && onDelete && (
+                              {!readOnly && onDelete && e.type !== "duty" && (
                                 <button
                                   className="delete-btn absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 p-0.5 bg-white text-danger rounded-full hover:bg-danger hover:text-white transition-opacity z-50 shadow-sm flex items-center justify-center border border-danger/20"
                                   style={{ width: '18px', height: '18px' }}
@@ -331,7 +331,11 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
                             `${loc.format(start, "HH:mm", culture)}–${loc.format(end, "HH:mm", culture)}`,
                     }}
                     onSelectEvent={(e, ...rest) => {
-                        if (e?.resource?.isHoliday || e?.resource?.type === 'duty') return;
+                        if (e?.resource?.isHoliday) return;
+                        // Ca trực: chỉ đọc, nhưng VẪN cho bấm để xem chi tiết —
+                        // luôn dùng popup read-only sẵn có (bỏ qua onClickEvent vốn
+                        // để mở form sửa của môn học).
+                        if (e?.resource?.type === 'duty') { setInfo(e.resource || e); return; }
                         if (onClickEvent) { onClickEvent(e, ...rest); return; }
                         setInfo(e.resource || e); // read-only view → built-in popup
                     }}
@@ -382,8 +386,21 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
                                             {info.status}
                                         </Chip>
                                     )}
+                                    {info?.type === "duty" && (
+                                        <Chip size="sm" variant="flat" color="secondary" className="w-fit">Ca trực</Chip>
+                                    )}
                                 </ModalHeader>
+                                {/* Ca trực đến từ Offisoom — chỉ có giờ; hiện công khai (là ca của
+                                    chính người dùng), không áp giới hạn canSee, không nút sửa. */}
                                 <ModalBody className="text-sm">
+                                    {info?.type === "duty" ? (
+                                        <div className="flex flex-col gap-1.5">
+                                            {when && <p><span className="text-default-500">{t("event.time")}:</span> {when}</p>}
+                                            <p className="mt-1 italic text-default-400">
+                                                Ca trực (đồng bộ từ Offisoom) — chỉ xem, quản lý tại trang phân công trực.
+                                            </p>
+                                        </div>
+                                    ) : (
                                     <div className="flex flex-col gap-1.5">
                                         {(() => {
                                             const cls = Array.isArray(info?.course?.class_id)
@@ -415,6 +432,7 @@ export default function CalendarByUser({_events=[],overlayEvents=[],isLoading,se
                                             <p className="text-default-400 italic mt-1">{t("event.restricted")}</p>
                                         )}
                                     </div>
+                                    )}
                                 </ModalBody>
                                 <ModalFooter>
                                     <Button variant="flat" onPress={onClose}>{t("common.close")}</Button>

@@ -30,6 +30,7 @@ export default function GoogleCalendarButton() {
     const tid = toast.loading("Đang đồng bộ… 0%");
     let offset = 0;
     let inserted = 0, updated = 0, deleted = 0, failedCount = 0, total = 0, firstErr = "";
+    let unsynced = []; // các môn hiện trên lịch cá nhân nhưng không đủ điều kiện đồng bộ
     let guard = 0; // chặn vòng lặp vô hạn nếu server không tiến triển
     try {
       // eslint-disable-next-line no-constant-condition
@@ -48,6 +49,7 @@ export default function GoogleCalendarButton() {
         failedCount += j.failedCount || 0;
         total = j.total || total;
         if (!firstErr && j.failed?.[0]?.error) firstErr = j.failed[0].error;
+        if (offset === 0 && Array.isArray(j.unsynced)) unsynced = j.unsynced;
 
         const processed = j.processed || 0;
         const pct = total ? Math.round((processed / total) * 100) : 100;
@@ -67,6 +69,17 @@ export default function GoogleCalendarButton() {
         });
       } else {
         toast.update(tid, { render: summary, type: "success", isLoading: false, autoClose: 5000 });
+      }
+
+      // Báo rõ các môn ĐANG hiện trên lịch cá nhân nhưng KHÔNG lên Google được,
+      // kèm lý do (chưa duyệt / đã huỷ). Nếu lớp bạn thấy thiếu KHÔNG nằm trong
+      // danh sách này thì lớp đó không gắn với email của bạn (vấn đề dữ liệu).
+      if (unsynced.length) {
+        const lines = unsynced.map((u) => `• ${u.title} — ${u.reason}`).join("\n");
+        toast.warning(`Không đồng bộ được (${unsynced.length}):\n${lines}`, {
+          autoClose: 12000,
+          style: { whiteSpace: "pre-line" },
+        });
       }
     } catch (e) {
       toast.update(tid, { render: e.message || t("gcal.syncFailed"), type: "error", isLoading: false, autoClose: 5000 });
