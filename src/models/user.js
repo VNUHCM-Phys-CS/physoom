@@ -46,7 +46,8 @@ const userSchema = new Schema({
     connectedAt: { type: Date },
   },
 });
-userSchema.index({ email: 1 }, { unique: true });
+// Chỉ số duy nhất cho email đã khai ở field (`unique: true`) — KHÔNG khai lại
+// bằng schema.index() nữa, nếu không Mongoose cảnh báo "Duplicate schema index".
 
 const User = mongoose.models?.User || mongoose.model("User", userSchema);
 
