@@ -9,6 +9,7 @@ import User from "@/models/user";
 import "@/models/course";
 import "@/models/room";
 import { connectToDb } from "@/lib/mongodb";
+import { fetchUserDuties, dutiesConfigured } from "@/lib/duties";
 
 const CLIENT_ID = process.env.NEXT_GOOGLE_ID;
 const CLIENT_SECRET = process.env.NEXT_GOOGLE_SECRET;
@@ -141,8 +142,19 @@ async function ensureCalendar(authClient, existingId) {
   return calendarId;
 }
 
-/** Build a Google event body from a Physoom CalendarEvent. */
+/** Build a Google event body from a Physoom CalendarEvent (or a duty pseudo-event). */
 function toGoogleEvent(ev) {
+  // Ca trực (đồng bộ từ Offisoom) — không có course/room, chỉ giờ + nhãn.
+  if (ev.__duty) {
+    return {
+      summary: ev.title || "Ca trực",
+      description: "Ca trực (đồng bộ từ Offisoom).",
+      location: ev.location || "",
+      start: { dateTime: new Date(ev.start).toISOString(), timeZone: "Asia/Ho_Chi_Minh" },
+      end: { dateTime: new Date(ev.end).toISOString(), timeZone: "Asia/Ho_Chi_Minh" },
+      extendedProperties: { private: { physoomSource: TAG, physoomId: String(ev._id) } },
+    };
+  }
   const cls = Array.isArray(ev.course?.class_id) ? ev.course.class_id.filter(Boolean).join(", ") : ev.course?.class_id || "";
   const name = ev.course?.title || ev.title || "Sự kiện";
   const room = ev.room?.title || "";
@@ -202,8 +214,26 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
   await connectToDb();
   const user = await User.findOne({ email }, "google").lean();
   const refreshToken = user?.google?.refreshToken;
-  const calendarId = user?.google?.calendarId;
-  if (!refreshToken || !calendarId) return { skipped: "not-connected" };
+  // Không có refresh token thì thực sự chưa kết nối — người dùng phải bấm "Kết nối
+  // Google" (không tự lấy lại token được).
+  if (!refreshToken) return { skipped: "not-connected" };
+
+  const authClient = oauthClient();
+  authClient.setCredentials({ refresh_token: refreshToken });
+
+  // Có token nhưng THIẾU calendarId (kết nối cũ, hoặc lịch "Physoom" đã bị xoá):
+  // TỰ TẠO LẠI lịch rồi lưu, thay vì báo "chưa kết nối" khó hiểu (trước đây nút
+  // vẫn hiện "Đã kết nối" vì status chỉ xét refreshToken → sync 400 vô cớ).
+  let calendarId = user?.google?.calendarId;
+  if (!calendarId) {
+    try {
+      calendarId = await ensureCalendar(authClient, null);
+      await User.updateOne({ email }, { $set: { "google.calendarId": calendarId } });
+    } catch (e) {
+      console.error("ensureCalendar (recover) failed:", e?.message);
+      return { skipped: "not-connected" };
+    }
+  }
 
   const cal = calFor(refreshToken);
 
@@ -237,7 +267,36 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
     pageToken = res.data.nextPageToken;
   } while (pageToken);
 
-  const evs = await userEvents(email);
+  const physEvs = await userEvents(email);
+
+  // Ca trực (Offisoom) cũng đưa lên Google. Chúng KHÔNG phải CalendarEvent nên
+  // tạo "pseudo-event" với id ổn định (duty:<giờ bắt đầu>:<cơ sở>) để cùng luồng
+  // chèn/cập nhật/xoá & bỏ-qua-nếu-không-đổi như mọi sự kiện khác. Best-effort:
+  // Offisoom lỗi → [] → không ảnh hưởng phần còn lại.
+  const cutoffW = windowStart();
+  const manageDuties = dutiesConfigured();
+  let dutyPseudos = [];
+  if (manageDuties) try {
+    const duties = await fetchUserDuties(email);
+    dutyPseudos = duties
+      .map((d) => ({
+        _id: `duty:${new Date(d.start).toISOString()}:${d.location || ""}`,
+        __duty: true,
+        title: d.title,
+        location: d.location,
+        note: d.note,
+        start: new Date(d.start),
+        end: new Date(d.end),
+      }))
+      .filter((d) => d.end >= cutoffW)
+      .sort((a, b) => (a._id < b._id ? -1 : a._id > b._id ? 1 : 0));
+  } catch (e) {
+    console.error("duty fetch for gcal failed:", e?.message);
+  }
+
+  // physEvs đã sort theo _id; nối duties (đã sort) sau → thứ tự tổng ổn định để
+  // phân trang (offset/limit) nhất quán giữa các lô.
+  const evs = [...physEvs, ...dutyPseudos];
   const seen = new Set(evs.map((ev) => String(ev._id)));
   const counts = { inserted: 0, updated: 0, deleted: 0 };
   const failed = []; // { id, title, error } — surfaced so a partial sync isn't silent
@@ -391,7 +450,13 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
   const suspicious = evs.length === 0 && existing.size >= 3;
   if (done && !suspicious) {
     const stale = [...existing].filter(
-      ([pid, info]) => !seen.has(pid) && (!info.start || new Date(info.start) >= cutoff)
+      ([pid, info]) =>
+        !seen.has(pid) &&
+        (!info.start || new Date(info.start) >= cutoff) &&
+        // KHÔNG xoá sự kiện ca trực khi tích hợp Offisoom đang TẮT/không kéo được
+        // (fetch trả [] → seen thiếu duty → sẽ xoá nhầm). Chỉ dọn duty khi đang
+        // thực sự quản lý duty.
+        (manageDuties || !String(pid).startsWith("duty:"))
     );
     await runPool(stale, async ([, info]) => {
       await cal.events.delete({ calendarId, eventId: info.gid });

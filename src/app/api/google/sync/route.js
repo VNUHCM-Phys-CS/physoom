@@ -19,7 +19,14 @@ export const POST = async (request) => {
     const limit = Number.isFinite(body?.limit) ? Math.max(1, body.limit) : undefined;
     const result = await syncUserToGoogle(email, limit ? { offset, limit } : {});
     if (result?.skipped) {
-      return NextResponse.json({ success: false, skipped: result.skipped }, { status: 400 });
+      const message =
+        result.skipped === "not-configured"
+          ? "Tích hợp Google chưa được cấu hình trên máy chủ."
+          : "Chưa kết nối Google (hoặc kết nối đã hết hạn). Vào lại và bấm “Kết nối Google”.";
+      return NextResponse.json(
+        { success: false, skipped: result.skipped, message },
+        { status: 400 }
+      );
     }
     return NextResponse.json({ success: true, ...result });
   } catch (e) {
