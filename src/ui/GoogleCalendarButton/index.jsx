@@ -31,7 +31,7 @@ export default function GoogleCalendarButton() {
   // Chạy MỘT lượt quét toàn bộ (theo lô) và trả về tổng kết của lượt đó.
   const runPass = async (tid, passLabel) => {
     let offset = 0, guard = 0;
-    let inserted = 0, updated = 0, deleted = 0, skipped = 0, failedCount = 0, total = 0;
+    let inserted = 0, updated = 0, deleted = 0, unchanged = 0, failedCount = 0, total = 0;
     let firstErr = "", unsynced = null;
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -49,7 +49,7 @@ export default function GoogleCalendarButton() {
       inserted += j.inserted || 0;
       updated += j.updated || 0;
       deleted += j.deleted || 0;
-      skipped += j.skipped || 0;
+      unchanged += j.unchanged || 0;
       failedCount += j.failedCount || 0;
       total = j.total || total;
       if (!firstErr && j.failed?.[0]?.error) firstErr = j.failed[0].error;
@@ -64,7 +64,7 @@ export default function GoogleCalendarButton() {
       offset = processed;
       await sleep(400); // giãn nhịp giữa các lô
     }
-    return { inserted, updated, deleted, skipped, failedCount, total, firstErr, unsynced };
+    return { inserted, updated, deleted, unchanged, failedCount, total, firstErr, unsynced };
   };
 
   const syncNow = async () => {
@@ -94,7 +94,7 @@ export default function GoogleCalendarButton() {
       }
 
       const s = last || {};
-      const summary = `Đã đồng bộ: thêm ${s.inserted || 0}, cập nhật ${s.updated || 0}${s.deleted ? `, xoá ${s.deleted}` : ""}${s.skipped ? `, giữ nguyên ${s.skipped}` : ""} / tổng ${s.total || 0}`;
+      const summary = `Đã đồng bộ: thêm ${s.inserted || 0}, cập nhật ${s.updated || 0}${s.deleted ? `, xoá ${s.deleted}` : ""}${s.unchanged ? `, giữ nguyên ${s.unchanged}` : ""} / tổng ${s.total || 0}`;
       if (s.failedCount > 0) {
         toast.update(tid, {
           render: `${summary}. Còn ${s.failedCount} chưa lên${s.firstErr ? ` — ${s.firstErr}` : ""} — thử lại sau ít phút (quota Google).`,

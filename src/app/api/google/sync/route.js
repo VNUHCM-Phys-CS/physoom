@@ -18,7 +18,9 @@ export const POST = async (request) => {
     const offset = Number.isFinite(body?.offset) ? Math.max(0, body.offset) : 0;
     const limit = Number.isFinite(body?.limit) ? Math.max(1, body.limit) : undefined;
     const result = await syncUserToGoogle(email, limit ? { offset, limit } : {});
-    if (result?.skipped) {
+    // `skipped` là CỜ CHUỖI ("not-connected"/"not-configured") — chỉ chuỗi mới coi
+    // là bỏ qua. (Đừng dùng truthy: một trường đếm cùng tên sẽ gây 400 oan.)
+    if (typeof result?.skipped === "string") {
       const message =
         result.skipped === "not-configured"
           ? "Tích hợp Google chưa được cấu hình trên máy chủ."

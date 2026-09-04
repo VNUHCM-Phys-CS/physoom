@@ -448,8 +448,10 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
     );
   };
   const toPatch = batch.filter((ev) => existing.has(String(ev._id)) && changed(ev));
-  counts.skipped =
-    batch.length - toInsert.length - toPatch.length; // existing & unchanged
+  // "unchanged" — KHÔNG đặt tên `skipped`: route dùng `result.skipped` làm CỜ CHUỖI
+  // ("not-connected"/"not-configured"); một con số > 0 ở đây sẽ bị hiểu nhầm là cờ
+  // → trả 400 "chưa kết nối" oan. (Đây chính là bug đã gặp.)
+  counts.unchanged = batch.length - toInsert.length - toPatch.length;
 
   await runPool(toInsert, async (ev) => {
     await withRetry(() => cal.events.insert({ calendarId, requestBody: toGoogleEvent(ev) }));
