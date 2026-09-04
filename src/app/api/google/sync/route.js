@@ -24,13 +24,31 @@ export const POST = async (request) => {
           ? "Tích hợp Google chưa được cấu hình trên máy chủ."
           : "Chưa kết nối Google (hoặc kết nối đã hết hạn). Vào lại và bấm “Kết nối Google”.";
       return NextResponse.json(
-        { success: false, skipped: result.skipped, message },
+        { success: false, skipped: result.skipped, message, detail: result.detail || null },
         { status: 400 }
       );
     }
     return NextResponse.json({ success: true, ...result });
   } catch (e) {
     console.error("gcal sync failed:", e?.message);
-    return NextResponse.json({ success: false, message: e?.message || "Sync failed" }, { status: 500 });
+    // Token hết hạn/bị thu hồi (Google trả invalid_grant/401) → hướng dẫn kết nối
+    // lại thay vì lỗi 500 khó hiểu. Huy hiệu có thể vẫn "Đã kết nối" vì token cũ
+    // còn lưu trong DB nhưng đã mất hiệu lực.
+    const raw = e?.message || "";
+    const badToken =
+      /invalid_grant|invalid_token|unauthorized|No refresh token/i.test(raw) ||
+      e?.code === 401 || e?.response?.status === 401;
+    if (badToken) {
+      return NextResponse.json(
+        {
+          success: false,
+          skipped: "not-connected",
+          message: "Kết nối Google đã hết hạn hoặc bị thu hồi. Bấm “Ngắt kết nối” rồi “Kết nối Google” lại.",
+          detail: raw || null,
+        },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ success: false, message: raw || "Sync failed", detail: raw || null }, { status: 500 });
   }
 };

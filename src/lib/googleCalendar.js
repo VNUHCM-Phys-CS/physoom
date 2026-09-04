@@ -216,7 +216,7 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
   const refreshToken = user?.google?.refreshToken;
   // Không có refresh token thì thực sự chưa kết nối — người dùng phải bấm "Kết nối
   // Google" (không tự lấy lại token được).
-  if (!refreshToken) return { skipped: "not-connected" };
+  if (!refreshToken) return { skipped: "not-connected", detail: "no-refresh-token" };
 
   const authClient = oauthClient();
   authClient.setCredentials({ refresh_token: refreshToken });
@@ -231,7 +231,7 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
       await User.updateOne({ email }, { $set: { "google.calendarId": calendarId } });
     } catch (e) {
       console.error("ensureCalendar (recover) failed:", e?.message);
-      return { skipped: "not-connected" };
+      return { skipped: "not-connected", detail: `ensureCalendar: ${e?.message || "?"}` };
     }
   }
 

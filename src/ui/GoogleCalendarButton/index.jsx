@@ -41,7 +41,10 @@ export default function GoogleCalendarButton() {
         body: JSON.stringify({ offset, limit: BATCH }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j.success) throw new Error(j.message || t("gcal.syncFailed"));
+      if (!res.ok || !j.success) {
+        // Kèm `detail` (lỗi Google thô) để chẩn đoán khi cần.
+        throw new Error((j.message || t("gcal.syncFailed")) + (j.detail ? ` [${j.detail}]` : ""));
+      }
 
       inserted += j.inserted || 0;
       updated += j.updated || 0;
