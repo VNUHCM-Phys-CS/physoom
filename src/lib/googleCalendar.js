@@ -237,35 +237,59 @@ export async function syncUserToGoogle(email, { offset = 0, limit = Infinity } =
 
   const cal = calFor(refreshToken);
 
-  // Existing Physoom-tagged Google events → map physoomId → { gid, start }.
-  const existing = new Map();
-  let pageToken;
-  do {
-    const res = await cal.events.list({
-      calendarId,
-      privateExtendedProperty: [`physoomSource=${TAG}`],
-      showDeleted: false,
-      maxResults: 2500,
-      pageToken,
-    });
-    (res.data.items || []).forEach((it) => {
-      const pid = it.extendedProperties?.private?.physoomId;
-      // Capture the fields we sync so we can SKIP patching events that haven't
-      // changed. These come free in the list response (no extra API calls), and
-      // skipping unchanged patches is what keeps us under Google's per-minute
-      // query quota on a re-sync (previously every existing event was re-patched).
-      if (pid)
-        existing.set(pid, {
-          gid: it.id,
-          summary: it.summary || "",
-          location: it.location || "",
-          description: it.description || "",
-          start: it.start?.dateTime || it.start?.date || "",
-          end: it.end?.dateTime || it.end?.date || "",
-        });
-    });
-    pageToken = res.data.nextPageToken;
-  } while (pageToken);
+  // Liệt kê sự kiện Physoom đã có trên Google (map physoomId → thông tin) để biết
+  // cái nào chèn/cập nhật/bỏ qua. Tách hàm để có thể chạy lại sau khi tạo lại lịch.
+  const listExisting = async () => {
+    const map = new Map();
+    let pageToken;
+    do {
+      const res = await cal.events.list({
+        calendarId,
+        privateExtendedProperty: [`physoomSource=${TAG}`],
+        showDeleted: false,
+        maxResults: 2500,
+        pageToken,
+      });
+      (res.data.items || []).forEach((it) => {
+        const pid = it.extendedProperties?.private?.physoomId;
+        // Lưu các trường ta đồng bộ để BỎ QUA patch nếu không đổi (lấy free từ
+        // list, giúp không dồn quota Google/phút khi đồng bộ lại).
+        if (pid)
+          map.set(pid, {
+            gid: it.id,
+            summary: it.summary || "",
+            location: it.location || "",
+            description: it.description || "",
+            start: it.start?.dateTime || it.start?.date || "",
+            end: it.end?.dateTime || it.end?.date || "",
+          });
+      });
+      pageToken = res.data.nextPageToken;
+    } while (pageToken);
+    return map;
+  };
+
+  let existing;
+  try {
+    existing = await listExisting();
+  } catch (e) {
+    // Lịch "Physoom" đã lưu KHÔNG truy cập được — thường vì calendarId cũ được tạo
+    // dưới scope KHÁC, nay scope calendar.app.created chỉ thấy lịch do CHÍNH app
+    // này tạo. Tạo/tìm lại lịch app-created rồi thử lại. Chỉ xử lý lỗi "không thấy/
+    // không được phép"; lỗi token (invalid_grant) hay tạm thời để catch ngoài lo.
+    const code = e?.code || e?.response?.status;
+    const reason = e?.errors?.[0]?.reason || "";
+    const calInaccessible =
+      code === 404 || code === 403 || /notFound|forbidden|insufficient/i.test(reason);
+    if (!calInaccessible) throw e;
+    console.error("stored calendar inaccessible, recreating:", e?.message);
+    const newId = await ensureCalendar(authClient, null); // ném nếu token hỏng thật
+    if (newId && newId !== calendarId) {
+      calendarId = newId;
+      await User.updateOne({ email }, { $set: { "google.calendarId": newId } });
+    }
+    existing = await listExisting();
+  }
 
   const physEvs = await userEvents(email);
 
