@@ -78,7 +78,7 @@ const Links = ({ session }) => {
       {/* Brand */}
       <NavbarContent justify="start">
         <NavbarMenuToggle
-          className="sm:hidden"
+          className="lg:hidden"
           aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
         />
         <NavbarBrand>
@@ -91,8 +91,9 @@ const Links = ({ session }) => {
         </NavbarBrand>
       </NavbarContent>
 
-      {/* Desktop links */}
-      <NavbarContent className="hidden sm:flex gap-1" justify="center" data-tour="nav">
+      {/* Desktop links — chỉ hiện từ lg trở lên; dưới đó dùng menu hamburger để
+          tránh tràn thanh nav (nhiều mục: các trang + Tiện ích + nhóm hành động). */}
+      <NavbarContent className="hidden lg:flex gap-1" justify="center" data-tour="nav">
         {navItems.map((item) => {
           const active = !item.external && isActive(item.path);
           const cls = `px-3 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -158,7 +159,7 @@ const Links = ({ session }) => {
             <NotificationBell />
           </NavbarItem>
         )}
-        <NavbarItem className="hidden sm:flex">
+        <NavbarItem className="hidden lg:flex">
           <Link
             href="/guide"
             data-tour="help"
