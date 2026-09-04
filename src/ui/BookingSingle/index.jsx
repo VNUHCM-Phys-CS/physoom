@@ -1128,7 +1128,7 @@ export default function BookingSingle({ email }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     size="sm"
-                    variant="flat"
+                    variant="solid"
                     color="secondary"
                     startContent={<CalendarClockIcon size={16} />}
                   >

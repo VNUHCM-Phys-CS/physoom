@@ -70,7 +70,8 @@ export default function ExportIcsButton({ email, label }) {
   return (
     <Dropdown>
       <DropdownTrigger>
-        <Button size="sm" variant="flat" color="secondary" startContent={<CalendarPlusIcon size={16} />}>
+        {/* solid (chữ trắng trên nền tím) — flat secondary bị chìm chữ ở chế độ tối. */}
+        <Button size="sm" variant="solid" color="secondary" startContent={<CalendarPlusIcon size={16} />}>
           {label || t("ics.addToCalendar")}
         </Button>
       </DropdownTrigger>
