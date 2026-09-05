@@ -10,7 +10,8 @@ export const GET = async () => {
 
   try {
     await connectToDb();
-    const users = await User.find({}, "email name").lean();
+    // `department` cho phép "thêm nhanh theo bộ môn" khi tạo sự kiện.
+    const users = await User.find({}, "email name department").lean();
     return NextResponse.json(users);
   } catch (err) {
     console.log(err);

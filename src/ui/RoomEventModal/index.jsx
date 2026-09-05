@@ -6,6 +6,10 @@ import {
   AutocompleteItem,
   Button,
   Chip,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
   Input,
   Modal,
   ModalBody,
@@ -13,10 +17,72 @@ import {
   ModalFooter,
   ModalHeader,
 } from "@heroui/react";
+import { UsersIcon } from "lucide-react";
 import { fetcher } from "@/lib/ulti";
+import { DEPARTMENTS, normalizeDepartment } from "@/lib/departments";
 import moment from "moment";
 import { useSession } from "next-auth/react";
 import { useI18n } from "@/i18n/I18nProvider";
+
+// ─── QuickAddByDept ──────────────────────────────────────────────────────────
+// Thêm nhanh toàn bộ email của một bộ môn (hoặc tất cả) vào danh sách đã chọn —
+// tiện khi mời cả bộ môn dự sự kiện, khỏi gõ từng người.
+function QuickAddByDept({ users, selectedEmails, onAdd }) {
+  const groups = useMemo(() => {
+    const m = new Map();
+    (users ?? []).forEach((u) => {
+      if (!u.email) return;
+      const dept = normalizeDepartment(u.department) || "Khác";
+      if (!m.has(dept)) m.set(dept, []);
+      m.get(dept).push(u.email);
+    });
+    return m;
+  }, [users]);
+
+  const items = useMemo(() => {
+    const order = DEPARTMENTS.map((d) => d.name);
+    const keys = [...groups.keys()].sort((a, b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+    const all = (users ?? []).map((u) => u.email).filter(Boolean);
+    return [
+      { key: "__all", label: `Tất cả (${all.length})`, emails: all },
+      ...keys.map((d) => ({ key: d, label: `${d} (${groups.get(d).length})`, emails: groups.get(d) })),
+    ];
+  }, [groups, users]);
+
+  const add = (emails) => {
+    const set = new Set(selectedEmails);
+    emails.forEach((e) => set.add(e));
+    onAdd([...set]);
+  };
+
+  if (items.length <= 1) return null; // chưa có ai/không có bộ môn → ẩn
+
+  return (
+    <Dropdown>
+      <DropdownTrigger>
+        <Button size="sm" variant="flat" color="secondary" startContent={<UsersIcon size={14} />}>
+          Thêm nhanh theo bộ môn
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu
+        aria-label="Thêm theo bộ môn"
+        onAction={(key) => {
+          const it = items.find((i) => i.key === key);
+          if (it) add(it.emails);
+        }}
+      >
+        {items.map((it) => (
+          <DropdownItem key={it.key} startContent={it.key === "__all" ? <UsersIcon size={15} /> : null}>
+            {it.label}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+    </Dropdown>
+  );
+}
 
 // ─── UserPicker ────────────────────────────────────────────────────────────────
 export function UserPicker({ label, users, selectedEmails, onChange, multiple = true }) {
@@ -345,7 +411,12 @@ export function RoomEventModal({
               />
               <Input label={t("re.end")} type="datetime-local" isRequired min={form.start || timeMin} value={form.end} onValueChange={handleEndChange} />
               <UserPicker label={t("re.hostBy")} users={users} selectedEmails={host} onChange={setHost} multiple />
-              <UserPicker label={t("re.members")} users={users} selectedEmails={attendees} onChange={setAttendees} multiple />
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-end">
+                  <QuickAddByDept users={users} selectedEmails={attendees} onAdd={setAttendees} />
+                </div>
+                <UserPicker label={t("re.members")} users={users} selectedEmails={attendees} onChange={setAttendees} multiple />
+              </div>
               <Input label={t("event.note")} placeholder="VD: Sẽ liên hệ trường mượn hội trường B — sẽ cập nhật phòng sau." description="Ghi chú được đồng bộ luôn vào Google Calendar." value={form.note} onValueChange={(v) => setForm((f) => ({ ...f, note: v }))} />
 
               {/* Created by (create mode only) */}
